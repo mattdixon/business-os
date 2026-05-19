@@ -2,3 +2,7 @@
 [INFO] 2026-05-19T17:05:19Z PLUGIN_ROOT=/c/Users/MattDixon/.claude/plugins/cache/a5c-ai/babysitter/4.0.145
 [INFO] 2026-05-19T17:05:19Z Hook input received (2287 bytes)
 [INFO] 2026-05-19T17:05:21Z CLI exit code=1
+[INFO] 2026-05-19T17:09:39Z Hook script invoked
+[INFO] 2026-05-19T17:09:39Z PLUGIN_ROOT=/c/Users/MattDixon/.claude/plugins/cache/a5c-ai/babysitter/4.0.145
+[INFO] 2026-05-19T17:09:40Z Hook input received (1865 bytes)
+[INFO] 2026-05-19T17:09:42Z CLI exit code=1

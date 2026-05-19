@@ -1,0 +1,5 @@
+[INFO] 2026-05-19T16:42:20Z Hook script invoked
+[INFO] 2026-05-19T16:42:20Z PLUGIN_ROOT=/c/Users/MattDixon/.claude/plugins/cache/a5c-ai/babysitter/4.0.145
+[INFO] 2026-05-19T16:42:20Z CLI not found after install, using npx fallback
+[INFO] 2026-05-19T16:42:20Z Hook input received (261 bytes)
+[INFO] 2026-05-19T16:42:22Z CLI exit code=1

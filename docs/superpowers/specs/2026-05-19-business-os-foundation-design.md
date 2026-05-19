@@ -108,13 +108,33 @@ Schemas in `packages/db`. Migrations via `drizzle-kit`. Per-tenant connection pa
 - Lightweight enough to instantiate per-connection without memory blowup (unlike Prisma)
 - Same schema definition runs against every tenant DB → migrations stay uniform across clients
 
+### 2.7 Auth: server-side sessions + httpOnly cookie
+
+**Mechanism:** On login, server validates credentials against the tenant DB, creates a row in `sessions` (id, user_id, created_at, expires_at, ip, user_agent), and sets an httpOnly + Secure + SameSite=Lax cookie scoped to the tenant subdomain. Every authed request looks up the session row in the tenant DB. Logout deletes the row.
+
+**v1 auth features:**
+- Email + password (Argon2id hashing, configurable cost)
+- Password reset via emailed single-use token (15-min expiry)
+- TOTP MFA, optional per user (RFC 6238; QR-code enrollment; recovery codes table)
+
+**Deferred:** Magic-link login (reuses reset-token plumbing — small lift later), SSO/SAML (per-client enterprise need), social login (not relevant for B2B yet).
+
+**Why:**
+- Cookies + per-tenant subdomain = no cross-tenant cookie leakage
+- Server-side sessions = instant revocation (force-logout a user is a `DELETE` on one row)
+- TOTP baked in v1 avoids painful retrofit later; clients can opt in per user
+
+**Implications:**
+- Mobile native clients need to handle cookie storage (every native HTTP lib supports this). If/when we ship native mobile, we can add JWT as a parallel mechanism then.
+- Need a transactional email provider (Postmark / Resend / SES) — covered in connector section
+- Session table goes in every tenant DB, not control plane
+
 ---
 
 ## 3. Decisions Pending
 
 (Filled in as the brainstorm progresses.)
 
-- Auth mechanism inside tenant DB (sessions vs JWT, password reset, MFA)
 - Per-client extensibility model (how modules plug in)
 - Connector framework (Email: O365/Gmail/IMAP; Files: OneDrive/Dropbox/GDrive)
 - Background jobs / async work

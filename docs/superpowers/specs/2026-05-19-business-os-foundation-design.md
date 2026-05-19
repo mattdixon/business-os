@@ -1,6 +1,6 @@
 # Business OS — Foundation Design
 
-**Status:** Draft (in progress)
+**Status:** Draft — awaiting user review
 **Date:** 2026-05-19
 **Scope:** Core platform foundation. Per-client modules, mobile client, and admin UI are separate specs.
 
@@ -161,14 +161,182 @@ interface Module {
 - A client's module pack can depend on `packages/core` and `packages/module-sdk` but MUST NOT import from another client's pack
 - Lint rule (e.g. eslint-plugin-boundaries) enforces this
 
+### 2.9 Connector framework
+
+**Pattern:** Each connector *type* (email, file-storage, …) has an interface in `packages/connectors`. Each *provider* implements that interface.
+
+```ts
+interface FileStorageConnector {
+  list(path: string): Promise<FileEntry[]>;
+  read(path: string): Promise<Stream>;
+  write(path: string, content: Stream): Promise<void>;
+  delete(path: string): Promise<void>;
+  // ...
+}
+
+interface EmailConnector {
+  send(msg: OutboundEmail): Promise<{ id: string }>;
+  listInbox(opts: ListOpts): Promise<EmailHeader[]>;
+  fetch(id: string): Promise<Email>;
+  // ...
+}
+```
+
+**v1 providers:**
+- Email: Microsoft Graph (Office 365), Gmail API, IMAP+SMTP fallback
+- File storage: Microsoft Graph (OneDrive), Dropbox, Google Drive
+- Transactional email (for system mail like password reset): Postmark or Resend (single provider, separate from per-tenant email connectors)
+
+**Per-tenant config:** Tenant DB has a `connector_configs` table: which provider is bound to which capability, plus encrypted credentials (OAuth tokens or app-password). Modules request `getConnector('file-storage')` from a tenant-scoped context — they never name a provider.
+
+**OAuth flows:** Stored centrally in `packages/connectors/oauth/` — each provider has its own redirect handler. Tokens encrypted at rest in tenant DB (column-level encryption via libsodium; key from env).
+
+### 2.10 Background jobs: pg-boss
+
+Per-tenant queue: jobs live in each tenant DB (pg-boss creates its own schema). A single worker process (or N workers) connects to all tenant DBs and polls each. Modules register jobs via the `Module.jobs` field.
+
+**Why pg-boss:** No Redis to operate. Transactional with the rest of tenant data (enqueue+write in one tx). Easy to inspect (it's just a Postgres table).
+
+**Implications:** A separate worker process in `apps/api` (or `apps/worker`) — TBD whether it's a separate deploy or runs in the same container with a `--worker` flag. Default: same binary, started with a flag, deployed as a separate process for isolation.
+
+### 2.11 Deployment: single VPS + managed Postgres
+
+**v1 target:** Fly.io (or Railway / Hetzner Cloud — final pick at implementation time). Components:
+- `apps/api` — 1+ instances behind a load balancer
+- `apps/api --worker` — 1+ background worker instances
+- `apps/web` — static build served from CDN
+- Managed Postgres (control-plane DB + tenant DBs on the same cluster initially; can split later)
+- Object storage for direct-upload files that bypass connectors (S3-compatible: R2 or Backblaze B2)
+
+**Wildcard TLS:** Let's Encrypt via DNS-01 challenge, or rely on hosting provider's built-in wildcard support.
+
+### 2.12 Observability
+
+- **Logs:** Pino (structured JSON) with `tenant_slug`, `tenant_id`, `request_id`, `user_id` injected on every log line. Shipped to host's log aggregation (Fly logs, Better Stack, etc.).
+- **Errors:** Sentry, tagged with `tenant_slug` and `module_slug`.
+- **Uptime:** External ping on the control-plane health endpoint and a sample tenant health endpoint.
+- **Audit log:** Per-tenant `audit_log` table in tenant DB — every state-changing API call writes a row (actor, action, target, timestamp, request_id). This is product feature, not just ops.
+- **Defer:** OpenTelemetry tracing, metrics dashboards. Add when there's a perf problem to investigate.
+
+---
+
+## 4. Architecture Overview
+
+### 4.1 Request lifecycle (authenticated tenant request)
+
+1. **DNS** resolves `cnn.businessos.app` to the load balancer.
+2. **Load balancer / TLS** terminates TLS (wildcard cert), forwards HTTP to an API instance.
+3. **Fastify `onRequest` hook (`tenant-resolver`)** parses subdomain from `Host` header, looks up tenant in control-plane cache (5-min TTL, invalidated on tenant update). Populates `req.tenant = { id, slug, dbConfig, enabledModules }`. If tenant not found → 404.
+4. **Fastify `onRequest` hook (`db-binder`)** acquires a Drizzle instance for the tenant DB from a pool-of-pools and attaches to `req.db`.
+5. **Fastify `preHandler` hook (`auth`)** reads session cookie, looks up `sessions` row in `req.db`, validates expiry, loads user, attaches `req.user`. Public routes skip this.
+6. **Module gate (only for `/api/m/<slug>/...` routes)** checks `req.tenant.enabledModules` contains `<slug>`. 404 if not.
+7. **Route handler** runs. Validates body with Zod, calls into `packages/core` services or module-local code.
+8. **`onResponse` hook** writes audit-log row for state-changing requests; logs request line with all context.
+
+### 4.2 Tenant provisioning flow
+
+1. Operator runs `pnpm tenant:create --slug cnn --name "CNN Construction"` (CLI in `tools/`).
+2. CLI: creates a new database `tenant_cnn`, runs all core migrations + migrations for the modules listed in the tenant's enabled set, inserts tenant row in control-plane DB, prints initial admin invite link.
+3. Operator visits invite link, sets up first admin user.
+
+### 4.3 Per-tenant DB connection pool strategy
+
+- One Postgres cluster, many databases (one per tenant) — at least until scale demands sharding.
+- Each API process keeps a `Map<tenantId, Pool>` (LRU, max ~100 pools, idle eviction at 5 min).
+- Each pool: `min=0, max=5` connections. Total connection budget = `pools × max × instances`. Plan for sizing during deployment, not now.
+
+### 4.4 Tenant DB schema (core, v1)
+
+- `users` — id, email (unique), password_hash, mfa_secret (encrypted), mfa_enabled, created_at, …
+- `sessions` — id, user_id, expires_at, ip, user_agent
+- `password_reset_tokens` — token_hash, user_id, expires_at, used_at
+- `mfa_recovery_codes` — code_hash, user_id, used_at
+- `roles`, `permissions`, `role_permissions`, `user_roles` — RBAC primitives
+- `audit_log` — id, actor_user_id, action, target_type, target_id, request_id, ip, timestamp, payload jsonb
+- `connector_configs` — id, capability, provider, config_encrypted, created_by
+- `oauth_states` — short-lived state tokens for OAuth handshakes
+- `files` — first-class file metadata (id, name, size, mime, storage_provider, storage_key, owner_id, …)
+- `notifications` — id, user_id, type, payload jsonb, read_at
+- `module_state` — id, module_slug, key, value jsonb — generic KV for modules that don't want their own table yet
+- pg-boss tables (auto-created by pg-boss in its own schema)
+
+### 4.5 Control-plane DB schema
+
+- `tenants` — id, slug, name, status (active/suspended/deleting), db_host, db_name, db_user, db_password_encrypted, created_at
+- `tenant_modules` — tenant_id, module_slug, enabled, version, settings jsonb
+- `billing_*` — deferred; placeholder
+- `operator_users` — your own (operator) staff who manage the control plane (separate from any tenant's users)
+- `operator_sessions` — for the control-plane admin UI
+
+---
+
+## 5. Cross-cutting concerns
+
+### 5.1 Secrets & encryption
+
+- All connector OAuth tokens and connector credentials: column-level encryption with libsodium `crypto_secretbox`. Key from env var, rotated via control-plane operation (re-encrypt all rows).
+- Tenant DB passwords: encrypted in control-plane `tenants` table.
+- Session cookies: opaque ids, `HttpOnly; Secure; SameSite=Lax; Path=/; Domain=<tenant>.businessos.app`.
+
+### 5.2 Migrations
+
+- Two migration sets: control-plane (`packages/db/migrations/control-plane`) and tenant (`packages/db/migrations/tenant`).
+- Tenant migrations broken into "core" + per-module. A migration runner CLI iterates tenants, applies pending migrations in deterministic order.
+- Migrations are forward-only. Down migrations only exist for the most-recent unreleased one (escape hatch in dev).
+
+### 5.3 Testing
+
+- **Unit tests:** Vitest. Pure functions and isolated services.
+- **Integration tests:** Vitest + a real Postgres in Docker. Each test gets a freshly-migrated tenant DB. No mocks for DB layer.
+- **Contract tests:** Generated OpenAPI client tested against the live API in a smoke suite.
+- **Per-module tests:** Each module package has its own test suite using the same harness.
+
+### 5.4 What lives where (recap)
+
+| Concern | Lives in |
+|---|---|
+| Tenant routing logic | `apps/api` Fastify plugin |
+| User identity | Tenant DB |
+| Tenant registry, billing | Control-plane DB |
+| Sessions | Tenant DB |
+| OAuth tokens | Tenant DB (encrypted) |
+| Background jobs | Tenant DB (pg-boss) |
+| Files (metadata) | Tenant DB |
+| Files (blobs) | Object storage OR external connector (Dropbox/OneDrive) |
+| Per-client business logic | `clients/<slug>/` package |
+| Reusable connectors | `packages/connectors` |
+
+---
+
+## 6. Success criteria for the Foundation
+
+The foundation is "done" when:
+
+1. A new tenant can be provisioned with one CLI command, including DB creation, migrations, and operator invite.
+2. A user can sign up via invite, set up password + optional TOTP, log in, and log out — all scoped to their tenant subdomain.
+3. A core API endpoint (e.g. `GET /api/users/me`) works correctly across two distinct tenants on the same instance with zero data crossover.
+4. A minimal example module (under `clients/demo/`) demonstrates: enabling it on a tenant adds its routes, applies its migrations, and disabling it removes route access without dropping data.
+5. A connector can be configured (e.g. Dropbox OAuth) and accessed by module code via `getConnector('file-storage')`.
+6. A background job enqueued from a request runs and writes an audit-log row in the correct tenant DB.
+7. Integration tests pass against a real Postgres covering: signup, login (with and without MFA), password reset, tenant isolation, module gating, connector config, and job execution.
+8. Sentry receives a deliberately-thrown error, tagged with the correct `tenant_slug`.
+
+---
+
+## 7. Out of scope (separate specs)
+
+- Mobile client (PWA vs React Native decision)
+- Admin/operator UI for managing tenants (control-plane UI)
+- Tenant-facing web UI shell
+- CNN Construction's Prospector module
+- CNN Construction's Proposal Automation module
+- Billing
+- SSO / SAML
+- Marketplace / third-party developer modules
+
+
 ---
 
 ## 3. Decisions Pending
 
-(Filled in as the brainstorm progresses.)
-
-- Connector framework (Email: O365/Gmail/IMAP; Files: OneDrive/Dropbox/GDrive)
-- Background jobs / async work
-- Deployment target
-- Observability baseline
-- Operator/support access mechanism
+(All key decisions resolved — sections 2.9–2.12 below. Operator/support access mechanism deferred to the admin-UI spec.)

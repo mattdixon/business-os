@@ -129,13 +129,44 @@ Schemas in `packages/db`. Migrations via `drizzle-kit`. Per-tenant connection pa
 - Need a transactional email provider (Postmark / Resend / SES) — covered in connector section
 - Session table goes in every tenant DB, not control plane
 
+### 2.8 Extensibility: static plugin registry
+
+**Concept:** Each client's custom functionality lives in `clients/<slug>/` as a TypeScript package that exports a `ClientModulePack`. A pack contains one or more `Module` objects. The API server statically imports every pack at build time. The control-plane DB stores, per tenant, which modules are enabled.
+
+**Module shape (defined in `packages/module-sdk`):**
+```ts
+interface Module {
+  slug: string;                      // 'prospector', 'proposal-automation'
+  version: string;
+  routes?: FastifyPluginAsync;       // module's API routes, mounted at /api/m/<slug>/
+  migrations?: Migration[];          // tenant-DB schema additions owned by this module
+  jobs?: JobDefinition[];            // background jobs registered with the queue
+  permissions?: PermissionDef[];     // roles/permissions this module introduces
+  connectorRequirements?: string[];  // e.g. ['file-storage', 'email'] — provisioning checks tenant has these
+}
+```
+
+**Request-time enforcement:** A Fastify pre-handler reads the tenant's `enabledModules` list (cached). If a request hits `/api/m/prospector/...` and the tenant doesn't have `prospector` enabled, return 404.
+
+**Migrations:** Module migrations are tagged with the module slug. When a tenant enables a module, the migration runner applies that module's migrations to that tenant's DB. Disabling a module does NOT drop tables (data preserved; reversible).
+
+**Why static over dynamic:**
+- Type safety end-to-end (module routes know core types)
+- One binary to deploy, debug, and observe
+- Security: only code you committed runs in your process
+- Cost (rebuild to ship a new client) is acceptable while we're operating a small number of clients
+
+**Implications:**
+- Adding a new client = new directory under `clients/`, register the pack in `apps/api/src/modules.ts`, deploy
+- A client's module pack can depend on `packages/core` and `packages/module-sdk` but MUST NOT import from another client's pack
+- Lint rule (e.g. eslint-plugin-boundaries) enforces this
+
 ---
 
 ## 3. Decisions Pending
 
 (Filled in as the brainstorm progresses.)
 
-- Per-client extensibility model (how modules plug in)
 - Connector framework (Email: O365/Gmail/IMAP; Files: OneDrive/Dropbox/GDrive)
 - Background jobs / async work
 - Deployment target

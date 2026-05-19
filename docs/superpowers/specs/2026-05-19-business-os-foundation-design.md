@@ -59,15 +59,29 @@ URL pattern: `<tenant-slug>.businessos.app` (e.g. `cnn.businessos.app`). Tenant 
 
 **Open items:** how to keep control-plane lookups fast (cache tenant→DB mapping in memory with TTL invalidation).
 
+### 2.4 API framework: Fastify + Zod + OpenAPI
+
+REST + JSON. Fastify for the HTTP server, Zod for runtime request/response validation, `@fastify/swagger` (or `fastify-zod-openapi`) for auto-generated OpenAPI 3 spec. Frontend and any future mobile client consume a typed client generated from the OpenAPI document.
+
+**Why:**
+- Framework-agnostic wire format: web, PWA, React Native, native iOS/Android, and third-party integrators all consume the same REST API
+- Zod gives us one schema definition that drives validation, types, and OpenAPI docs
+- No lock-in: the API contract lives in OpenAPI, not in a TS-only client library
+- Per-tenant DB routing is easy to add as a Fastify plugin (`req.tenant` populated by hostname-parsing hook before auth)
+
+**Implications:**
+- Slightly more codegen ceremony than tRPC, but worth it for mobile portability
+- Need a code-generation step in CI to keep the typed client in sync (e.g. `openapi-typescript` or `orval`)
+
 ---
 
 ## 3. Decisions Pending
 
 (Filled in as the brainstorm progresses.)
 
-- Stack & monorepo layout
+- Monorepo layout & tooling (pnpm/turbo/nx)
+- ORM/query layer (Drizzle vs Prisma vs Kysely vs raw)
 - Auth mechanism inside tenant DB (sessions vs JWT, password reset, MFA)
-- API framework choice (Fastify / Hono / NestJS / tRPC / other)
 - Per-client extensibility model (how modules plug in)
 - Connector framework (Email: O365/Gmail/IMAP; Files: OneDrive/Dropbox/GDrive)
 - Background jobs / async work

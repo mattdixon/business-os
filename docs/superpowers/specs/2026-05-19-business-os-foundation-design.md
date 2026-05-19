@@ -73,14 +73,47 @@ REST + JSON. Fastify for the HTTP server, Zod for runtime request/response valid
 - Slightly more codegen ceremony than tRPC, but worth it for mobile portability
 - Need a code-generation step in CI to keep the typed client in sync (e.g. `openapi-typescript` or `orval`)
 
+### 2.5 Monorepo: pnpm workspaces + Turborepo
+
+```
+business-os/
+├── apps/
+│   ├── api/             # Fastify server (the only deployed backend)
+│   ├── web/             # React admin/operator UI
+│   └── web-tenant/      # React tenant-facing UI  (may merge with web later)
+├── packages/
+│   ├── db/              # Drizzle schemas (control-plane + tenant) + migration runner
+│   ├── core/            # Domain services usable by core or modules (auth, users, files, audit, notifications)
+│   ├── connectors/      # Email + file-storage connector framework + built-in implementations
+│   ├── module-sdk/      # Public API surface that per-client modules build against
+│   ├── api-contract/    # Zod schemas + generated OpenAPI types (shared by api + web clients)
+│   └── ui/              # Shared React components (design system)
+├── clients/
+│   └── cnn-construction/  # Per-client module pack (Prospector, Proposal automation)
+└── tools/                 # Build scripts, migration CLI, tenant-provisioning CLI
+```
+
+**Why this layout:**
+- `apps/api` is the only deployable backend — modules and client packs are libraries it imports
+- `packages/api-contract` is the single source of truth for request/response shapes; both server and web import from it
+- `clients/<slug>/` is the extensibility seam — each client gets a directory, opted into via tenant config
+- `packages/module-sdk` defines what a client module is *allowed* to do (so we can keep core stable as modules evolve)
+
+### 2.6 Query layer: Drizzle ORM
+
+Schemas in `packages/db`. Migrations via `drizzle-kit`. Per-tenant connection pattern: a small `getTenantDb(tenant)` helper returns a Drizzle instance bound to that tenant's connection pool (pool acquired from a tenant-keyed cache).
+
+**Why:**
+- TS-first, no codegen step (the schema *is* the type)
+- Lightweight enough to instantiate per-connection without memory blowup (unlike Prisma)
+- Same schema definition runs against every tenant DB → migrations stay uniform across clients
+
 ---
 
 ## 3. Decisions Pending
 
 (Filled in as the brainstorm progresses.)
 
-- Monorepo layout & tooling (pnpm/turbo/nx)
-- ORM/query layer (Drizzle vs Prisma vs Kysely vs raw)
 - Auth mechanism inside tenant DB (sessions vs JWT, password reset, MFA)
 - Per-client extensibility model (how modules plug in)
 - Connector framework (Email: O365/Gmail/IMAP; Files: OneDrive/Dropbox/GDrive)

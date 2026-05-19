@@ -18,7 +18,7 @@ A multi-tenant Business OS platform that serves multiple client businesses from 
 
 ### 2.1 Tenancy: Database-per-tenant
 
-Each client gets their own Postgres database. The platform-level "control plane" database stores the tenant registry, user identities (or federated identity mapping), billing, and routing metadata.
+Each client gets their own Postgres database. A platform-level "control plane" database stores only cross-tenant metadata: the tenant registry, per-tenant module configuration, operator (your own staff) accounts, and billing. User identities for tenant users live inside each tenant DB (§2.2), not here.
 
 **Why:**
 - Strongest isolation — a bug in core can't leak data across clients
@@ -197,7 +197,7 @@ Per-tenant queue: jobs live in each tenant DB (pg-boss creates its own schema). 
 
 **Why pg-boss:** No Redis to operate. Transactional with the rest of tenant data (enqueue+write in one tx). Easy to inspect (it's just a Postgres table).
 
-**Implications:** A separate worker process in `apps/api` (or `apps/worker`) — TBD whether it's a separate deploy or runs in the same container with a `--worker` flag. Default: same binary, started with a flag, deployed as a separate process for isolation.
+**Worker process:** Same `apps/api` binary, started with `--worker` flag, deployed as a separate process from the HTTP server for isolation (a runaway job can't take down the API). Both processes share the same code, connection pools, and tenant resolver.
 
 ### 2.11 Deployment: single VPS + managed Postgres
 
@@ -333,10 +333,4 @@ The foundation is "done" when:
 - Billing
 - SSO / SAML
 - Marketplace / third-party developer modules
-
-
----
-
-## 3. Decisions Pending
-
-(All key decisions resolved — sections 2.9–2.12 below. Operator/support access mechanism deferred to the admin-UI spec.)
+- Operator/support access mechanism (which control-plane UI uses to "sudo into" a tenant DB)

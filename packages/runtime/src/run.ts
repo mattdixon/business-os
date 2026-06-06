@@ -24,6 +24,12 @@ export interface RunAgentDeps {
    * tests that don't exercise the queue.
    */
   jobs?: { enqueue(name: string, payload: unknown, opts?: { delayMs?: number; idempotencyKey?: string }): Promise<string> };
+  /**
+   * Optional error sink. When provided, runAgent calls this whenever an
+   * agent throws — used by client shells to forward to Sentry (via
+   * captureAgentError in @business-os/core/sentry).
+   */
+  onAgentError?: (err: unknown, ctx: { agentSlug: string; runId: string }) => void;
 }
 
 export interface RunTrigger {
@@ -139,6 +145,13 @@ export async function runAgent(
       })
       .where(eq(agentRuns.id, runId));
     childLogger.error({ err }, 'agent.run threw');
+    if (deps.onAgentError) {
+      try {
+        deps.onAgentError(err, { agentSlug: slug, runId });
+      } catch {
+        // never let an error sink mask the original throw
+      }
+    }
     throw err;
   }
 }

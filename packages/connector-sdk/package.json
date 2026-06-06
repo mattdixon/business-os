@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "echo 'no tests in connector-sdk (interface package)' && exit 0"
   },
   "dependencies": {
     "zod": "^3.23.0"

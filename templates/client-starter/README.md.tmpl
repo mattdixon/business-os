@@ -1,0 +1,39 @@
+# {{CLIENT_NAME}} — Business OS instance
+
+This repo is the per-client shell. It pins versioned `@business-os/*`
+packages, declares which agents and connectors are wired in, and is what
+gets deployed to {{CLIENT_NAME}}'s infrastructure.
+
+**Most of the work lives in those framework packages, not here.** Look in
+`business-os.config.ts` to see what's installed; configure schedules,
+credentials, and per-agent settings via the operator UI, NOT by editing
+files in this repo.
+
+## Local development
+
+```sh
+pnpm install
+# Start Postgres for this install
+docker compose up -d postgres
+# Boot the API + worker
+pnpm dev
+```
+
+The API listens on `http://localhost:4673`.
+
+## Add a connector or agent
+
+1. Add the package to `dependencies` in `package.json`.
+2. Import + register it in `business-os.config.ts`.
+3. Restart. The operator UI surfaces the new thing for configuration.
+
+## Deploy
+
+See `deploy/`. A Dockerfile is included as a starting point; swap in your
+hosting provider's deploy pipeline.
+
+## Secrets
+
+`SECRETS_KEY` in `.env` is the libsodium key that encrypts every
+operator-configured credential at rest. Rotating it requires re-keying
+all stored secrets — don't lose it.

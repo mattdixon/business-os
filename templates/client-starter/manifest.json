@@ -1,0 +1,31 @@
+{
+  "$comment": "Files in this template that should be copied verbatim and (if listed under tmplFiles) have {{PLACEHOLDERS}} substituted. Manifest is read by @business-os/create-client.",
+  "tmplFiles": [
+    "package.json.tmpl",
+    "tsconfig.json.tmpl",
+    ".env.example.tmpl",
+    ".gitignore.tmpl",
+    "business-os.config.ts.tmpl",
+    "src/index.ts.tmpl",
+    "src/migrate.ts.tmpl",
+    "README.md.tmpl",
+    "deploy/Dockerfile.tmpl",
+    "docker-compose.yml.tmpl"
+  ],
+  "verbatim": [
+    "agents/.gitkeep",
+    "migrations/.gitkeep"
+  ],
+  "tmplToFinal": {
+    "package.json.tmpl": "package.json",
+    "tsconfig.json.tmpl": "tsconfig.json",
+    ".env.example.tmpl": ".env.example",
+    ".gitignore.tmpl": ".gitignore",
+    "business-os.config.ts.tmpl": "business-os.config.ts",
+    "src/index.ts.tmpl": "src/index.ts",
+    "src/migrate.ts.tmpl": "src/migrate.ts",
+    "README.md.tmpl": "README.md",
+    "deploy/Dockerfile.tmpl": "deploy/Dockerfile",
+    "docker-compose.yml.tmpl": "docker-compose.yml"
+  }
+}

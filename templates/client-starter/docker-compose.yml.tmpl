@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: {{CLIENT_SLUG}}-os-postgres
+    environment:
+      POSTGRES_USER: businessos
+      POSTGRES_PASSWORD: businessos
+      POSTGRES_DB: {{CLIENT_SLUG}}_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - {{CLIENT_SLUG}}-os-pgdata:/var/lib/postgresql/data
+
+volumes:
+  {{CLIENT_SLUG}}-os-pgdata:

@@ -1,0 +1,63 @@
+/**
+ * {{CLIENT_NAME}} — entry point.
+ *
+ * Same binary serves both modes:
+ *   pnpm start              -> API process (Fastify listening on API_PORT)
+ *   pnpm start:worker       -> background worker (scheduler running, no HTTP)
+ *
+ * `pnpm dev` is the development equivalent using tsx.
+ */
+
+import { startServer } from '@business-os/core';
+import { createSecretsStore, loadSecretsKey } from '@business-os/core/secrets';
+import { createDb } from '@business-os/db';
+import {
+  Scheduler,
+  createConnectorResolver,
+} from '@business-os/runtime';
+import { pino } from 'pino';
+
+import { buildRegistry, extraMigrations } from '../business-os.config.js';
+
+const mode: 'api' | 'worker' | 'both' = process.argv.includes('--worker')
+  ? 'worker'
+  : process.env.NODE_ENV === 'development'
+    ? 'both'
+    : 'api';
+
+const registry = buildRegistry();
+
+const started = await startServer({
+  inventory: registry,
+  migrations: extraMigrations,
+  mode,
+  triggerFactory: ({ startScheduler }) => {
+    const { db } = createDb({ url: process.env.DATABASE_URL! });
+    const secrets = createSecretsStore(db, loadSecretsKey(process.env));
+    const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
+    const connectors = createConnectorResolver({ db, secrets, registry, logger });
+    const scheduler = new Scheduler({ db, registry, connectors, logger });
+    return {
+      triggerManual: (slug, input, userId) =>
+        scheduler.triggerManual(slug, input, userId),
+      start: () => {
+        if (startScheduler) scheduler.start();
+      },
+      stop: () => scheduler.stop(),
+    };
+  },
+});
+
+const handle = async (sig: NodeJS.Signals): Promise<void> => {
+  // eslint-disable-next-line no-console
+  console.log(`[{{CLIENT_SLUG}}-os] ${sig} received, shutting down...`);
+  await started.shutdown();
+  process.exit(0);
+};
+process.on('SIGINT', handle);
+process.on('SIGTERM', handle);
+
+if (started.url) {
+  // eslint-disable-next-line no-console
+  console.log(`[{{CLIENT_SLUG}}-os] ready: ${started.url}`);
+}

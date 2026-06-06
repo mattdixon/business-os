@@ -1,0 +1,37 @@
+/**
+ * {{CLIENT_NAME}} — Business OS registry.
+ *
+ * This file declares WHAT is installed at this client. Schedules,
+ * credentials, on/off, and per-agent settings live in the DB and are
+ * managed in the operator UI — NOT here.
+ *
+ * To add a shared agent: import + register it below. To add a client-custom
+ * agent: drop it under `./agents/` and register it the same way.
+ */
+
+import { Registry, Scheduler } from '@business-os/runtime';
+import { createConnectorResolver } from '@business-os/runtime';
+import anthropic from '@business-os/connector-anthropic';
+
+import type { MigrationOwner } from '@business-os/db';
+
+export function buildRegistry(): Registry {
+  const registry = new Registry();
+
+  // ---- Connectors ----
+  registry.registerConnectorProvider(anthropic);
+
+  // ---- Agents ----
+  // registry.registerAgent(leadgen);
+  // registry.registerAgent(prospecting);
+
+  return registry;
+}
+
+/** Additional migration owners for agents + connectors that ship their own. */
+export const extraMigrations: MigrationOwner[] = [
+  // ...leadgen.migrations,
+];
+
+export type { Registry, Scheduler };
+export { createConnectorResolver };

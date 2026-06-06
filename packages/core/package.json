@@ -21,6 +21,14 @@
     "./audit": {
       "types": "./dist/audit/index.d.ts",
       "import": "./dist/audit/index.js"
+    },
+    "./boot": {
+      "types": "./dist/boot/start.d.ts",
+      "import": "./dist/boot/start.js"
+    },
+    "./inventory": {
+      "types": "./dist/inventory.d.ts",
+      "import": "./dist/inventory.js"
     }
   },
   "files": ["dist"],

@@ -1,0 +1,28 @@
+/**
+ * {{CLIENT_NAME}} — standalone migrator.
+ *
+ * Boot path: `startServer` already runs migrations on startup. This script
+ * exists for the cases where you want to run them out-of-process, e.g. as a
+ * deploy-time step before the app comes up.
+ */
+
+import { createDb, runMigrations, coreMigrations } from '@business-os/db';
+import { extraMigrations } from '../business-os.config.js';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('DATABASE_URL is required');
+
+const { sql } = createDb({ url });
+
+const result = await runMigrations(sql, [coreMigrations, ...extraMigrations]);
+
+// eslint-disable-next-line no-console
+console.log(
+  `applied: ${result.applied.length}, skipped (already applied): ${result.skipped.length}`,
+);
+for (const a of result.applied) {
+  // eslint-disable-next-line no-console
+  console.log(`  + ${a.owner}/${a.name}`);
+}
+
+await sql.end({ timeout: 5 });

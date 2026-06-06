@@ -3,4 +3,5 @@ packages:
   - "agents/*"
   - "connectors/*"
   - "tools/*"
-  - "templates/client-starter"
+# templates/client-starter is intentionally NOT a workspace package — it's
+# raw scaffolder input read by @business-os/create-client.

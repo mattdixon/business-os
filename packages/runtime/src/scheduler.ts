@@ -33,6 +33,8 @@ export interface SchedulerDeps {
    * throws — same fallback as runAgent() without a backend.
    */
   jobs?: { enqueue(name: string, payload: unknown, opts?: { delayMs?: number; idempotencyKey?: string }): Promise<string> };
+  /** Forwarded to runAgent.onAgentError. */
+  onAgentError?: (err: unknown, ctx: { agentSlug: string; runId: string }) => void;
 }
 
 export class Scheduler {
@@ -113,6 +115,7 @@ export class Scheduler {
           connectors: this.deps.connectors,
           logger: this.deps.logger,
           jobs: this.deps.jobs,
+          onAgentError: this.deps.onAgentError,
         },
         slug,
         input,

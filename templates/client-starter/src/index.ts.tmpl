@@ -8,7 +8,7 @@
  * `pnpm dev` is the development equivalent using tsx.
  */
 
-import { startServer } from '@business-os/core';
+import { startServer, captureAgentError } from '@business-os/core';
 import { createSecretsStore, loadSecretsKey } from '@business-os/core/secrets';
 import { createDb } from '@business-os/db';
 import {
@@ -45,7 +45,14 @@ const started = await startServer({
       connectors,
       logger,
     });
-    const scheduler = new Scheduler({ db, registry, connectors, logger, jobs });
+    const onAgentError = (err: unknown, ctx: { agentSlug: string; runId: string }): void => {
+      captureAgentError(err, {
+        agentSlug: ctx.agentSlug,
+        runId: ctx.runId,
+        clientSlug: process.env.CLIENT_SLUG ?? '{{CLIENT_SLUG}}',
+      });
+    };
+    const scheduler = new Scheduler({ db, registry, connectors, logger, jobs, onAgentError });
     return {
       triggerManual: (slug, input, userId) =>
         scheduler.triggerManual(slug, input, userId),

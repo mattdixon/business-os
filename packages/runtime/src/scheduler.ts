@@ -27,6 +27,12 @@ export interface SchedulerDeps {
   registry: Registry;
   connectors: ConnectorResolver;
   logger: Logger;
+  /**
+   * Optional jobs backend. When wired, agents triggered by the scheduler
+   * (cron/manual/event) can use ctx.jobs.enqueue. When omitted, enqueue
+   * throws — same fallback as runAgent() without a backend.
+   */
+  jobs?: { enqueue(name: string, payload: unknown, opts?: { delayMs?: number; idempotencyKey?: string }): Promise<string> };
 }
 
 export class Scheduler {
@@ -106,6 +112,7 @@ export class Scheduler {
           registry: this.deps.registry,
           connectors: this.deps.connectors,
           logger: this.deps.logger,
+          jobs: this.deps.jobs,
         },
         slug,
         input,

@@ -69,6 +69,12 @@ export interface AgentManifest {
 
 export interface AgentSummary extends AgentManifest {
   settings: unknown;
+  /**
+   * Discriminated-union description of the agent's settings schema, produced
+   * by zodToFieldSchema on the server. Used by the UI to auto-render the
+   * settings form.
+   */
+  settingsSchema?: unknown;
   lastRun: AgentRun | null;
 }
 

@@ -5,3 +5,4 @@ export * from './app.js';
 export * from './boot/start.js';
 export * from './boot/env.js';
 export * from './inventory.js';
+export * from './zod-form.js';

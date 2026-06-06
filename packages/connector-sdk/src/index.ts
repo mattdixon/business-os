@@ -105,8 +105,8 @@ export interface LlmStreamChunk {
 }
 
 export interface FileStorageCapability {
-  put(key: string, body: Buffer | Uint8Array, contentType?: string): Promise<{ url: string }>;
-  get(key: string): Promise<Buffer>;
+  put(key: string, body: Uint8Array, contentType?: string): Promise<{ url: string }>;
+  get(key: string): Promise<Uint8Array>;
   signedUrl(key: string, ttlSeconds: number): Promise<string>;
   delete(key: string): Promise<void>;
 }

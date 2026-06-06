@@ -1,0 +1,132 @@
+import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import type { Db } from '@business-os/db';
+import { agentRuns, settings as settingsTable } from '@business-os/db';
+import type {
+  AgentContext,
+  AgentResult,
+  Logger as AgentLogger,
+} from '@business-os/agent-sdk';
+import type { ConnectorCapabilityMap } from '@business-os/connector-sdk';
+import type { Logger } from 'pino';
+import { audit, type AuditContext } from '@business-os/core/audit';
+import type { Registry } from './registry.js';
+import type { ConnectorResolver } from './active-connectors.js';
+
+export interface RunAgentDeps {
+  db: Db;
+  registry: Registry;
+  connectors: ConnectorResolver;
+  logger: Logger;
+}
+
+export interface RunTrigger {
+  kind: 'cron' | 'manual' | 'event';
+  /** cron expression, user-id for manual, or topic for event */
+  detail: string;
+  /** When kind === 'manual', the user that pressed "Run now" */
+  triggeredBy?: string;
+}
+
+const SETTINGS_SCOPE = (slug: string): string => `agent:${slug}`;
+
+function adaptLogger(p: Logger): AgentLogger {
+  return {
+    trace: (o, m) => p.trace(o as object, m),
+    debug: (o, m) => p.debug(o as object, m),
+    info: (o, m) => p.info(o as object, m),
+    warn: (o, m) => p.warn(o as object, m),
+    error: (o, m) => p.error(o as object, m),
+  };
+}
+
+/**
+ * Runs an agent end-to-end:
+ *   1. Inserts an agent_runs row (status: in-flight, no end yet).
+ *   2. Loads + validates settings against the manifest schema.
+ *   3. Builds the AgentContext: logger, db, connector resolver, audit, jobs.
+ *   4. Calls agent.run(ctx, input).
+ *   5. Stamps the agent_runs row with ok/summary/details/ended_at.
+ *
+ * Throws are caught: a thrown agent error is recorded as ok=false on the row
+ * (and re-thrown for the scheduler's own bookkeeping).
+ */
+export async function runAgent(
+  deps: RunAgentDeps,
+  slug: string,
+  input: unknown,
+  trigger: RunTrigger,
+): Promise<{ runId: string; result: AgentResult }> {
+  const agent = deps.registry.getAgent(slug);
+  const runId = randomUUID();
+
+  await deps.db.insert(agentRuns).values({
+    id: runId,
+    agentSlug: slug,
+    trigger: `${trigger.kind}:${trigger.detail}`,
+    triggeredBy: trigger.triggeredBy,
+  });
+
+  // Settings (parsed against the manifest's schema; agent never sees raw JSON).
+  const rows = await deps.db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, SETTINGS_SCOPE(slug)))
+    .limit(1);
+  const rawSettings = rows[0]?.value ?? {};
+  const settings = agent.manifest.settingsSchema.parse(rawSettings);
+
+  const childLogger = deps.logger.child({ agent_slug: slug, run_id: runId });
+
+  const ctx: AgentContext = {
+    settings,
+    logger: adaptLogger(childLogger),
+    connector: (<C extends keyof ConnectorCapabilityMap>(capability: C) =>
+      deps.connectors.resolve(capability)) as unknown as AgentContext['connector'],
+    db: deps.db,
+    audit: async (action, meta) => {
+      const ac: AuditContext = {
+        db: deps.db,
+        requestId: runId, // run_id correlates with logs
+        userId: trigger.triggeredBy ?? null,
+        agentSlug: slug,
+      };
+      await audit(ac, action, meta);
+    },
+    jobs: {
+      enqueue: async () => {
+        // pg-boss integration lands in a follow-up slice; throw clearly until then.
+        throw new Error('jobs.enqueue: queue backend not configured (lands with pg-boss)');
+      },
+    },
+    runId,
+  };
+
+  try {
+    const result = await agent.run(ctx, input);
+    await deps.db
+      .update(agentRuns)
+      .set({
+        endedAt: new Date(),
+        ok: result.ok,
+        summary: result.summary,
+        details: result.details ?? null,
+      })
+      .where(eq(agentRuns.id, runId));
+    childLogger.info({ ok: result.ok, summary: result.summary }, 'agent.run finished');
+    return { runId, result };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await deps.db
+      .update(agentRuns)
+      .set({
+        endedAt: new Date(),
+        ok: false,
+        summary: `error: ${message}`,
+        details: { error: message },
+      })
+      .where(eq(agentRuns.id, runId));
+    childLogger.error({ err }, 'agent.run threw');
+    throw err;
+  }
+}

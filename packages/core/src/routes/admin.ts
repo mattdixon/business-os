@@ -7,6 +7,7 @@ import {
   connectorInstances,
 } from '@business-os/db';
 import { requireUser } from './_require-user.js';
+import { zodToFieldSchema } from '../zod-form.js';
 
 /**
  * Admin / operator API.

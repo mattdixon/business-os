@@ -3,8 +3,10 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { Db } from '@business-os/db';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerAdminRoutes } from './routes/admin.js';
 import type { SecretsStore } from './secrets/index.js';
 import { audit, type AuditContext } from './audit/index.js';
+import type { AgentInventory, ManualTriggerer } from './inventory.js';
 
 export const SESSION_COOKIE = 'bos_sess';
 
@@ -20,6 +22,17 @@ export interface AppDeps {
   cookieSecure?: boolean;
   /** Fastify logger options. Tests pass `false` to silence. */
   logger?: boolean | { level?: string };
+  /**
+   * Inventory of what's registered (agents, connectors). The runtime's
+   * Registry satisfies this. When omitted, admin endpoints that need it
+   * return 503 — useful for tests of the auth-only surface.
+   */
+  inventory?: AgentInventory;
+  /**
+   * Manual run dispatcher. The runtime's Scheduler satisfies this. When
+   * omitted, `POST /api/agents/:slug/run` returns 503.
+   */
+  trigger?: ManualTriggerer;
 }
 
 declare module 'fastify' {
@@ -103,6 +116,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   });
 
   registerAuthRoutes(app);
+  registerAdminRoutes(app);
 
   return app;
 }

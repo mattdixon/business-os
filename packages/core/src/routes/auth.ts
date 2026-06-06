@@ -1,4 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { users } from '@business-os/db';
 import { authContract } from '@business-os/api-contract';
 import { SESSION_COOKIE } from '../app.js';
 import { requireUser } from './_require-user.js';
@@ -11,6 +13,7 @@ import {
   generateTotpSecret,
   setUserTotpSecret,
   getUserTotpSecret,
+  clearUserTotpSecret,
   verifyTotpCode,
 } from '../auth/index.js';
 
@@ -134,7 +137,15 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
   // ---- GET /auth/me ----
   app.get('/auth/me', { preHandler: requireUser }, async (req) => {
-    return { user: req.user };
+    // Look up TOTP-enrollment state from the user row so the UI knows whether to
+    // show the enroll flow or the disable button.
+    const rows = await req.deps.db
+      .select({ totpSecretEncrypted: users.totpSecretEncrypted })
+      .from(users)
+      .where(eq(users.id, req.user!.id))
+      .limit(1);
+    const totpEnrolled = !!rows[0]?.totpSecretEncrypted;
+    return { user: req.user, totpEnrolled };
   });
 
   // ---- POST /auth/password-reset/request ----
@@ -219,6 +230,29 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: 'invalid_code' });
       }
       await req.audit('auth.totp.confirmed');
+      return { ok: true as const };
+    },
+  );
+
+  // ---- POST /auth/totp/disable ----  (requires a current code as proof of presence)
+  app.post(
+    '/auth/totp/disable',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      const parsed = authContract.ConfirmTotpRequest.safeParse(req.body);
+      if (!parsed.success) return reply.code(400).send({ error: 'invalid_input' });
+      const secret = await getUserTotpSecret(
+        req.deps.db,
+        req.user!.id,
+        req.deps.encryptionKey,
+      );
+      if (!secret) return reply.code(409).send({ error: 'not_enrolled' });
+      if (!verifyTotpCode(secret, parsed.data.code)) {
+        await req.audit('auth.totp.disable_failed');
+        return reply.code(400).send({ error: 'invalid_code' });
+      }
+      await clearUserTotpSecret(req.deps.db, req.user!.id);
+      await req.audit('auth.totp.disabled');
       return { ok: true as const };
     },
   );

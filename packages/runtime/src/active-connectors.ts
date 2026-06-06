@@ -24,8 +24,17 @@ import type { Logger } from 'pino';
  */
 
 export interface ConnectorResolver {
+  /**
+   * Resolve a connector for a capability.
+   * - Default: returns the operator-chosen *active* provider for the capability.
+   * - With `{ providerSlug }`: returns the named provider regardless of which
+   *   is currently marked active. Used when an agent wants to pin its own
+   *   provider per-run (e.g. operator configured Anthropic as the default
+   *   but a specific agent is wired to OpenAI in its settings).
+   */
   resolve<C extends keyof ConnectorCapabilityMap>(
     capability: C,
+    opts?: { providerSlug?: string },
   ): Promise<ConnectorCapabilityMap[C]>;
 }
 
@@ -49,23 +58,35 @@ export function createConnectorResolver(deps: ResolverDeps): ConnectorResolver {
   return {
     async resolve<C extends keyof ConnectorCapabilityMap>(
       capability: C,
+      opts?: { providerSlug?: string },
     ): Promise<ConnectorCapabilityMap[C]> {
       const cap = capability as string;
+      const where = opts?.providerSlug
+        ? and(
+            eq(connectorInstances.capability, cap),
+            eq(connectorInstances.providerSlug, opts.providerSlug),
+          )
+        : and(
+            eq(connectorInstances.capability, cap),
+            eq(connectorInstances.isActive, true),
+          );
       const rows = await deps.db
         .select({
           id: connectorInstances.id,
           providerSlug: connectorInstances.providerSlug,
         })
         .from(connectorInstances)
-        .where(
-          and(
-            eq(connectorInstances.capability, cap),
-            eq(connectorInstances.isActive, true),
-          ),
-        )
+        .where(where)
         .limit(1);
       const row = rows[0];
-      if (!row) throw new NoActiveConnectorError(cap);
+      if (!row) {
+        if (opts?.providerSlug) {
+          throw new NoActiveConnectorError(
+            `${cap} (no instance for provider "${opts.providerSlug}")`,
+          );
+        }
+        throw new NoActiveConnectorError(cap);
+      }
 
       const provider = deps.registry.getConnectorProvider(capability, row.providerSlug);
       const scope = `connector:${cap}:${row.id}`;

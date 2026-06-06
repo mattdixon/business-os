@@ -81,8 +81,11 @@ export async function runAgent(
   const ctx: AgentContext = {
     settings,
     logger: adaptLogger(childLogger),
-    connector: (<C extends keyof ConnectorCapabilityMap>(capability: C) =>
-      deps.connectors.resolve(capability)) as unknown as AgentContext['connector'],
+    connector: (<C extends keyof ConnectorCapabilityMap>(
+      capability: C,
+      opts?: { providerSlug?: string },
+    ) =>
+      deps.connectors.resolve(capability, opts)) as unknown as AgentContext['connector'],
     db: deps.db,
     audit: async (action, meta) => {
       const ac: AuditContext = {

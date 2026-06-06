@@ -34,7 +34,7 @@ const fakeAgent = {
     settingsSchema: SETTINGS_SCHEMA,
     schedule: { kind: 'manual' as const },
   },
-  run: async (ctx: { connector: (c: 'email') => Promise<{ send: (m: object) => Promise<{ messageId: string }> }>; settings: z.infer<typeof SETTINGS_SCHEMA>; audit: (a: string, m?: object) => Promise<void> }, input: { to: string }) => {
+  run: async (ctx: { connector: (c: 'email', opts?: { providerSlug?: string }) => Promise<{ send: (m: object) => Promise<{ messageId: string }> }>; settings: z.infer<typeof SETTINGS_SCHEMA>; audit: (a: string, m?: object) => Promise<void> }, input: { to: string }) => {
     const email = await ctx.connector('email');
     const r = await email.send({ to: input.to, subject: ctx.settings.greeting, text: 'hi' });
     await ctx.audit('fake.sent', { to: input.to, messageId: r.messageId });

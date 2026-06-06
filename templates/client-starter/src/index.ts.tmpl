@@ -14,6 +14,7 @@ import { createDb } from '@business-os/db';
 import {
   Scheduler,
   createConnectorResolver,
+  createJobsBackend,
 } from '@business-os/runtime';
 import { pino } from 'pino';
 
@@ -26,24 +27,38 @@ const mode: 'api' | 'worker' | 'both' = process.argv.includes('--worker')
     : 'api';
 
 const registry = buildRegistry();
+const databaseUrl = process.env.DATABASE_URL!;
 
 const started = await startServer({
   inventory: registry,
   migrations: extraMigrations,
   mode,
   triggerFactory: ({ startScheduler }) => {
-    const { db } = createDb({ url: process.env.DATABASE_URL! });
+    const { db } = createDb({ url: databaseUrl });
     const secrets = createSecretsStore(db, loadSecretsKey(process.env));
     const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
     const connectors = createConnectorResolver({ db, secrets, registry, logger });
-    const scheduler = new Scheduler({ db, registry, connectors, logger });
+    const jobs = createJobsBackend({
+      databaseUrl,
+      db,
+      registry,
+      connectors,
+      logger,
+    });
+    const scheduler = new Scheduler({ db, registry, connectors, logger, jobs });
     return {
       triggerManual: (slug, input, userId) =>
         scheduler.triggerManual(slug, input, userId),
       start: () => {
-        if (startScheduler) scheduler.start();
+        if (startScheduler) {
+          scheduler.start();
+          void jobs.start();
+        }
       },
-      stop: () => scheduler.stop(),
+      stop: async () => {
+        await scheduler.stop();
+        await jobs.stop();
+      },
     };
   },
 });

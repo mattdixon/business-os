@@ -18,6 +18,12 @@ export interface RunAgentDeps {
   registry: Registry;
   connectors: ConnectorResolver;
   logger: Logger;
+  /**
+   * Optional jobs backend. When provided, agents that call ctx.jobs.enqueue
+   * persist work durably. When omitted, enqueue throws — useful for unit
+   * tests that don't exercise the queue.
+   */
+  jobs?: { enqueue(name: string, payload: unknown, opts?: { delayMs?: number; idempotencyKey?: string }): Promise<string> };
 }
 
 export interface RunTrigger {
@@ -97,10 +103,13 @@ export async function runAgent(
       await audit(ac, action, meta);
     },
     jobs: {
-      enqueue: async () => {
-        // pg-boss integration lands in a follow-up slice; throw clearly until then.
-        throw new Error('jobs.enqueue: queue backend not configured (lands with pg-boss)');
-      },
+      enqueue: deps.jobs
+        ? (name, payload, opts) => deps.jobs!.enqueue(name, payload, opts)
+        : async () => {
+            throw new Error(
+              'jobs.enqueue: no jobs backend wired. Pass `jobs` to runAgent() or use createJobsBackend().',
+            );
+          },
     },
     runId,
   };

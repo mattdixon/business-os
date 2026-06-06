@@ -1,4 +1,6 @@
 packages:
-  - "apps/*"
   - "packages/*"
+  - "agents/*"
+  - "connectors/*"
   - "tools/*"
+  - "templates/client-starter"

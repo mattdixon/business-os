@@ -13,9 +13,7 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "tenant:create": "pnpm --filter @business-os/tenant-cli run start create",
-    "tenant:migrate": "pnpm --filter @business-os/tenant-cli run start migrate",
-    "tenant:migrate-all": "pnpm --filter @business-os/tenant-cli run start migrate-all"
+    "create-client": "pnpm --filter @business-os/create-client run start"
   },
   "devDependencies": {
     "turbo": "^2.1.0",

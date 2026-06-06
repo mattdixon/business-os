@@ -1,23 +1,25 @@
 # CLAUDE.md — Business OS
 
-Read this first. It captures durable conventions, locked decisions, and where things live. **Don't re-litigate decisions listed here without explicit user approval.**
+Read this first. Captures durable conventions and locked decisions. **Don't re-litigate decisions listed here without explicit user approval.**
 
 ---
 
 ## What this project is
 
-A multi-tenant platform that runs many independent client businesses from one codebase. Generic core ("framework") + per-client module packs ("clients/"). API-first so web, mobile, and agents share the same endpoints.
+A framework and a library of pluggable agents that we install **once per client** as a custom operating system. Each client gets their own deployment, their own database, their own infra. This is a high-ticket professional services build ($500K+ engagements), not a SaaS.
 
-**First client:** CNN Construction (concrete). See [docs/prd/2026-05-19-cnn-construction-client-prd.md](docs/prd/2026-05-19-cnn-construction-client-prd.md).
+**First client:** CNN Construction (concrete).
 
-## Authoritative documents (read order)
+**Inspiration:** Lior Krolewicz's Master Key OS workshop (2026-06-05). Lior is a reference architect, not a co-author. We're building this independently.
 
-1. [docs/prd/2026-05-19-business-os-framework-prd.md](docs/prd/2026-05-19-business-os-framework-prd.md) — what we're building and why (framework)
-2. [docs/prd/2026-05-19-cnn-construction-client-prd.md](docs/prd/2026-05-19-cnn-construction-client-prd.md) — first client requirements
-3. [docs/superpowers/specs/2026-05-19-business-os-foundation-design.md](docs/superpowers/specs/2026-05-19-business-os-foundation-design.md) — technical design (the "how")
-4. This file — conventions and locked decisions
+## Shipping model — Hybrid A+B
 
-If a PRD and the spec conflict, the spec wins (it's the more recent, lower-level document). Flag the conflict.
+We ship two things:
+
+1. **Framework + agent library** — versioned npm packages under `@business-os/*`. Published to a private registry (GitHub Packages). Each client install pins versions. Bug fixes flow via `pnpm up`.
+2. **Client starter template** — a thin shell scaffolded once per client via `pnpm create business-os-client <name>`. The shell contains: `package.json` with versioned framework deps, a config file declaring which agents are enabled, env template, deploy scripts, and a place for client-custom agents.
+
+**Per-client install is one repo per client.** Their repo is small (the shell). The framework code lives in the versioned packages, not in their tree.
 
 ---
 
@@ -25,134 +27,191 @@ If a PRD and the spec conflict, the spec wins (it's the more recent, lower-level
 
 | Area | Decision |
 |---|---|
-| Tenancy | **Database-per-tenant.** Each client gets their own Postgres DB. Control-plane DB holds tenant registry + operator users only. |
-| Identity | **No central users table.** Users, sessions, password hashes all live in each tenant DB. |
-| Routing | **Subdomain per tenant.** `<slug>.businessos.app`. Tenant resolved from `Host` header before auth. |
-| API style | **REST + JSON.** Fastify + Zod + OpenAPI. OpenAPI doc is the contract for all clients (web + future mobile + 3rd party). |
-| Monorepo | **pnpm workspaces + Turborepo.** |
-| ORM | **Drizzle.** Schema lives in `packages/db`. |
-| Auth | **Server-side sessions + httpOnly cookie.** Argon2id passwords. TOTP MFA optional per user. Password reset by emailed single-use token (15-min TTL). |
-| Extensibility | **Static plugin registry.** Per-client modules are TS packages in `clients/<slug>/`, compiled into the API binary. Enabled per tenant via control-plane config. |
-| Connectors | **Per-type interfaces, pluggable providers.** Modules call `getConnector('file-storage')` — never name a provider. |
-| Background jobs | **pg-boss.** Jobs live in each tenant DB. Worker is the same binary as the API with `--worker` flag. |
-| System email | **Postmark or Resend** (single transactional-email provider, separate from per-tenant email connectors). |
-| Logging | **Pino** structured JSON. Every log line includes `tenant_slug`, `tenant_id`, `request_id`, `user_id` when known. |
-| Errors | **Sentry**, tagged with `tenant_slug` and `module_slug`. |
-| Encryption | **libsodium `crypto_secretbox`** for OAuth tokens, tenant DB passwords, MFA secrets. Key from env. |
-| Migrations | Forward-only. Per-tenant migration table tracks applied migrations. Migration runner CLI iterates tenants. |
-| Testing | **Vitest.** Integration tests hit a real Postgres in Docker — no DB mocks. |
-| Code style | TypeScript strict. ESM. No `any` in committed code. |
+| **Tenancy** | **Single-tenant per install.** No multi-tenant routing, no control-plane DB, no tenant registry. Each client = one deployment + one DB. |
+| **Distribution** | **Hybrid A+B.** Thin starter shell per client (scaffolded once), versioned `@business-os/*` packages for framework and shared agents. |
+| **Registry** | Private npm registry (GitHub Packages under whatever GH org we land on). |
+| **Identity** | Server-side sessions + httpOnly cookie. Argon2id passwords. TOTP MFA optional. Users live in the client's own DB. |
+| **API style** | REST + JSON. Fastify + Zod + OpenAPI. OpenAPI doc is the contract for web + mobile + 3rd party. |
+| **Monorepo** | pnpm workspaces + Turborepo. |
+| **ORM** | Drizzle. Core schema in `@business-os/core`. Each agent owns its own migrations. |
+| **Auth** | Server-side sessions, Argon2id, optional TOTP. Password reset via single-use emailed token (15-min TTL). |
+| **Agent registration** | Static registry in the client shell's `business-os.config.ts`. Agents are imported by name and the framework wires them up at boot. |
+| **Agent runtime** | Each agent declares a `manifest` (slug, version, required connectors, settings schema, schedule) and a `run(ctx, input)` function. Framework boots them, schedules them, gives them ctx (logger, db, connectors, settings, audit log). |
+| **Connectors** | Per-capability interfaces, pluggable providers. Agents call `ctx.connector('email')` — never name a provider. Multiple providers per capability allowed; client picks in settings UI. |
+| **Runtime config** | **All credentials, API keys, schedules, on/off, and per-agent settings live in the DB and are managed in the settings UI.** Files declare *what* is installed, NOT secrets or runtime values. Each agent declares a settings Zod schema; framework auto-renders the form. |
+| **Secrets** | libsodium `crypto_secretbox` at rest in the DB. Key from env (`SECRETS_KEY`). |
+| **Background jobs** | pg-boss in the client's DB. Worker is the same binary as the API with `--worker` flag. |
+| **System email** | Postmark or Resend (transactional from the framework — password resets etc.), distinct from per-client email connectors agents use. |
+| **Logging** | Pino structured JSON. Every line includes `client_slug`, `request_id`, `user_id`, `agent_slug` (when relevant). |
+| **Errors** | Sentry, tagged with `client_slug` and `agent_slug`. |
+| **Migrations** | Forward-only. Core owns its migration table; each agent owns its own. Framework runs all on boot or via CLI. |
+| **Testing** | Vitest. Integration tests hit real Postgres in Docker — no DB mocks. |
+| **Code style** | TypeScript strict. ESM. No `any` in committed code. |
 
 ---
 
 ## Repo layout
 
 ```
-business-os/
-├── apps/
-│   ├── api/             # Fastify server (the only deployed backend; also runs as worker with --worker)
-│   ├── web/             # React admin/operator UI
-│   └── web-tenant/      # React tenant-facing UI (may merge with web later)
+business-os/                              ← this repo (the framework monorepo)
 ├── packages/
-│   ├── db/              # Drizzle schemas (control-plane + tenant) + migration runner
-│   ├── core/            # Domain services (auth, users, files, audit, notifications)
-│   ├── connectors/      # Connector framework + built-in providers
-│   ├── module-sdk/      # Public API surface that per-client modules build against
-│   ├── api-contract/    # Zod schemas + generated OpenAPI types
-│   └── ui/              # Shared React components
-├── clients/
-│   └── cnn-construction/  # CNN's module pack (Prospector, Proposal automation)
-├── tools/                 # CLIs: tenant provisioning, migrations
+│   ├── core/                  @business-os/core           # Fastify server, auth, users, audit, settings, deploy primitives
+│   ├── runtime/               @business-os/runtime        # Agent runtime: scheduler, ctx, connector resolver, manifest loader
+│   ├── agent-sdk/             @business-os/agent-sdk      # The interface every agent implements + helpers
+│   ├── connector-sdk/         @business-os/connector-sdk  # The interface every connector implements + capability types
+│   ├── db/                    @business-os/db             # Drizzle base schema + migration runner
+│   ├── ui/                    @business-os/ui             # Shared React components (operator UI shell, settings forms)
+│   └── api-contract/          @business-os/api-contract   # Zod schemas + generated OpenAPI types
+├── agents/                                                # Shared agent library — each is its own published package
+│   ├── leadgen/               @business-os/agent-leadgen
+│   ├── prospecting/           @business-os/agent-prospecting
+│   ├── linkedin/              @business-os/agent-linkedin
+│   └── instagram/             @business-os/agent-instagram
+├── connectors/                                            # Shared connector library — each is its own published package
+│   ├── gmail/                 @business-os/connector-gmail
+│   ├── ghl/                   @business-os/connector-ghl
+│   ├── linkedin/              @business-os/connector-linkedin
+│   └── openai/                @business-os/connector-openai
+├── templates/
+│   └── client-starter/                                    # The thin shell every client repo starts from
+├── tools/
+│   └── create-client/         @business-os/create-client  # `pnpm create business-os-client <name>` scaffolder
 └── docs/
-    ├── prd/               # Product requirements
-    └── superpowers/specs/ # Technical design docs
+    ├── prd/                                               # Product requirements
+    ├── specs/                                             # Technical design docs
+    └── archive/                                           # Superseded designs
+```
+
+### What a client repo looks like (NOT in this monorepo — scaffolded separately per client)
+
+```
+cnn-construction-os/
+├── package.json               # depends on @business-os/core + agents + connectors at pinned versions
+├── business-os.config.ts      # registry: which agents enabled, which connectors registered, default schedules
+├── .env                       # framework-level secrets (DB URL, SECRETS_KEY, system email API key)
+├── agents/                    # ONLY client-custom agents live here
+├── migrations/                # ONLY client-specific schema additions
+└── deploy/                    # client-specific deploy config (Dockerfile, fly.toml, etc.)
 ```
 
 ### Boundary rules
-- `apps/api` may import from any `packages/*` and any `clients/*` pack.
-- `packages/core`, `packages/db`, `packages/connectors`, `packages/module-sdk` may NOT import from `clients/*`.
-- A `clients/<slug>/` pack may import from `packages/*` (especially `module-sdk`) but **MUST NOT** import from another `clients/<slug2>/` pack.
-- `packages/api-contract` is the only place where API request/response shapes are defined.
 
-Enforce with `eslint-plugin-boundaries` or equivalent.
+- Framework packages (`packages/*`) MUST NOT import from any agent or connector package — only SDK interfaces.
+- Agents MUST NOT import from other agents.
+- Agents may import `@business-os/agent-sdk` and `@business-os/connector-sdk` types.
+- Connectors implement `@business-os/connector-sdk` interfaces and nothing else from the framework.
+- Client shells may import any `@business-os/*` package.
+
+---
+
+## The agent contract (the most important interface in the system)
+
+Every agent exports:
+
+```ts
+export const manifest: AgentManifest = {
+  slug: 'leadgen',
+  version: '1.0.0',
+  displayName: 'Lead Generation',
+  requiredConnectors: ['email', 'crm'],
+  settingsSchema: z.object({ ... }),     // rendered by framework as a settings form
+  schedule: { kind: 'cron', expr: '0 */6 * * *' } | { kind: 'manual' } | { kind: 'event', topic: '...' },
+};
+
+export async function run(ctx: AgentContext, input: unknown): Promise<AgentResult> {
+  const email = ctx.connector('email');
+  const settings = ctx.settings;
+  ctx.logger.info('starting');
+  ...
+}
+```
+
+`ctx` gives the agent: logger, db (scoped), connectors (resolved by capability), settings (decrypted at runtime), audit log helper, and the framework's standard tools (LLM client, scheduling, etc).
+
+When a client wants custom behavior: **either** add a config knob to the shared agent (preferred), **or** fork into `agents/leadgen-cnn/` in their repo and now it's theirs.
+
+---
+
+## Runtime config rules
+
+- Files in the client repo declare WHAT is installed and the code-level shape.
+- DB + Settings UI store WHAT changes at runtime: credentials, API keys, schedules, on/off, per-agent settings.
+- Secrets encrypted at rest with libsodium. Key from `SECRETS_KEY` env var.
+- New connector for Gmail? Operator clicks "Add Gmail account" in settings → OAuth flow → tokens encrypted into DB. No file changes.
+- New API key for Claude? Operator pastes it into settings UI. No file changes.
+
+If you find yourself writing "put it in `.env`" or "edit the config file" for anything user-facing, stop. That goes in the settings UI.
 
 ---
 
 ## Conventions
 
-### File operations
-- Never write code that touches a tenant DB without going through the tenant resolver. There must be a `req.tenant` (request path) or an explicit `withTenant(tenantId, fn)` (job/CLI path) — no ad-hoc tenant DB lookups in business logic.
-- Never store user data in the control-plane DB.
-
-### Naming
-- Tenant slugs: lowercase ASCII, hyphens allowed, used in subdomain and DB name (`tenant_<slug>`).
-- Module slugs: same constraints; declared in the module's `slug` field.
-- API routes: core routes under `/api/...`, module routes under `/api/m/<module-slug>/...`.
-
 ### Audit log
 - Every state-changing API call MUST result in an audit-log row. Use the audit-log helper; don't write rows directly.
-- Audit-log rows contain `request_id` so they correlate with logs.
+- Audit-log rows contain `request_id` for log correlation.
 
 ### Connectors
-- A module asks for a connector by capability (`'file-storage'`, `'email'`), never by provider name.
-- A connector implementation MUST NOT log raw tokens or full payloads.
+- Agents ask for connectors by capability (`'file-storage'`, `'email'`, `'llm'`), never by provider name.
+- Connector implementations MUST NOT log raw tokens or full payloads.
+- A connector capability can have multiple registered providers; the client picks which one is active in settings.
 
 ### Schemas
-- Add Zod schemas to `packages/api-contract`. Server validates with them; client gets types from them.
-- Drizzle schemas in `packages/db`. The migration to add/change a table goes in the same PR.
+- API request/response shapes in `@business-os/api-contract`.
+- Drizzle schemas: core in `@business-os/db`, agent-owned tables in the agent's own package.
+- Migrations colocate with the schema that owns them.
 
 ### Tests
-- Every new endpoint gets at least one integration test.
-- Cross-tenant isolation has dedicated tests — when adding any new endpoint that reads tenant data, add a test that two tenants don't see each other.
+- Every new endpoint gets at least one integration test against a real Postgres.
+- Every agent has a `run` test with stubbed connectors.
 
 ---
 
-## Operational conventions
+## Saving work
 
-### Saving work
-This project lost a session to a crash. **Persist progress continuously:**
-- Write decisions to docs/ as you make them
-- Commit to git after each meaningful section (small frequent commits are fine)
-- Update memory files when learning facts; don't batch
+Persist progress continuously. Lost a session to a crash once — don't repeat that.
+- Write decisions to docs/ as you make them.
+- Commit to git after each meaningful section.
+- Update memory files when learning facts; don't batch.
 
 ### Git
-- Conventional-ish commits: `Spec: ...`, `Feat: ...`, `Fix: ...`, `Chore: ...`
-- Don't squash exploratory work; the small commits are useful history
+- Conventional commits: `Spec: ...`, `Feat: ...`, `Fix: ...`, `Chore: ...`.
+- Don't squash exploratory work.
 
-### Per-client work
+---
+
+## Per-client work
+
 When implementing for a specific client:
-1. First, ask: "Is this generic (core) or client-specific (their pack)?" Core stays business-agnostic.
-2. Client packs may have hard-coded domain logic. Core may not.
-3. If a feature *feels* generic but is being requested by one client, design the interface in core and put the policy in the pack.
+1. First ask: "Is this generic (framework/shared agent) or client-specific (their shell)?" Framework stays business-agnostic.
+2. Client-custom agents in the client repo may have hard-coded domain logic. Framework and shared agents may not.
+3. If a feature *feels* generic but is requested by one client: design a config knob on the shared agent, put the policy in the client's settings.
 
 ---
 
 ## Out of scope (don't build unless asked)
 
-- Native mobile app (PWA covers it for now)
-- SSO/SAML, social login, magic links
-- Self-service tenant signup
-- Multi-region deployment
-- In-platform billing
-- Marketplace / third-party modules
-- Visual workflow builder, low-code
+- Multi-tenant routing of any kind.
+- Self-service signup or client provisioning UI.
+- In-platform billing.
+- Public marketplace for 3rd-party agents.
+- Visual workflow builder, low-code UI.
+- Native mobile app (PWA covers it).
+- SSO/SAML, social login, magic links (TOTP MFA is enough).
 
 ---
 
-## Useful CLIs (planned)
+## Useful CLIs (planned — document when implemented)
 
-These don't exist yet; document them when implemented.
-
-- `pnpm tenant:create --slug <slug> --name <name>` — provision new tenant
-- `pnpm tenant:migrate <slug>` — apply pending migrations to a tenant
-- `pnpm tenant:migrate-all` — apply pending migrations across all tenants
-- `pnpm tenant:enable-module <slug> <module-slug>` — enable a module for a tenant
-- `pnpm dev` — start API + web in dev mode
-- `pnpm test` — run all tests (requires Docker for Postgres)
+- `pnpm create business-os-client <name>` — scaffold a new client shell repo.
+- `pnpm migrate` (inside client repo) — apply pending migrations across framework + agents.
+- `pnpm dev` (inside client repo) — start API + worker + web.
+- `pnpm test` (here in the framework monorepo) — run all framework + agent + connector tests.
 
 ---
 
 ## When in doubt
-- Ask the user before adding a dependency that wasn't already in the spec.
-- Ask before introducing a new top-level package or app.
+
+- Ask before adding a dependency that isn't already in the spec.
+- Ask before introducing a new top-level package.
 - Ask before changing anything in the "Locked technical decisions" table above.
+- Default to building the smallest piece that proves the agent contract. Don't design the whole framework in the abstract — build one agent end-to-end (Lead Gen) and let it pull the framework into shape.

@@ -6,7 +6,7 @@ type User = { id: string; email: string };
 type State =
   | { kind: 'loading' }
   | { kind: 'anonymous' }
-  | { kind: 'authenticated'; user: User };
+  | { kind: 'authenticated'; user: User; totpEnrolled: boolean };
 
 interface AuthCtx {
   state: State;
@@ -23,8 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const refresh = async (): Promise<void> => {
     try {
       const me = await Api.me();
-      if (me.user) setState({ kind: 'authenticated', user: me.user });
-      else setState({ kind: 'anonymous' });
+      if (me.user) {
+        setState({
+          kind: 'authenticated',
+          user: me.user,
+          totpEnrolled: me.totpEnrolled ?? false,
+        });
+      } else {
+        setState({ kind: 'anonymous' });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setState({ kind: 'anonymous' });

@@ -56,6 +56,12 @@ export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Pr
 
 export interface Me {
   user: { id: string; email: string } | null;
+  totpEnrolled?: boolean;
+}
+
+export interface TotpEnrollResponse {
+  secret: string;
+  otpauthUri: string;
 }
 
 export interface AgentManifest {
@@ -112,6 +118,12 @@ export const Api = {
   login: (email: string, password: string, totp?: string) =>
     api('/auth/login', { method: 'POST', body: { email, password, totp } }),
   logout: () => api('/auth/logout', { method: 'POST' }),
+
+  enrollTotp: () => api<TotpEnrollResponse>('/auth/totp/enroll', { method: 'POST' }),
+  confirmTotp: (code: string) =>
+    api<{ ok: true }>('/auth/totp/confirm', { method: 'POST', body: { code } }),
+  disableTotp: (code: string) =>
+    api<{ ok: true }>('/auth/totp/disable', { method: 'POST', body: { code } }),
 
   listAgents: () => api<{ agents: AgentSummary[] }>('/api/agents'),
   getAgent: (slug: string) => api<AgentSummary>(`/api/agents/${slug}`),

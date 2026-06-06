@@ -6,6 +6,7 @@ import {
   settings as settingsTable,
   connectorInstances,
 } from '@business-os/db';
+import type { Db } from '@business-os/db';
 import { requireUser } from './_require-user.js';
 import { zodToFieldSchema } from '../zod-form.js';
 
@@ -85,6 +86,19 @@ async function loadAgentSettings(req: FastifyRequest, slug: string): Promise<unk
     .select({ value: settingsTable.value })
     .from(settingsTable)
     .where(eq(settingsTable.scope, SETTINGS_AGENT_SCOPE(slug)))
+    .limit(1);
+  return rows[0]?.value ?? null;
+}
+
+async function loadConnectorSettings(
+  db: Db,
+  capability: string,
+  instanceId: string,
+): Promise<unknown> {
+  const rows = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, SETTINGS_CONNECTOR_SCOPE(capability, instanceId)))
     .limit(1);
   return rows[0]?.value ?? null;
 }
@@ -254,26 +268,35 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       .select()
       .from(connectorInstances);
 
-    const result = [...caps].map((capability) => {
-      const providers = req.deps.inventory!.listConnectorProviders(capability).map(
-        (p) => ({
-          slug: p.manifest.slug,
-          displayName: p.manifest.displayName,
-          authKind: p.manifest.authKind,
-          version: p.manifest.version,
-        }),
-      );
-      const capInstances = instances
-        .filter((i) => i.capability === capability)
-        .map((i) => ({
-          id: i.id,
-          providerSlug: i.providerSlug,
-          displayName: i.displayName,
-          isActive: i.isActive,
-          createdAt: i.createdAt,
-        }));
-      return { capability, providers, instances: capInstances };
-    });
+    const result = await Promise.all(
+      [...caps].map(async (capability) => {
+        const providers = req.deps.inventory!.listConnectorProviders(capability).map(
+          (p) => ({
+            slug: p.manifest.slug,
+            displayName: p.manifest.displayName,
+            authKind: p.manifest.authKind,
+            version: p.manifest.version,
+            settingsSchema: zodToFieldSchema(p.manifest.settingsSchema),
+          }),
+        );
+        const capInstances = await Promise.all(
+          instances
+            .filter((i) => i.capability === capability)
+            .map(async (i) => {
+              const settingsValue = await loadConnectorSettings(req.deps.db, capability, i.id);
+              return {
+                id: i.id,
+                providerSlug: i.providerSlug,
+                displayName: i.displayName,
+                isActive: i.isActive,
+                createdAt: i.createdAt,
+                settings: settingsValue,
+              };
+            }),
+        );
+        return { capability, providers, instances: capInstances };
+      }),
+    );
     return { capabilities: result };
   });
 

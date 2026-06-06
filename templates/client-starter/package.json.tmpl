@@ -1,0 +1,27 @@
+{
+  "name": "{{CLIENT_SLUG}}-os",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:worker": "tsx src/index.ts --worker",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "start:worker": "node dist/index.js --worker",
+    "migrate": "tsx src/migrate.ts"
+  },
+  "dependencies": {
+    "@business-os/agent-sdk": "workspace:^",
+    "@business-os/connector-anthropic": "workspace:^",
+    "@business-os/connector-sdk": "workspace:^",
+    "@business-os/core": "workspace:^",
+    "@business-os/db": "workspace:^",
+    "@business-os/runtime": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}

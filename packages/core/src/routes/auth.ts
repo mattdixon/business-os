@@ -1,10 +1,10 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authContract } from '@business-os/api-contract';
 import { SESSION_COOKIE } from '../app.js';
+import { requireUser } from './_require-user.js';
 import {
   verifyEmailPassword,
   createSession,
-  lookupSession,
   revokeSession,
   issuePasswordResetToken,
   completePasswordReset,
@@ -64,15 +64,6 @@ function readSessionCookie(req: FastifyRequest): string | null {
 export function registerAuthRoutes(app: FastifyInstance): void {
   const cookieSecure = (req: FastifyRequest) =>
     req.deps.cookieSecure ?? process.env.NODE_ENV === 'production';
-
-  // ---- session loader (preHandler attached to all non-public routes) ----
-  const requireUser = async (req: FastifyRequest, reply: FastifyReply) => {
-    const token = readSessionCookie(req);
-    if (!token) return reply.code(401).send({ error: 'unauthorized' });
-    const lookup = await lookupSession(req.deps.db, token);
-    if (!lookup) return reply.code(401).send({ error: 'unauthorized' });
-    req.user = { id: lookup.user.id, email: lookup.user.email };
-  };
 
   // ---- POST /auth/login ----
   app.post('/auth/login', async (req, reply) => {

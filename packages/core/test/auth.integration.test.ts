@@ -39,6 +39,7 @@ d('auth routes (real Postgres)', () => {
       encryptionKey,
       clientSlug: 'test',
       logger: false,
+      serveUi: false,
     });
     await app.ready();
     await createUser(env.db, {

@@ -97,6 +97,7 @@ d('admin/operator API (real Postgres)', () => {
       encryptionKey,
       clientSlug: 'test',
       logger: false,
+      serveUi: false,
       inventory: fakeInventory(),
       trigger,
     });
@@ -287,6 +288,7 @@ d('admin/operator API (real Postgres)', () => {
       encryptionKey,
       clientSlug: 'test',
       logger: false,
+      serveUi: false,
       // no inventory, no trigger
     });
     await bare.ready();

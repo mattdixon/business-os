@@ -1,0 +1,32 @@
+{
+  "name": "@business-os/agent-leadgen",
+  "version": "0.0.1",
+  "description": "Shared lead-generation agent. Drafts prospects + outreach via the llm capability.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@business-os/agent-sdk": "workspace:^",
+    "@business-os/connector-sdk": "workspace:^",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

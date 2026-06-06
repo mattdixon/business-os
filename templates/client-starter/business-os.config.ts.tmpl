@@ -12,6 +12,7 @@
 import { Registry, Scheduler } from '@business-os/runtime';
 import { createConnectorResolver } from '@business-os/runtime';
 import anthropic from '@business-os/connector-anthropic';
+import leadgen from '@business-os/agent-leadgen';
 
 import type { MigrationOwner } from '@business-os/db';
 
@@ -22,8 +23,7 @@ export function buildRegistry(): Registry {
   registry.registerConnectorProvider(anthropic);
 
   // ---- Agents ----
-  // registry.registerAgent(leadgen);
-  // registry.registerAgent(prospecting);
+  registry.registerAgent(leadgen);
 
   return registry;
 }

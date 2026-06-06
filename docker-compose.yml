@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: businessos-postgres
+    environment:
+      POSTGRES_USER: businessos
+      POSTGRES_PASSWORD: businessos
+      POSTGRES_DB: businessos_control
+    ports:
+      - "5432:5432"
+    volumes:
+      - businessos-pgdata:/var/lib/postgresql/data
+
+volumes:
+  businessos-pgdata:

@@ -12,6 +12,7 @@
 import { Registry, Scheduler } from '@business-os/runtime';
 import { createConnectorResolver } from '@business-os/runtime';
 import anthropic from '@business-os/connector-anthropic';
+import openai from '@business-os/connector-openai';
 import leadgen from '@business-os/agent-leadgen';
 
 import type { MigrationOwner } from '@business-os/db';
@@ -21,6 +22,7 @@ export function buildRegistry(): Registry {
 
   // ---- Connectors ----
   registry.registerConnectorProvider(anthropic);
+  registry.registerConnectorProvider(openai);
 
   // ---- Agents ----
   registry.registerAgent(leadgen);

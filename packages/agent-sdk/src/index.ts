@@ -38,10 +38,21 @@ export interface AgentContext<TSettings = unknown> {
   settings: TSettings;
   /** Pino child logger pre-tagged with agent_slug + run_id */
   logger: Logger;
-  /** Resolve the active provider for a capability (configured by the operator) */
+  /**
+   * Resolve a connector for a capability.
+   *
+   * Default behavior — `ctx.connector('llm')` — returns the operator-chosen
+   * *active* provider for that capability. Pass `{ providerSlug }` to pin a
+   * specific provider, e.g. `ctx.connector('llm', { providerSlug: 'openai' })`.
+   *
+   * Per-agent provider + model selection is supported: agents that want to
+   * vary by configuration read the slug + model from their own settings
+   * schema and forward them — see the AgentSdk README for the convention.
+   */
   connector<C extends keyof ConnectorCapabilityMap>(
     capability: C,
-  ): ConnectorCapabilityMap[C];
+    opts?: { providerSlug?: string },
+  ): Promise<ConnectorCapabilityMap[C]> | ConnectorCapabilityMap[C];
   /** Drizzle client scoped to the client's database */
   db: unknown; // typed once @business-os/db is in place
   /** Write an audit-log row */
@@ -86,6 +97,8 @@ export type AgentRun<TSettings = unknown, TInput = unknown> = (
  * settingsSchema. Agent packages should use this rather than constructing the
  * types by hand.
  */
+export * from './llm-picker.js';
+
 export function defineAgent<TSettings extends z.ZodTypeAny>(args: {
   manifest: AgentManifest<TSettings>;
   run: AgentRun<z.infer<TSettings>>;

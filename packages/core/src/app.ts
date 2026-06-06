@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '@business-os/db';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerUiServe } from './ui-serve.js';
 import type { SecretsStore } from './secrets/index.js';
 import { audit, type AuditContext } from './audit/index.js';
 import type { AgentInventory, ManualTriggerer } from './inventory.js';
@@ -22,6 +23,11 @@ export interface AppDeps {
   cookieSecure?: boolean;
   /** Fastify logger options. Tests pass `false` to silence. */
   logger?: boolean | { level?: string };
+  /**
+   * Serve @business-os/ui static assets at /. Default true outside tests.
+   * Tests typically set this false to keep the app surface API-only.
+   */
+  serveUi?: boolean;
   /**
    * Inventory of what's registered (agents, connectors). The runtime's
    * Registry satisfies this. When omitted, admin endpoints that need it
@@ -117,6 +123,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   registerAuthRoutes(app);
   registerAdminRoutes(app);
+
+  if (deps.serveUi !== false) {
+    registerUiServe(app);
+  }
 
   return app;
 }

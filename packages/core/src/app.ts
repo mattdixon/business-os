@@ -5,6 +5,7 @@ import type { Db } from '@business-os/db';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerUiServe } from './ui-serve.js';
+import { registerFastifySentry } from './sentry.js';
 import type { SecretsStore } from './secrets/index.js';
 import { audit, type AuditContext } from './audit/index.js';
 import type { AgentInventory, ManualTriggerer } from './inventory.js';
@@ -121,6 +122,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
   });
 
+  registerFastifySentry(app);
   registerAuthRoutes(app);
   registerAdminRoutes(app);
 

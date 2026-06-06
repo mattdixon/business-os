@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
 
 export function ConnectorsPage(): JSX.Element {
   const [caps, setCaps] = useState<ConnectorCapability[] | null>(null);
@@ -93,20 +94,26 @@ export function ConnectorsPage(): JSX.Element {
 
             {cap.instances.length > 0 && (
               <div className="mt-4 space-y-3">
-                {cap.instances.map((inst) => (
-                  <InstanceCard
-                    key={inst.id}
-                    capability={cap.capability}
-                    instance={inst}
-                    authKind={
-                      cap.providers.find((p) => p.slug === inst.providerSlug)?.authKind ?? 'none'
-                    }
-                    onActivate={() => activate(inst.id)}
-                    onDeactivate={() => deactivate(inst.id)}
-                    onSetCreds={(c) => setCreds(inst.id, c)}
-                    onRemove={() => remove(inst.id)}
-                  />
-                ))}
+                {cap.instances.map((inst) => {
+                  const provider = cap.providers.find((p) => p.slug === inst.providerSlug);
+                  return (
+                    <InstanceCard
+                      key={inst.id}
+                      capability={cap.capability}
+                      instance={inst}
+                      authKind={provider?.authKind ?? 'none'}
+                      settingsSchema={provider?.settingsSchema as FieldSchema | undefined}
+                      onActivate={() => activate(inst.id)}
+                      onDeactivate={() => deactivate(inst.id)}
+                      onSetCreds={(c) => setCreds(inst.id, c)}
+                      onUpdateSettings={async (s) => {
+                        await Api.updateConnector(inst.id, { settings: s });
+                        await reload();
+                      }}
+                      onRemove={() => remove(inst.id)}
+                    />
+                  );
+                })}
               </div>
             )}
           </section>
@@ -177,79 +184,141 @@ function InstanceCard(props: {
   capability: string;
   instance: ConnectorCapability['instances'][number];
   authKind: 'oauth2' | 'api-key' | 'none';
+  settingsSchema?: FieldSchema;
   onActivate: () => Promise<void>;
   onDeactivate: () => Promise<void>;
   onSetCreds: (creds: unknown) => Promise<void>;
+  onUpdateSettings: (settings: unknown) => Promise<void>;
   onRemove: () => Promise<void>;
 }): JSX.Element {
   const [apiKey, setApiKey] = useState('');
   const [credsSaved, setCredsSaved] = useState(false);
   const [credsError, setCredsError] = useState<string | null>(null);
+  const [draftSettings, setDraftSettings] = useState<unknown>(props.instance.settings ?? {});
+  const [settingsSaveState, setSettingsSaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>(
+    'idle',
+  );
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const hasSettingsSchema =
+    props.settingsSchema &&
+    props.settingsSchema.type === 'object' &&
+    Object.keys((props.settingsSchema as { fields: object }).fields).length > 0;
+
   return (
-    <div className="flex flex-col gap-3 rounded border border-ink-200 bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{props.instance.displayName}</span>
-          {props.instance.isActive ? (
-            <span className="pill-ok">active</span>
-          ) : (
-            <span className="pill-muted">inactive</span>
-          )}
-        </div>
-        <div className="font-mono text-xs text-ink-500">
-          {props.instance.providerSlug} · {props.authKind} · added{' '}
-          {new Date(props.instance.createdAt).toLocaleDateString()}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-end gap-2">
-        {props.authKind === 'api-key' && (
-          <div>
-            <label className="label">API key</label>
-            <div className="flex items-center gap-2">
-              <input
-                className="input-mono w-72"
-                type="password"
-                placeholder="paste here"
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  setCredsSaved(false);
-                  setCredsError(null);
-                }}
-              />
-              <button
-                className="btn-secondary"
-                disabled={!apiKey}
-                onClick={async () => {
-                  try {
-                    await props.onSetCreds({ key: apiKey });
-                    setApiKey('');
-                    setCredsSaved(true);
-                  } catch (e: unknown) {
-                    setCredsError(e instanceof Error ? e.message : 'save failed');
-                  }
-                }}
-              >
-                Save
-              </button>
-            </div>
-            {credsSaved && <div className="mt-1 text-xs text-ok">Saved (encrypted).</div>}
-            {credsError && <div className="mt-1 text-xs text-bad">{credsError}</div>}
+    <div className="rounded border border-ink-200 bg-white p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{props.instance.displayName}</span>
+            {props.instance.isActive ? (
+              <span className="pill-ok">active</span>
+            ) : (
+              <span className="pill-muted">inactive</span>
+            )}
           </div>
-        )}
-        {props.instance.isActive ? (
-          <button className="btn-secondary" onClick={props.onDeactivate}>
-            Deactivate
+          <div className="font-mono text-xs text-ink-500">
+            {props.instance.providerSlug} · {props.authKind} · added{' '}
+            {new Date(props.instance.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          {props.authKind === 'api-key' && (
+            <div>
+              <label className="label">API key</label>
+              <div className="flex items-center gap-2">
+                <input
+                  className="input-mono w-72"
+                  type="password"
+                  placeholder="paste here"
+                  value={apiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setCredsSaved(false);
+                    setCredsError(null);
+                  }}
+                />
+                <button
+                  className="btn-secondary"
+                  disabled={!apiKey}
+                  onClick={async () => {
+                    try {
+                      await props.onSetCreds({ key: apiKey });
+                      setApiKey('');
+                      setCredsSaved(true);
+                    } catch (e: unknown) {
+                      setCredsError(e instanceof Error ? e.message : 'save failed');
+                    }
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+              {credsSaved && <div className="mt-1 text-xs text-ok">Saved (encrypted).</div>}
+              {credsError && <div className="mt-1 text-xs text-bad">{credsError}</div>}
+            </div>
+          )}
+          {hasSettingsSchema && (
+            <button
+              className="btn-secondary"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              {showSettings ? 'Hide settings' : 'Settings'}
+            </button>
+          )}
+          {props.instance.isActive ? (
+            <button className="btn-secondary" onClick={props.onDeactivate}>
+              Deactivate
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={props.onActivate}>
+              Set active
+            </button>
+          )}
+          <button className="btn-danger" onClick={props.onRemove}>
+            Delete
           </button>
-        ) : (
-          <button className="btn-primary" onClick={props.onActivate}>
-            Set active
-          </button>
-        )}
-        <button className="btn-danger" onClick={props.onRemove}>
-          Delete
-        </button>
+        </div>
       </div>
+      {showSettings && hasSettingsSchema && props.settingsSchema && (
+        <div className="mt-4 border-t border-ink-200 pt-4">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Provider settings
+          </h3>
+          <SchemaForm
+            schema={props.settingsSchema}
+            value={draftSettings}
+            onChange={setDraftSettings}
+          />
+          {settingsError && (
+            <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+              {settingsError}
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              className="btn-primary"
+              disabled={settingsSaveState === 'saving'}
+              onClick={async () => {
+                setSettingsSaveState('saving');
+                setSettingsError(null);
+                try {
+                  await props.onUpdateSettings(draftSettings);
+                  setSettingsSaveState('ok');
+                  setTimeout(() => setSettingsSaveState('idle'), 1500);
+                } catch (e: unknown) {
+                  setSettingsSaveState('error');
+                  setSettingsError(e instanceof Error ? e.message : 'save failed');
+                }
+              }}
+            >
+              {settingsSaveState === 'saving' ? 'Saving…' : 'Save settings'}
+            </button>
+            {settingsSaveState === 'ok' && <span className="text-xs text-ok">Saved.</span>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

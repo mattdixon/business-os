@@ -95,6 +95,7 @@ export interface ConnectorCapability {
     displayName: string;
     authKind: 'oauth2' | 'api-key' | 'none';
     version: string;
+    settingsSchema?: unknown;
   }>;
   instances: Array<{
     id: string;
@@ -102,6 +103,7 @@ export interface ConnectorCapability {
     displayName: string;
     isActive: boolean;
     createdAt: string;
+    settings?: unknown;
   }>;
 }
 

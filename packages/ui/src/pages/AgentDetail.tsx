@@ -13,7 +13,8 @@ export function AgentDetail(): JSX.Element {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [runInput, setRunInput] = useState('{}');
+  const [runInput, setRunInput] = useState<unknown>({});
+  const [runInputText, setRunInputText] = useState('{}');
 
   const reload = async (): Promise<void> => {
     if (!slug) return;
@@ -49,7 +50,14 @@ export function AgentDetail(): JSX.Element {
     if (!slug) return;
     setRunning(true);
     try {
-      const input = runInput.trim() ? JSON.parse(runInput) : {};
+      // When the agent has an inputSchema, runInput holds the typed value
+      // managed by SchemaForm. When it doesn't, we fall back to JSON-textarea
+      // text and parse it here.
+      const input = agent?.inputSchema
+        ? runInput
+        : runInputText.trim()
+          ? JSON.parse(runInputText)
+          : {};
       await Api.runAgent(slug, input);
       setTimeout(() => void reload(), 500);
     } catch (e: unknown) {
@@ -121,15 +129,25 @@ export function AgentDetail(): JSX.Element {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
             Manual run input
           </h2>
-          <p className="mb-3 text-xs text-ink-500">
-            JSON passed to <code className="font-mono">run(ctx, input)</code>.
-          </p>
-          <textarea
-            className="input-mono h-32 resize-y"
-            value={runInput}
-            onChange={(e) => setRunInput(e.target.value)}
-            spellCheck={false}
-          />
+          {agent.inputSchema ? (
+            <SchemaForm
+              schema={agent.inputSchema as FieldSchema}
+              value={runInput}
+              onChange={setRunInput}
+            />
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-ink-500">
+                JSON passed to <code className="font-mono">run(ctx, input)</code>.
+              </p>
+              <textarea
+                className="input-mono h-32 resize-y"
+                value={runInputText}
+                onChange={(e) => setRunInputText(e.target.value)}
+                spellCheck={false}
+              />
+            </>
+          )}
           <div className="mt-3 text-xs text-ink-500">
             Required connectors:{' '}
             {agent.requiredConnectors.length === 0

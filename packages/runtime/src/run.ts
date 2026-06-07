@@ -88,6 +88,11 @@ export async function runAgent(
   const rawSettings = rows[0]?.value ?? {};
   const settings = agent.manifest.settingsSchema.parse(rawSettings);
 
+  // Optionally validate input against the agent's inputSchema before calling run().
+  const validatedInput = agent.manifest.inputSchema
+    ? agent.manifest.inputSchema.parse(input)
+    : input;
+
   const childLogger = deps.logger.child({ agent_slug: slug, run_id: runId });
 
   const ctx: AgentContext = {
@@ -121,7 +126,7 @@ export async function runAgent(
   };
 
   try {
-    const result = await agent.run(ctx, input);
+    const result = await agent.run(ctx, validatedInput);
     await deps.db
       .update(agentRuns)
       .set({

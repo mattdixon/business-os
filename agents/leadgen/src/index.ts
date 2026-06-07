@@ -118,9 +118,12 @@ export default defineAgent({
     description: 'Drafts prospect personas + first-touch outreach from a seed.',
     requiredConnectors: ['llm'],
     settingsSchema: SettingsSchema,
+    inputSchema: InputSchema,
     schedule: { kind: 'manual' },
   },
   run: async (ctx, input): Promise<AgentResult> => {
+    // Runtime already validated against inputSchema, but parse defensively in
+    // case this agent is invoked outside the runtime path.
     const parsedInput = InputSchema.parse(input);
     const settings = ctx.settings;
 

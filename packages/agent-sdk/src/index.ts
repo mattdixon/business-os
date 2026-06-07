@@ -25,6 +25,14 @@ export interface AgentManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
   requiredConnectors: ReadonlyArray<keyof ConnectorCapabilityMap>;
   /** Zod schema for per-instance settings. Framework auto-renders a form. */
   settingsSchema: TSettings;
+  /**
+   * Optional Zod schema for the per-run input. When present:
+   *   - runAgent validates the input against this schema before calling run().
+   *   - The UI's "Manual run" panel renders an auto-generated form instead
+   *     of a JSON textarea — same UX as settings.
+   * Omit when the agent takes no input or takes an opaque shape.
+   */
+  inputSchema?: z.ZodTypeAny;
   /** When the runtime should invoke the agent */
   schedule: AgentSchedule;
 }

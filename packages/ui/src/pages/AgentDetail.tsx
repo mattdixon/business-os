@@ -3,15 +3,28 @@ import { useParams } from 'react-router-dom';
 import { Api, ApiError, type AgentRun, type AgentSummary } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
+import { useToast } from '../lib/toast';
+
+/** Pull a friendly message out of an ApiError that may carry Zod issues. */
+function apiErrorMessage(e: unknown, fallback: string): string {
+  if (!(e instanceof ApiError)) return fallback;
+  const body = e.body as { error?: string; issues?: Array<{ path?: string[]; message?: string }> } | null;
+  if (body?.issues && body.issues.length > 0) {
+    return body.issues
+      .map((i) => `${i.path?.join('.') ?? 'value'}: ${i.message ?? 'invalid'}`)
+      .join('; ');
+  }
+  return e.message || fallback;
+}
 
 export function AgentDetail(): JSX.Element {
   const { slug } = useParams<{ slug: string }>();
+  const { toast } = useToast();
   const [agent, setAgent] = useState<AgentSummary | null>(null);
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [draftSettings, setDraftSettings] = useState<unknown>({});
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle');
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [runInput, setRunInput] = useState<unknown>({});
   const [runInputText, setRunInputText] = useState('{}');
@@ -34,15 +47,14 @@ export function AgentDetail(): JSX.Element {
 
   const saveSettings = async (): Promise<void> => {
     if (!slug) return;
-    setSaveState('saving');
-    setSaveMsg(null);
+    setSaving(true);
     try {
       await Api.updateAgentSettings(slug, draftSettings);
-      setSaveState('ok');
-      setTimeout(() => setSaveState('idle'), 1500);
+      toast.success('Settings saved.');
     } catch (e: unknown) {
-      setSaveState('error');
-      setSaveMsg(e instanceof ApiError ? e.message : 'Save failed.');
+      toast.error(apiErrorMessage(e, 'Save failed.'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -59,9 +71,10 @@ export function AgentDetail(): JSX.Element {
           ? JSON.parse(runInputText)
           : {};
       await Api.runAgent(slug, input);
+      toast.success('Run dispatched.');
       setTimeout(() => void reload(), 500);
     } catch (e: unknown) {
-      setError(e instanceof ApiError ? e.message : 'run failed');
+      toast.error(apiErrorMessage(e, 'Run failed.'));
     } finally {
       setRunning(false);
     }
@@ -112,16 +125,10 @@ export function AgentDetail(): JSX.Element {
               spellCheck={false}
             />
           )}
-          {saveMsg && (
-            <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-              {saveMsg}
-            </div>
-          )}
           <div className="mt-4 flex items-center gap-3">
-            <button className="btn-primary" onClick={saveSettings} disabled={saveState === 'saving'}>
-              {saveState === 'saving' ? 'Saving…' : 'Save settings'}
+            <button className="btn-primary" onClick={saveSettings} disabled={saving}>
+              {saving ? 'Saving…' : 'Save settings'}
             </button>
-            {saveState === 'ok' && <span className="text-xs text-ok">Saved.</span>}
           </div>
         </section>
 

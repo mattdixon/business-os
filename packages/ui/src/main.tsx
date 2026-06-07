@@ -12,6 +12,7 @@ import { ConnectorsPage } from './pages/ConnectorsPage';
 import { AuditPage } from './pages/AuditPage';
 import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
+import { ToastProvider } from './lib/toast';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('root element missing');
@@ -19,29 +20,31 @@ if (!root) throw new Error('root element missing');
 createRoot(root).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset/request" element={<PasswordResetRequest />} />
-          <Route path="/reset" element={<PasswordResetComplete />} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <Shell />
-              </RequireAuth>
-            }
-          >
-            <Route index element={<Navigate to="/agents" replace />} />
-            <Route path="agents" element={<AgentsList />} />
-            <Route path="agents/:slug" element={<AgentDetail />} />
-            <Route path="runs/:id" element={<RunDetail />} />
-            <Route path="connectors" element={<ConnectorsPage />} />
-            <Route path="audit" element={<AuditPage />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset/request" element={<PasswordResetRequest />} />
+            <Route path="/reset" element={<PasswordResetComplete />} />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <Shell />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<Navigate to="/agents" replace />} />
+              <Route path="agents" element={<AgentsList />} />
+              <Route path="agents/:slug" element={<AgentDetail />} />
+              <Route path="runs/:id" element={<RunDetail />} />
+              <Route path="connectors" element={<ConnectorsPage />} />
+              <Route path="audit" element={<AuditPage />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
 );

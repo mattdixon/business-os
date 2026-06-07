@@ -2,8 +2,21 @@ import { useEffect, useState } from 'react';
 import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
+import { useToast } from '../lib/toast';
+
+function apiErrorMessage(e: unknown, fallback: string): string {
+  if (!(e instanceof ApiError)) return fallback;
+  const body = e.body as { issues?: Array<{ path?: string[]; message?: string }> } | null;
+  if (body?.issues?.length) {
+    return body.issues
+      .map((i) => `${i.path?.join('.') ?? 'value'}: ${i.message ?? 'invalid'}`)
+      .join('; ');
+  }
+  return e.message || fallback;
+}
 
 export function ConnectorsPage(): JSX.Element {
+  const { toast } = useToast();
   const [caps, setCaps] = useState<ConnectorCapability[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null); // capability being added to
@@ -26,26 +39,63 @@ export function ConnectorsPage(): JSX.Element {
     providerSlug: string,
     displayName: string,
   ): Promise<void> => {
-    await Api.createConnector({ capability, providerSlug, displayName });
-    setAdding(null);
-    await reload();
+    try {
+      await Api.createConnector({ capability, providerSlug, displayName });
+      toast.success('Connector instance added.');
+      setAdding(null);
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Add failed.'));
+    }
   };
 
   const activate = async (id: string): Promise<void> => {
-    await Api.updateConnector(id, { isActive: true });
-    await reload();
+    try {
+      await Api.updateConnector(id, { isActive: true });
+      toast.success('Activated.');
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Activate failed.'));
+    }
   };
   const deactivate = async (id: string): Promise<void> => {
-    await Api.updateConnector(id, { isActive: false });
-    await reload();
+    try {
+      await Api.updateConnector(id, { isActive: false });
+      toast.success('Deactivated.');
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Deactivate failed.'));
+    }
   };
   const setCreds = async (id: string, creds: unknown): Promise<void> => {
-    await Api.setConnectorCredentials(id, creds);
+    try {
+      await Api.setConnectorCredentials(id, creds);
+      toast.success('Credentials saved (encrypted).');
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Save failed.'));
+      throw e;
+    }
   };
   const remove = async (id: string): Promise<void> => {
     if (!confirm('Delete this connector instance? Credentials will be wiped.')) return;
-    await Api.deleteConnector(id);
-    await reload();
+    try {
+      await Api.deleteConnector(id);
+      toast.success('Deleted.');
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Delete failed.'));
+    }
+  };
+
+  const updateInstanceSettings = async (id: string, settings: unknown): Promise<void> => {
+    try {
+      await Api.updateConnector(id, { settings });
+      toast.success('Settings saved.');
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Save failed.'));
+      throw e;
+    }
   };
 
   return (
@@ -106,10 +156,7 @@ export function ConnectorsPage(): JSX.Element {
                       onActivate={() => activate(inst.id)}
                       onDeactivate={() => deactivate(inst.id)}
                       onSetCreds={(c) => setCreds(inst.id, c)}
-                      onUpdateSettings={async (s) => {
-                        await Api.updateConnector(inst.id, { settings: s });
-                        await reload();
-                      }}
+                      onUpdateSettings={(s) => updateInstanceSettings(inst.id, s)}
                       onRemove={() => remove(inst.id)}
                     />
                   );

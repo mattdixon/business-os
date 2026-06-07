@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { eq, desc, and, gte, type SQL } from 'drizzle-orm';
+import { eq, desc, and, gte, lt, type SQL } from 'drizzle-orm';
 import {
   agentRuns,
   auditLog,
@@ -241,6 +241,12 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       Number((req.query as { limit?: string }).limit ?? 50),
       200,
     );
+    const q = req.query as { before?: string };
+    const filters: SQL[] = [eq(agentRuns.agentSlug, slug)];
+    if (q.before) {
+      const t = new Date(q.before);
+      if (!Number.isNaN(t.getTime())) filters.push(lt(agentRuns.startedAt, t));
+    }
     const rows = await req.deps.db
       .select({
         id: agentRuns.id,
@@ -252,10 +258,14 @@ export function registerAdminRoutes(app: FastifyInstance): void {
         triggeredBy: agentRuns.triggeredBy,
       })
       .from(agentRuns)
-      .where(eq(agentRuns.agentSlug, slug))
+      .where(and(...filters))
       .orderBy(desc(agentRuns.startedAt))
       .limit(limit);
-    return { runs: rows };
+    const nextBefore =
+      rows.length === limit && rows[rows.length - 1]
+        ? rows[rows.length - 1]!.startedAt.toISOString()
+        : null;
+    return { runs: rows, nextBefore };
   });
 
   // ---------- GET /api/runs/:id ----------
@@ -511,6 +521,7 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       userId?: string;
       agentSlug?: string;
       since?: string;
+      before?: string;
     };
     const limit = Math.min(Math.max(Number(q.limit ?? 100), 1), 500);
 
@@ -521,6 +532,10 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     if (q.since) {
       const t = new Date(q.since);
       if (!Number.isNaN(t.getTime())) filters.push(gte(auditLog.at, t));
+    }
+    if (q.before) {
+      const t = new Date(q.before);
+      if (!Number.isNaN(t.getTime())) filters.push(lt(auditLog.at, t));
     }
 
     const rowsQuery = req.deps.db
@@ -541,6 +556,10 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     const rows = await (filters.length
       ? rowsQuery.where(and(...filters))
       : rowsQuery);
-    return { entries: rows };
+    const nextBefore =
+      rows.length === limit && rows[rows.length - 1]
+        ? rows[rows.length - 1]!.at.toISOString()
+        : null;
+    return { entries: rows, nextBefore };
   });
 }

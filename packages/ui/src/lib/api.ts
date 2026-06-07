@@ -152,8 +152,14 @@ export const Api = {
       method: 'POST',
       body: { input },
     }),
-  listRuns: (slug: string, limit = 50) =>
-    api<{ runs: AgentRun[] }>(`/api/agents/${slug}/runs?limit=${limit}`),
+  listRuns: (slug: string, opts: { limit?: number; before?: string } = {}) => {
+    const q = new URLSearchParams();
+    q.set('limit', String(opts.limit ?? 50));
+    if (opts.before) q.set('before', opts.before);
+    return api<{ runs: AgentRun[]; nextBefore: string | null }>(
+      `/api/agents/${slug}/runs?${q.toString()}`,
+    );
+  },
 
   getRun: (id: string) =>
     api<{
@@ -167,6 +173,7 @@ export const Api = {
     userId?: string;
     agentSlug?: string;
     since?: string;
+    before?: string;
   } = {}) => {
     const q = new URLSearchParams();
     if (opts.limit) q.set('limit', String(opts.limit));
@@ -174,8 +181,11 @@ export const Api = {
     if (opts.userId) q.set('userId', opts.userId);
     if (opts.agentSlug) q.set('agentSlug', opts.agentSlug);
     if (opts.since) q.set('since', opts.since);
+    if (opts.before) q.set('before', opts.before);
     const s = q.toString();
-    return api<{ entries: AuditEntry[] }>(`/api/audit${s ? '?' + s : ''}`);
+    return api<{ entries: AuditEntry[]; nextBefore: string | null }>(
+      `/api/audit${s ? '?' + s : ''}`,
+    );
   },
 
   listConnectors: () => api<{ capabilities: ConnectorCapability[] }>('/api/connectors'),

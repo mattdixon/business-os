@@ -8,23 +8,44 @@ export function AuditPage(): JSX.Element {
   const [actionFilter, setActionFilter] = useState('');
   const [agentFilter, setAgentFilter] = useState('');
   const [sinceHours, setSinceHours] = useState<string>('24');
+  const [nextBefore, setNextBefore] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const baseFilters = (): {
+    action?: string;
+    agentSlug?: string;
+    since?: string;
+  } => ({
+    action: actionFilter || undefined,
+    agentSlug: agentFilter || undefined,
+    since:
+      sinceHours === 'all'
+        ? undefined
+        : new Date(Date.now() - Number(sinceHours) * 3600_000).toISOString(),
+  });
 
   const load = async (): Promise<void> => {
     setError(null);
     try {
-      const sinceIso =
-        sinceHours === 'all'
-          ? undefined
-          : new Date(Date.now() - Number(sinceHours) * 3600_000).toISOString();
-      const r = await Api.listAudit({
-        action: actionFilter || undefined,
-        agentSlug: agentFilter || undefined,
-        since: sinceIso,
-        limit: 200,
-      });
+      const r = await Api.listAudit({ ...baseFilters(), limit: 200 });
       setEntries(r.entries);
+      setNextBefore(r.nextBefore);
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : 'load failed');
+    }
+  };
+
+  const loadMore = async (): Promise<void> => {
+    if (!nextBefore) return;
+    setLoadingMore(true);
+    try {
+      const r = await Api.listAudit({ ...baseFilters(), limit: 200, before: nextBefore });
+      setEntries((prev) => [...(prev ?? []), ...r.entries]);
+      setNextBefore(r.nextBefore);
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : 'load more failed');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -135,6 +156,13 @@ export function AuditPage(): JSX.Element {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {nextBefore && (
+          <div className="text-center">
+            <button className="btn-secondary" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
           </div>
         )}
       </div>

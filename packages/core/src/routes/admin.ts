@@ -163,6 +163,10 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       requiredConnectors: agent.manifest.requiredConnectors,
       schedule: agent.manifest.schedule,
       settings: settingsValue,
+      settingsSchema: zodToFieldSchema(agent.manifest.settingsSchema),
+      inputSchema: agent.manifest.inputSchema
+        ? zodToFieldSchema(agent.manifest.inputSchema)
+        : null,
     };
   });
 

@@ -81,6 +81,8 @@ export interface AgentSummary extends AgentManifest {
    * settings form.
    */
   settingsSchema?: unknown;
+  /** Same shape as settingsSchema; only set when the agent declared an inputSchema. */
+  inputSchema?: unknown | null;
   lastRun: AgentRun | null;
 }
 

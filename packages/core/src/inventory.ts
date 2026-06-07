@@ -15,6 +15,8 @@ export interface AgentManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAny
   description: string;
   requiredConnectors: ReadonlyArray<string>;
   settingsSchema: TSettings;
+  /** Optional per-run input schema. UI auto-renders a form when present. */
+  inputSchema?: z.ZodTypeAny;
   schedule:
     | { kind: 'cron'; expr: string }
     | { kind: 'manual' }

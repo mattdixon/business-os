@@ -1,0 +1,149 @@
+/**
+ * {{CLIENT_NAME}} — dev/demo seed script.
+ *
+ * One-shot helper that takes a freshly-migrated install from "empty" to
+ * "ready to demo":
+ *   1. Creates an operator user (default: admin@localhost / change-me-now).
+ *   2. Registers + activates the email-stub and crm-stub connector instances.
+ *   3. Seeds sample leadgen + prospecting agent settings using the
+ *      operator-wide ICP from CLIENT_ICP_EXAMPLE in the env (with a sensible
+ *      fallback).
+ *
+ * Safe to re-run: every step is upsert-or-skip.
+ *
+ * NEVER run this in production — the seeded user has a known password.
+ * The script aborts if NODE_ENV=production.
+ */
+
+import { createDb, connectorInstances, settings as settingsTable, users } from '@business-os/db';
+import { hashPassword } from '@business-os/core/auth';
+import { eq, and } from 'drizzle-orm';
+
+const DEFAULT_EMAIL = process.env.SEED_DEV_EMAIL ?? 'admin@localhost';
+const DEFAULT_PASSWORD = process.env.SEED_DEV_PASSWORD ?? 'change-me-now-please';
+const ICP =
+  process.env.CLIENT_ICP_EXAMPLE ??
+  'Mid-market operators ($10M–$50M revenue) in a vertical adjacent to {{CLIENT_NAME}}';
+const OFFER =
+  process.env.CLIENT_OFFER_EXAMPLE ??
+  'A custom Business OS install that absorbs the messy work the operator\'s team does today.';
+
+async function main(): Promise<void> {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('seed-dev.ts must NOT be run in production (NODE_ENV=production)');
+  }
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('DATABASE_URL not set');
+
+  const { db, sql } = createDb({ url });
+  try {
+    // 1. Operator user.
+    const existingUser = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, DEFAULT_EMAIL.toLowerCase()))
+      .limit(1);
+    if (existingUser[0]) {
+      // eslint-disable-next-line no-console
+      console.log(`[seed] user already exists: ${DEFAULT_EMAIL}`);
+    } else {
+      const passwordHash = await hashPassword(DEFAULT_PASSWORD);
+      await db.insert(users).values({
+        email: DEFAULT_EMAIL.toLowerCase(),
+        passwordHash,
+        displayName: 'Demo Operator',
+      });
+      // eslint-disable-next-line no-console
+      console.log(`[seed] created user ${DEFAULT_EMAIL} (password: ${DEFAULT_PASSWORD})`);
+    }
+
+    // 2. Stub connector instances — activate (or create+activate) one per capability.
+    const ensureActiveInstance = async (
+      capability: string,
+      providerSlug: string,
+      displayName: string,
+    ): Promise<string> => {
+      const existing = await db
+        .select({ id: connectorInstances.id })
+        .from(connectorInstances)
+        .where(
+          and(
+            eq(connectorInstances.capability, capability),
+            eq(connectorInstances.providerSlug, providerSlug),
+          ),
+        )
+        .limit(1);
+      let id: string;
+      if (existing[0]) {
+        id = existing[0].id;
+      } else {
+        const inserted = await db
+          .insert(connectorInstances)
+          .values({ capability, providerSlug, displayName, isActive: false })
+          .returning({ id: connectorInstances.id });
+        id = inserted[0]!.id;
+        // eslint-disable-next-line no-console
+        console.log(`[seed] created connector ${capability}/${providerSlug}`);
+      }
+      // Deactivate any other instance of this capability, then activate this one.
+      await db
+        .update(connectorInstances)
+        .set({ isActive: false })
+        .where(eq(connectorInstances.capability, capability));
+      await db
+        .update(connectorInstances)
+        .set({ isActive: true })
+        .where(eq(connectorInstances.id, id));
+      // eslint-disable-next-line no-console
+      console.log(`[seed] activated ${capability}/${providerSlug}`);
+      return id;
+    };
+
+    await ensureActiveInstance('email', 'email-stub', 'Email (stub)');
+    await ensureActiveInstance('crm', 'crm-stub', 'CRM (stub)');
+
+    // 3. Sample agent settings.
+    const upsertSettings = async (scope: string, value: unknown): Promise<void> => {
+      await db
+        .insert(settingsTable)
+        .values({ scope, value })
+        .onConflictDoUpdate({
+          target: settingsTable.scope,
+          set: { value, updatedAt: new Date() },
+        });
+      // eslint-disable-next-line no-console
+      console.log(`[seed] settings: ${scope}`);
+    };
+
+    await upsertSettings('agent:leadgen', {
+      icp: ICP,
+      maxPerRun: 5,
+      llm: {},
+    });
+    await upsertSettings('agent:prospecting', {
+      icp: ICP,
+      offer: OFFER,
+      llm: {},
+      send: { enabled: false, fallbackTo: DEFAULT_EMAIL },
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(`\n[seed] Done. Sign in at the operator UI with:`);
+    // eslint-disable-next-line no-console
+    console.log(`         email:    ${DEFAULT_EMAIL}`);
+    // eslint-disable-next-line no-console
+    console.log(`         password: ${DEFAULT_PASSWORD}\n`);
+    // eslint-disable-next-line no-console
+    console.log(`       Stub email + CRM connectors are active. Add an Anthropic`);
+    // eslint-disable-next-line no-console
+    console.log(`       or OpenAI key under Connectors, then run leadgen.`);
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+main().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('[seed] failed:', err);
+  process.exit(1);
+});

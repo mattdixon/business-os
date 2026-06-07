@@ -15,11 +15,26 @@ files in this repo.
 pnpm install
 # Start Postgres for this install
 docker compose up -d postgres
-# Boot the API + worker
+# Boot the API + worker (also runs migrations on first boot)
 pnpm dev
 ```
 
 The API listens on `http://localhost:4673`.
+
+## One-command demo
+
+After scaffolding + booting, in a second terminal:
+
+```sh
+pnpm seed:dev
+```
+
+Creates `admin@localhost` (password from `.env`), activates the email-stub
+and crm-stub connector instances, and seeds sample leadgen + prospecting
+agent settings. Sign in to the UI, paste an Anthropic or OpenAI API key
+under Connectors, then click Run now on Lead Generation.
+
+`pnpm seed:dev` aborts in production (NODE_ENV=production).
 
 ## Add a connector or agent
 

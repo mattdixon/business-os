@@ -6,6 +6,7 @@ interface CliArgs {
   slug?: string;
   name?: string;
   dir?: string;
+  workspaceMode?: boolean;
   help?: boolean;
 }
 
@@ -16,33 +17,42 @@ function parseArgs(argv: string[]): CliArgs {
     if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--name') args.name = argv[++i];
     else if (a === '--dir') args.dir = argv[++i];
+    else if (a === '--workspace-mode') args.workspaceMode = true;
     else if (!a.startsWith('-') && !args.slug) args.slug = a;
   }
   return args;
 }
 
 const HELP = `\
-Usage: create-business-os-client <slug> [--name "Display Name"] [--dir ./path]
+Usage: create-business-os-client <slug> [options]
 
 Scaffolds a new Business OS client install repo.
 
 Positional:
-  slug         kebab-case identifier (e.g. cnn-construction)
+  slug              kebab-case identifier (e.g. cnn-construction)
 
 Options:
-  --name STR   Human-readable display name (default: title-cased slug)
-  --dir PATH   Target directory (default: ./<slug>-os)
-  --help, -h   Show this help
+  --name STR        Human-readable display name (default: title-cased slug)
+  --dir PATH        Target directory (default: ./<slug>-os)
+  --workspace-mode  Place the scaffold inside an existing pnpm workspace
+                    and auto-register it in pnpm-workspace.yaml. Required
+                    until @business-os/* are published to a registry.
+  --help, -h        Show this help
 
-Example:
+Examples:
+  # Scaffold a standalone shell (requires @business-os/* to be published):
+  pnpm create business-os-client cnn-construction --name "CNN Construction"
+
+  # Scaffold into the framework monorepo so workspace:^ deps resolve locally:
   pnpm create business-os-client cnn-construction \\
-    --name "CNN Construction"
+    --dir ./clients/cnn-construction-os \\
+    --workspace-mode
 
-After it runs:
-  cd <slug>-os
-  pnpm install
-  docker compose up -d postgres
-  pnpm dev
+After it runs (workspace-mode):
+  pnpm install                      # in the monorepo root
+  docker compose up -d postgres     # in the new client dir
+  cp .env.example .env
+  pnpm dev                          # in the new client dir
 `;
 
 async function main(): Promise<void> {
@@ -59,27 +69,53 @@ async function main(): Promise<void> {
       slug: args.slug,
       name: args.name,
       targetDir,
+      workspaceMode: args.workspaceMode,
     });
-    // eslint-disable-next-line no-console
-    console.log(`\n  ✓ Scaffolded ${result.name} into ${result.targetDir}`);
-    // eslint-disable-next-line no-console
+    const rel = (p: string): string => p.replace(process.cwd() + '/', './');
+    /* eslint-disable no-console */
+    console.log(`\n  ✓ Scaffolded ${result.name} into ${rel(result.targetDir)}`);
     console.log(`  ✓ Wrote ${result.filesWritten.length} files`);
     if (result.generatedSecretsKey) {
-      // eslint-disable-next-line no-console
       console.log(`  ✓ Generated a SECRETS_KEY in .env.example`);
     }
-    // eslint-disable-next-line no-console
+    if (result.workspace) {
+      if (result.workspace.alreadyPresent) {
+        console.log(
+          `  ✓ Already registered in ${rel(result.workspace.yamlPath)} (no change)`,
+        );
+      } else {
+        console.log(
+          `  ✓ Added "${result.workspace.packagesEntry}" to ${rel(result.workspace.yamlPath)}`,
+        );
+      }
+    }
+
     console.log(`\nNext steps:`);
-    // eslint-disable-next-line no-console
-    console.log(`  cd ${result.targetDir.replace(process.cwd() + '/', './')}`);
-    // eslint-disable-next-line no-console
-    console.log(`  cp .env.example .env`);
-    // eslint-disable-next-line no-console
-    console.log(`  pnpm install`);
-    // eslint-disable-next-line no-console
-    console.log(`  docker compose up -d postgres`);
-    // eslint-disable-next-line no-console
-    console.log(`  pnpm dev\n`);
+    if (result.workspace) {
+      const ws = resolve(result.workspace.yamlPath, '..');
+      console.log(`  cd ${rel(ws)}`);
+      console.log(`  pnpm install            # installs the new package into the workspace`);
+      console.log(`  cd ${rel(result.targetDir)}`);
+      console.log(`  cp .env.example .env`);
+      console.log(`  docker compose up -d postgres`);
+      console.log(`  pnpm dev\n`);
+      console.log(`Once Postgres is up + the app is running, in another terminal:`);
+      console.log(`  pnpm seed:dev           # creates admin@localhost + sample settings\n`);
+    } else {
+      console.log(`  cd ${rel(result.targetDir)}`);
+      console.log(`  cp .env.example .env`);
+      console.log(`  pnpm install`);
+      console.log(`  docker compose up -d postgres`);
+      console.log(`  pnpm dev\n`);
+      console.log(
+        `Note: \`pnpm install\` will fail until @business-os/* are published to your`,
+      );
+      console.log(
+        `registry. While that's still being decided, scaffold with --workspace-mode`,
+      );
+      console.log(`pointed at the framework monorepo and consume the workspace deps locally.\n`);
+    }
+    /* eslint-enable no-console */
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`create-business-os-client: ${(err as Error).message}`);

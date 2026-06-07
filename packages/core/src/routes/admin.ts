@@ -1,10 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, gte, type SQL } from 'drizzle-orm';
 import {
   agentRuns,
+  auditLog,
   settings as settingsTable,
   connectorInstances,
+  users,
 } from '@business-os/db';
 import type { Db } from '@business-os/db';
 import { requireUser } from './_require-user.js';
@@ -464,5 +466,46 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     await req.deps.db.delete(connectorInstances).where(eq(connectorInstances.id, id));
     await req.audit('admin.connector.delete', { id });
     return { ok: true as const };
+  });
+
+  // ---------- GET /api/audit ----------
+  app.get('/api/audit', { preHandler: requireUser }, async (req) => {
+    const q = req.query as {
+      limit?: string;
+      action?: string;
+      userId?: string;
+      agentSlug?: string;
+      since?: string;
+    };
+    const limit = Math.min(Math.max(Number(q.limit ?? 100), 1), 500);
+
+    const filters: SQL[] = [];
+    if (q.action) filters.push(eq(auditLog.action, q.action));
+    if (q.userId) filters.push(eq(auditLog.userId, q.userId));
+    if (q.agentSlug) filters.push(eq(auditLog.agentSlug, q.agentSlug));
+    if (q.since) {
+      const t = new Date(q.since);
+      if (!Number.isNaN(t.getTime())) filters.push(gte(auditLog.at, t));
+    }
+
+    const rowsQuery = req.deps.db
+      .select({
+        id: auditLog.id,
+        at: auditLog.at,
+        action: auditLog.action,
+        userId: auditLog.userId,
+        userEmail: users.email,
+        agentSlug: auditLog.agentSlug,
+        requestId: auditLog.requestId,
+        meta: auditLog.meta,
+      })
+      .from(auditLog)
+      .leftJoin(users, eq(auditLog.userId, users.id))
+      .orderBy(desc(auditLog.at))
+      .limit(limit);
+    const rows = await (filters.length
+      ? rowsQuery.where(and(...filters))
+      : rowsQuery);
+    return { entries: rows };
   });
 }

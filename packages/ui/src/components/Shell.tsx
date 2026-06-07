@@ -16,6 +16,7 @@ export function Shell(): JSX.Element {
         <nav className="flex flex-1 flex-col gap-0.5 p-2 text-sm">
           <NavItem to="/agents">Agents</NavItem>
           <NavItem to="/connectors">Connectors</NavItem>
+          <NavItem to="/audit">Audit log</NavItem>
           <NavItem to="/settings">Settings</NavItem>
         </nav>
         <div className="border-t border-ink-200 px-4 py-3 text-xs text-ink-500">

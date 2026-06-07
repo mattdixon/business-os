@@ -7,6 +7,7 @@ import { Shell } from './components/Shell';
 import { AgentsList } from './pages/AgentsList';
 import { AgentDetail } from './pages/AgentDetail';
 import { ConnectorsPage } from './pages/ConnectorsPage';
+import { AuditPage } from './pages/AuditPage';
 import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
 
@@ -31,6 +32,7 @@ createRoot(root).render(
             <Route path="agents" element={<AgentsList />} />
             <Route path="agents/:slug" element={<AgentDetail />} />
             <Route path="connectors" element={<ConnectorsPage />} />
+            <Route path="audit" element={<AuditPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

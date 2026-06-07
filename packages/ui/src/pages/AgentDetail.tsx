@@ -178,7 +178,13 @@ export function AgentDetail(): JSX.Element {
               </thead>
               <tbody className="divide-y divide-ink-100">
                 {runs.map((r) => (
-                  <tr key={r.id}>
+                  <tr
+                    key={r.id}
+                    className="cursor-pointer hover:bg-ink-50"
+                    onClick={() => {
+                      window.location.href = `/runs/${r.id}`;
+                    }}
+                  >
                     <td className="px-3 py-2 font-mono text-xs text-ink-500">
                       {new Date(r.startedAt).toLocaleString()}
                     </td>

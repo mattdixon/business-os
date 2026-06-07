@@ -153,6 +153,12 @@ export const Api = {
   listRuns: (slug: string, limit = 50) =>
     api<{ runs: AgentRun[] }>(`/api/agents/${slug}/runs?limit=${limit}`),
 
+  getRun: (id: string) =>
+    api<{
+      run: AgentRun & { agentSlug: string; details: unknown };
+      audits: AuditEntry[];
+    }>(`/api/runs/${id}`),
+
   listAudit: (opts: {
     limit?: number;
     action?: string;

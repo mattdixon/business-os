@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
 
@@ -110,6 +110,12 @@ export function Login(): JSX.Element {
         <button type="submit" className="btn-primary w-full" disabled={submitting}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
+
+        <div className="text-center text-xs text-ink-500">
+          <Link to="/reset/request" className="text-accent hover:underline">
+            Forgot your password?
+          </Link>
+        </div>
       </form>
     </div>
   );

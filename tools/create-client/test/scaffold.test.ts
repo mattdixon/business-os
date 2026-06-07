@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtemp, readFile, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { scaffoldClient } from '../src/index.js';
@@ -86,5 +86,85 @@ describe('scaffoldClient', () => {
       secretsKey: 'x',
     });
     expect(result.name).toBe('First Client');
+  });
+
+  describe('--workspace-mode', () => {
+    async function fakeWorkspace(): Promise<{ root: string; yamlPath: string }> {
+      const root = await freshTmp();
+      const yamlPath = join(root, 'pnpm-workspace.yaml');
+      await writeFile(
+        yamlPath,
+        ['packages:', '  - "packages/*"', '  - "tools/*"', ''].join('\n'),
+        'utf8',
+      );
+      await mkdir(join(root, 'clients'), { recursive: true });
+      return { root, yamlPath };
+    }
+
+    it('registers the new package in pnpm-workspace.yaml', async () => {
+      const { root, yamlPath } = await fakeWorkspace();
+      const target = join(root, 'clients', 'cnn-construction-os');
+      const result = await scaffoldClient({
+        slug: 'cnn-construction',
+        targetDir: target,
+        secretsKey: 'x',
+        workspaceMode: true,
+      });
+      expect(result.workspace).toBeDefined();
+      expect(result.workspace!.packagesEntry).toBe('clients/cnn-construction-os');
+      expect(result.workspace!.alreadyPresent).toBe(false);
+      const yaml = await readFile(yamlPath, 'utf8');
+      expect(yaml).toContain('- "clients/cnn-construction-os"');
+      expect(yaml).toContain('- "packages/*"'); // existing entries preserved
+    });
+
+    it('does not duplicate when re-run', async () => {
+      const { root, yamlPath } = await fakeWorkspace();
+      const target = join(root, 'clients', 'twice');
+      await scaffoldClient({
+        slug: 'twice',
+        targetDir: target,
+        secretsKey: 'x',
+        workspaceMode: true,
+      });
+      // Re-run with refuseIfNotEmpty=false (otherwise the empty-dir check would block).
+      const result = await scaffoldClient({
+        slug: 'twice',
+        targetDir: target,
+        secretsKey: 'x',
+        workspaceMode: true,
+        refuseIfNotEmpty: false,
+      });
+      expect(result.workspace?.alreadyPresent).toBe(true);
+      const yaml = await readFile(yamlPath, 'utf8');
+      const count = (yaml.match(/clients\/twice/g) ?? []).length;
+      expect(count).toBe(1);
+    });
+
+    it('errors when no pnpm-workspace.yaml exists upward', async () => {
+      const dir = await freshTmp();
+      await expect(
+        scaffoldClient({
+          slug: 'orphan',
+          targetDir: join(dir, 'orphan-os'),
+          secretsKey: 'x',
+          workspaceMode: true,
+        }),
+      ).rejects.toThrow(/pnpm-workspace\.yaml/);
+    });
+
+    it('errors when target is outside the workspace root', async () => {
+      const { root } = await fakeWorkspace();
+      const elsewhere = await freshTmp(); // a sibling of `root`, not inside it
+      await expect(
+        scaffoldClient({
+          slug: 'outside',
+          targetDir: join(elsewhere, 'outside-os'),
+          secretsKey: 'x',
+          workspaceMode: true,
+        }),
+      ).rejects.toThrow();
+      void root;
+    });
   });
 });

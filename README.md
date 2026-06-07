@@ -13,44 +13,116 @@ This is the framework monorepo. Two artifacts ship out of here:
 
 You scaffold a client install from the framework, then deploy that install on the client's infrastructure. The framework code lives in versioned packages, not in their tree.
 
-## Quick start (scaffold a client)
+---
+
+## Run it locally
+
+Two paths. The first is what you want for a demo or for local development. The second is what a real client install looks like once `@business-os/*` is published to a private registry.
+
+### Path A — Workspace mode (recommended while there's no private registry)
+
+Scaffolds a client shell **inside this monorepo** under `clients/`, registers it in `pnpm-workspace.yaml`, and consumes the `@business-os/*` deps via `workspace:^`. No registry needed.
 
 ```sh
-# Inside this monorepo
+# From the monorepo root
 pnpm install
+pnpm -r build                          # one-time, so workspace packages resolve via dist/
+
 pnpm --filter @business-os/create-client start cnn-construction \
+  --name "CNN Construction" \
+  --dir ./clients/cnn-construction-os \
+  --workspace-mode
+
+# Workspace gets re-resolved; install the new package's transitive deps:
+pnpm install
+
+# Bring up Postgres for the install (uses the per-client docker-compose.yml).
+cd clients/cnn-construction-os
+docker compose up -d postgres
+cp .env.example .env                   # fresh SECRETS_KEY is already baked in
+pnpm dev                               # runs migrations + Fastify + worker
+```
+
+Then in a second terminal:
+
+```sh
+cd clients/cnn-construction-os
+pnpm seed:dev                          # admin@localhost / change-me-now-please + sample settings
+```
+
+Open `http://localhost:4673` in a browser. Sign in. From there:
+
+1. **Connectors** → add an Anthropic or OpenAI instance → paste your API key → click **Set active**.
+2. **Agents** → **Lead Generation** → tweak the ICP in the auto-rendered form → **Save** → **Run now**.
+3. Click the new row under **Recent runs** to see drafts + audit trail. **Download CSV / Markdown** at the top.
+
+The `email-stub` and `crm-stub` connectors are already active after `seed:dev`, so the **Prospecting** agent can run end-to-end (it'll "send" via the stub — visible in the audit log).
+
+### Path B — Standalone shell (post-registry)
+
+Once `@business-os/*` are published to a private registry, the same scaffolder builds a repo outside the monorepo:
+
+```sh
+pnpm create business-os-client cnn-construction \
   --name "CNN Construction" \
   --dir ~/code/cnn-construction-os
 
-# Then in the new dir
 cd ~/code/cnn-construction-os
-cp .env.example .env       # fill in DATABASE_URL etc.
+cp .env.example .env
 pnpm install
 docker compose up -d postgres
 pnpm dev
+pnpm seed:dev                          # in a second terminal
 ```
 
-The shell boots Fastify + worker on `API_PORT` (default 4673) and the operator UI at `/`. The framework runs migrations on first boot; from there, everything else — connector credentials, per-agent settings, schedules — lives in the DB and is managed via the operator UI.
+Pick this path when the registry is decided.
+
+### Develop the framework itself
+
+While editing framework code with a scaffolded client running:
+
+```sh
+pnpm install
+pnpm -r build                          # rebuild dist/ across packages
+pnpm -r typecheck                      # whole-workspace typecheck
+pnpm -r test                           # whole-workspace tests
+
+pnpm --filter @business-os/ui dev      # UI dev server on http://localhost:4937
+                                       # (proxies /api, /auth to API_PORT)
+```
+
+Most workspace tests run pure unit-style. The integration tests against real Postgres auto-skip when it's unreachable; bring it up via `docker compose up -d postgres` (uses the docker-compose.yml at the monorepo root).
+
+### Local prereqs
+
+- Node.js 20+
+- pnpm 9+ (this repo uses corepack: `corepack enable && corepack prepare pnpm@9.12.0 --activate`)
+- Docker Desktop with WSL integration enabled (if developing inside WSL), or Postgres available on `localhost:5432`
+
+---
 
 ## What's in the box
 
 ```
 business-os/
 ├── packages/
-│   ├── core/                 @business-os/core           Fastify server, auth, audit, secrets, settings, boot
-│   ├── runtime/              @business-os/runtime        Registry, scheduler, ctx, connector resolver, jobs
-│   ├── agent-sdk/            @business-os/agent-sdk      The interface every agent implements + helpers
-│   ├── connector-sdk/        @business-os/connector-sdk  The interface every connector implements
-│   ├── db/                   @business-os/db             Drizzle base schema + migration runner
+│   ├── core/                 @business-os/core           Fastify server, auth, audit, secrets, admin API, boot, Sentry
+│   ├── runtime/              @business-os/runtime        Registry, scheduler, ctx, connector resolver, pg-boss jobs
+│   ├── agent-sdk/            @business-os/agent-sdk      The interface every agent implements + LlmPicker helper
+│   ├── connector-sdk/        @business-os/connector-sdk  The interface every connector implements + capability types
+│   ├── db/                   @business-os/db             Drizzle base schema + forward-only migration runner
 │   ├── ui/                   @business-os/ui             Operator UI (Vite + React + Tailwind)
 │   └── api-contract/         @business-os/api-contract   Zod request/response schemas
 ├── agents/
-│   └── leadgen/              @business-os/agent-leadgen  First shared agent — prospect drafting
+│   ├── leadgen/              @business-os/agent-leadgen    Prospect drafting via the llm capability
+│   └── prospecting/          @business-os/agent-prospecting Per-company research + outreach
 ├── connectors/
 │   ├── anthropic/            @business-os/connector-anthropic   LLM provider (Claude)
-│   └── openai/               @business-os/connector-openai      LLM provider (GPT)
+│   ├── openai/               @business-os/connector-openai      LLM provider (GPT)
+│   ├── email-stub/           @business-os/connector-email-stub  Dev/demo email provider
+│   └── crm-stub/             @business-os/connector-crm-stub    Dev/demo CRM provider (own migration)
 ├── tools/
-│   └── create-client/        @business-os/create-client  pnpm create CLI
+│   └── create-client/        @business-os/create-client    pnpm create CLI (--workspace-mode supported)
 ├── templates/
 │   └── client-starter/       The per-client shell scaffold (NOT a workspace package)
 └── docs/
@@ -69,22 +141,6 @@ business-os/
 - **Server-side sessions + httpOnly cookies.** Argon2id passwords. Optional TOTP MFA. Users live in the client's own DB.
 
 See [CLAUDE.md](./CLAUDE.md) for the full list.
-
-## Develop the framework
-
-```sh
-pnpm install
-pnpm -r build              # build all packages (TS → dist)
-pnpm -r typecheck          # whole-workspace typecheck
-pnpm -r test               # whole-workspace tests
-pnpm --filter @business-os/ui dev    # operator UI dev server (port 4937)
-```
-
-Tests requiring Postgres auto-skip when it's unreachable. Bring it up via:
-
-```sh
-docker compose up -d postgres
-```
 
 ## Documentation
 

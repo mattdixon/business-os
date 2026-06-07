@@ -16,6 +16,7 @@ import openai from '@business-os/connector-openai';
 import emailStub from '@business-os/connector-email-stub';
 import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
 import leadgen from '@business-os/agent-leadgen';
+import prospecting from '@business-os/agent-prospecting';
 
 import type { MigrationOwner } from '@business-os/db';
 
@@ -35,6 +36,7 @@ export function buildRegistry(): Registry {
 
   // ---- Agents ----
   registry.registerAgent(leadgen);
+  registry.registerAgent(prospecting);
 
   return registry;
 }

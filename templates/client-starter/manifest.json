@@ -8,6 +8,7 @@
     "business-os.config.ts.tmpl",
     "src/index.ts.tmpl",
     "src/migrate.ts.tmpl",
+    "src/seed-dev.ts.tmpl",
     "README.md.tmpl",
     "deploy/Dockerfile.tmpl",
     "docker-compose.yml.tmpl"
@@ -24,6 +25,7 @@
     "business-os.config.ts.tmpl": "business-os.config.ts",
     "src/index.ts.tmpl": "src/index.ts",
     "src/migrate.ts.tmpl": "src/migrate.ts",
+    "src/seed-dev.ts.tmpl": "src/seed-dev.ts",
     "README.md.tmpl": "README.md",
     "deploy/Dockerfile.tmpl": "deploy/Dockerfile",
     "docker-compose.yml.tmpl": "docker-compose.yml"

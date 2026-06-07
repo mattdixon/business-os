@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './styles.css';
 import { Login } from './pages/Login';
+import { PasswordResetRequest, PasswordResetComplete } from './pages/PasswordReset';
 import { Shell } from './components/Shell';
 import { AgentsList } from './pages/AgentsList';
 import { AgentDetail } from './pages/AgentDetail';
+import { RunDetail } from './pages/RunDetail';
 import { ConnectorsPage } from './pages/ConnectorsPage';
 import { AuditPage } from './pages/AuditPage';
 import { Settings } from './pages/Settings';
@@ -20,6 +22,8 @@ createRoot(root).render(
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/reset/request" element={<PasswordResetRequest />} />
+          <Route path="/reset" element={<PasswordResetComplete />} />
           <Route
             path="/"
             element={
@@ -31,6 +35,7 @@ createRoot(root).render(
             <Route index element={<Navigate to="/agents" replace />} />
             <Route path="agents" element={<AgentsList />} />
             <Route path="agents/:slug" element={<AgentDetail />} />
+            <Route path="runs/:id" element={<RunDetail />} />
             <Route path="connectors" element={<ConnectorsPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="settings" element={<Settings />} />

@@ -5,6 +5,8 @@
  * surface as ApiError so pages can `instanceof`-check.
  */
 
+// Re-exported so anonymous routes (password reset, etc.) can call the raw api
+// helper without importing from the typed Api object.
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -22,7 +24,7 @@ interface RequestOpts {
   signal?: AbortSignal;
 }
 
-export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Promise<T> {
+export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Promise<T> {  // eslint-disable-line @typescript-eslint/no-unused-vars
   const { method = 'GET', body, signal } = opts;
   const res = await fetch(path, {
     method,

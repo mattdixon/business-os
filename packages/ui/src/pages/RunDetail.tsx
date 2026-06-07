@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Api, ApiError, type AgentRun, type AuditEntry } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { detailsToCsv, detailsToMarkdown, downloadText } from '../lib/export';
 
 interface RunWithDetails extends AgentRun {
   agentSlug: string;
@@ -87,9 +88,12 @@ export function RunDetail(): JSX.Element {
         </section>
 
         <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
-            Details
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
+              Details
+            </h2>
+            <ExportButtons run={run} />
+          </div>
           {run.details ? (
             <pre className="max-h-96 overflow-auto rounded bg-ink-50 p-3 font-mono text-xs text-ink-800">
               {JSON.stringify(run.details, null, 2)}
@@ -150,6 +154,33 @@ function Row({ label, children }: { label: string; children: React.ReactNode }):
     <div className="flex gap-3 border-b border-ink-100 py-1 last:border-b-0">
       <div className="w-32 shrink-0 text-xs uppercase tracking-wide text-ink-500">{label}</div>
       <div className="text-ink-800">{children}</div>
+    </div>
+  );
+}
+
+function ExportButtons({ run }: { run: RunWithDetails }): JSX.Element | null {
+  const csv = detailsToCsv(run);
+  const md = detailsToMarkdown(run);
+  if (!csv && !md) return null;
+  const base = `${run.agentSlug}-${run.id.slice(0, 8)}`;
+  return (
+    <div className="flex gap-2">
+      {csv && (
+        <button
+          className="btn-secondary"
+          onClick={() => downloadText(`${base}.csv`, 'text/csv', csv)}
+        >
+          Download CSV
+        </button>
+      )}
+      {md && (
+        <button
+          className="btn-secondary"
+          onClick={() => downloadText(`${base}.md`, 'text/markdown', md)}
+        >
+          Download Markdown
+        </button>
+      )}
     </div>
   );
 }

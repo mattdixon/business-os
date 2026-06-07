@@ -94,6 +94,17 @@ export interface AgentRun {
   triggeredBy?: string | null;
 }
 
+export interface AuditEntry {
+  id: string;
+  at: string;
+  action: string;
+  userId: string | null;
+  userEmail: string | null;
+  agentSlug: string | null;
+  requestId: string | null;
+  meta: Record<string, unknown> | null;
+}
+
 export interface ConnectorCapability {
   capability: string;
   providers: Array<{
@@ -139,6 +150,23 @@ export const Api = {
     }),
   listRuns: (slug: string, limit = 50) =>
     api<{ runs: AgentRun[] }>(`/api/agents/${slug}/runs?limit=${limit}`),
+
+  listAudit: (opts: {
+    limit?: number;
+    action?: string;
+    userId?: string;
+    agentSlug?: string;
+    since?: string;
+  } = {}) => {
+    const q = new URLSearchParams();
+    if (opts.limit) q.set('limit', String(opts.limit));
+    if (opts.action) q.set('action', opts.action);
+    if (opts.userId) q.set('userId', opts.userId);
+    if (opts.agentSlug) q.set('agentSlug', opts.agentSlug);
+    if (opts.since) q.set('since', opts.since);
+    const s = q.toString();
+    return api<{ entries: AuditEntry[] }>(`/api/audit${s ? '?' + s : ''}`);
+  },
 
   listConnectors: () => api<{ capabilities: ConnectorCapability[] }>('/api/connectors'),
   createConnector: (body: {

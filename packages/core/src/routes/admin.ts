@@ -258,6 +258,37 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     return { runs: rows };
   });
 
+  // ---------- GET /api/runs/:id ----------
+  // Single run + correlated audit log. The runtime sets requestId=runId when
+  // building the AuditContext, so the audit_log.request_id column is the join
+  // key.
+  app.get('/api/runs/:id', { preHandler: requireUser }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const rows = await req.deps.db
+      .select()
+      .from(agentRuns)
+      .where(eq(agentRuns.id, id))
+      .limit(1);
+    const run = rows[0];
+    if (!run) {
+      reply.code(404).send({ error: 'run_not_found' });
+      return;
+    }
+    const audits = await req.deps.db
+      .select({
+        id: auditLog.id,
+        at: auditLog.at,
+        action: auditLog.action,
+        userId: auditLog.userId,
+        agentSlug: auditLog.agentSlug,
+        meta: auditLog.meta,
+      })
+      .from(auditLog)
+      .where(eq(auditLog.requestId, id))
+      .orderBy(auditLog.at);
+    return { run, audits };
+  });
+
   // ---------- GET /api/connectors ----------
   app.get('/api/connectors', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;

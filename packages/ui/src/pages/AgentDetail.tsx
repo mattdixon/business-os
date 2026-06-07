@@ -28,6 +28,8 @@ export function AgentDetail(): JSX.Element {
   const [running, setRunning] = useState(false);
   const [runInput, setRunInput] = useState<unknown>({});
   const [runInputText, setRunInputText] = useState('{}');
+  const [runsNextBefore, setRunsNextBefore] = useState<string | null>(null);
+  const [loadingMoreRuns, setLoadingMoreRuns] = useState(false);
 
   const reload = async (): Promise<void> => {
     if (!slug) return;
@@ -35,9 +37,24 @@ export function AgentDetail(): JSX.Element {
       const [a, r] = await Promise.all([Api.getAgent(slug), Api.listRuns(slug)]);
       setAgent(a);
       setRuns(r.runs);
+      setRunsNextBefore(r.nextBefore);
       setDraftSettings(a.settings ?? {});
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : 'load failed');
+    }
+  };
+
+  const loadMoreRuns = async (): Promise<void> => {
+    if (!slug || !runsNextBefore) return;
+    setLoadingMoreRuns(true);
+    try {
+      const r = await Api.listRuns(slug, { before: runsNextBefore });
+      setRuns((prev) => [...prev, ...r.runs]);
+      setRunsNextBefore(r.nextBefore);
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : 'load more failed');
+    } finally {
+      setLoadingMoreRuns(false);
     }
   };
 
@@ -210,6 +227,17 @@ export function AgentDetail(): JSX.Element {
                 ))}
               </tbody>
             </table>
+          )}
+          {runsNextBefore && (
+            <div className="mt-4 text-center">
+              <button
+                className="btn-secondary"
+                onClick={loadMoreRuns}
+                disabled={loadingMoreRuns}
+              >
+                {loadingMoreRuns ? 'Loading…' : 'Load more runs'}
+              </button>
+            </div>
           )}
         </section>
       </div>

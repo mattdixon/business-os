@@ -513,6 +513,51 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     return { ok: true as const };
   });
 
+  // ---------- GET /api/dashboard ----------
+  // One round-trip overview used by the operator UI's landing page.
+  app.get('/api/dashboard', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+
+    const agents = req.deps.inventory.listAgents();
+    const recentRuns = await req.deps.db
+      .select({
+        id: agentRuns.id,
+        agentSlug: agentRuns.agentSlug,
+        startedAt: agentRuns.startedAt,
+        endedAt: agentRuns.endedAt,
+        ok: agentRuns.ok,
+        summary: agentRuns.summary,
+      })
+      .from(agentRuns)
+      .orderBy(desc(agentRuns.startedAt))
+      .limit(10);
+
+    const instances = await req.deps.db.select().from(connectorInstances);
+    const capabilityStatus: Array<{
+      capability: string;
+      registered: number;
+      configured: number;
+      activeProvider: string | null;
+    }> = [];
+    for (const cap of ['email', 'crm', 'llm', 'file-storage']) {
+      const providers = req.deps.inventory.listConnectorProviders(cap);
+      const capInstances = instances.filter((i) => i.capability === cap);
+      const active = capInstances.find((i) => i.isActive);
+      capabilityStatus.push({
+        capability: cap,
+        registered: providers.length,
+        configured: capInstances.length,
+        activeProvider: active ? active.providerSlug : null,
+      });
+    }
+
+    return {
+      agentCount: agents.length,
+      recentRuns,
+      capabilities: capabilityStatus,
+    };
+  });
+
   // ---------- GET /api/audit ----------
   app.get('/api/audit', { preHandler: requireUser }, async (req) => {
     const q = req.query as {

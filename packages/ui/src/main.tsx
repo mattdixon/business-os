@@ -5,6 +5,7 @@ import './styles.css';
 import { Login } from './pages/Login';
 import { PasswordResetRequest, PasswordResetComplete } from './pages/PasswordReset';
 import { Shell } from './components/Shell';
+import { Dashboard } from './pages/Dashboard';
 import { AgentsList } from './pages/AgentsList';
 import { AgentDetail } from './pages/AgentDetail';
 import { RunDetail } from './pages/RunDetail';
@@ -34,7 +35,8 @@ createRoot(root).render(
                 </RequireAuth>
               }
             >
-              <Route index element={<Navigate to="/agents" replace />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="agents" element={<AgentsList />} />
               <Route path="agents/:slug" element={<AgentDetail />} />
               <Route path="runs/:id" element={<RunDetail />} />

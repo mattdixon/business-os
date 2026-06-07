@@ -14,6 +14,7 @@ export function Shell(): JSX.Element {
           <div className="text-xs text-ink-400">Operator</div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2 text-sm">
+          <NavItem to="/dashboard">Dashboard</NavItem>
           <NavItem to="/agents">Agents</NavItem>
           <NavItem to="/connectors">Connectors</NavItem>
           <NavItem to="/audit">Audit log</NavItem>

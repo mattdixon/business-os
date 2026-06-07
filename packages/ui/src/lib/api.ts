@@ -140,6 +140,18 @@ export const Api = {
   disableTotp: (code: string) =>
     api<{ ok: true }>('/auth/totp/disable', { method: 'POST', body: { code } }),
 
+  getDashboard: () =>
+    api<{
+      agentCount: number;
+      recentRuns: Array<AgentRun & { agentSlug: string }>;
+      capabilities: Array<{
+        capability: string;
+        registered: number;
+        configured: number;
+        activeProvider: string | null;
+      }>;
+    }>('/api/dashboard'),
+
   listAgents: () => api<{ agents: AgentSummary[] }>('/api/agents'),
   getAgent: (slug: string) => api<AgentSummary>(`/api/agents/${slug}`),
   updateAgentSettings: (slug: string, value: unknown) =>

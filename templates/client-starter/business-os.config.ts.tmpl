@@ -13,6 +13,8 @@ import { Registry, Scheduler } from '@business-os/runtime';
 import { createConnectorResolver } from '@business-os/runtime';
 import anthropic from '@business-os/connector-anthropic';
 import openai from '@business-os/connector-openai';
+import emailStub from '@business-os/connector-email-stub';
+import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
 import leadgen from '@business-os/agent-leadgen';
 
 import type { MigrationOwner } from '@business-os/db';
@@ -21,8 +23,15 @@ export function buildRegistry(): Registry {
   const registry = new Registry();
 
   // ---- Connectors ----
+  // LLM providers — operator picks per agent via the settings UI.
   registry.registerConnectorProvider(anthropic);
   registry.registerConnectorProvider(openai);
+
+  // Dev/demo providers for email + crm. Swap for real Gmail / HubSpot etc.
+  // by registering the corresponding @business-os/connector-* and activating
+  // it in the operator UI.
+  registry.registerConnectorProvider(emailStub);
+  registry.registerConnectorProvider(crmStub);
 
   // ---- Agents ----
   registry.registerAgent(leadgen);
@@ -32,7 +41,7 @@ export function buildRegistry(): Registry {
 
 /** Additional migration owners for agents + connectors that ship their own. */
 export const extraMigrations: MigrationOwner[] = [
-  // ...leadgen.migrations,
+  crmStubMigrations,
 ];
 
 export type { Registry, Scheduler };

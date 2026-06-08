@@ -141,6 +141,57 @@ describe('scaffoldClient', () => {
       expect(count).toBe(1);
     });
 
+    it('treats a covering glob ("clients/*") as already-present', async () => {
+      const root = await freshTmp();
+      const yamlPath = join(root, 'pnpm-workspace.yaml');
+      await writeFile(
+        yamlPath,
+        ['packages:', '  - "packages/*"', '  - "clients/*"', ''].join('\n'),
+        'utf8',
+      );
+      await mkdir(join(root, 'clients'), { recursive: true });
+      const result = await scaffoldClient({
+        slug: 'glob-covered',
+        targetDir: join(root, 'clients', 'glob-covered-os'),
+        secretsKey: 'x',
+        workspaceMode: true,
+      });
+      expect(result.workspace?.alreadyPresent).toBe(true);
+      const yaml = await readFile(yamlPath, 'utf8');
+      expect(yaml).not.toContain('- "clients/glob-covered-os"');
+    });
+
+    it('inserts after the last list item, NOT after trailing comments', async () => {
+      const root = await freshTmp();
+      const yamlPath = join(root, 'pnpm-workspace.yaml');
+      await writeFile(
+        yamlPath,
+        [
+          'packages:',
+          '  - "packages/*"',
+          '  - "tools/*"',
+          '# templates/ is intentionally not a workspace package',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await mkdir(join(root, 'clients'), { recursive: true });
+      await scaffoldClient({
+        slug: 'after-comment',
+        targetDir: join(root, 'clients', 'after-comment-os'),
+        secretsKey: 'x',
+        workspaceMode: true,
+      });
+      const yaml = await readFile(yamlPath, 'utf8');
+      const lines = yaml.split('\n');
+      const newEntryIdx = lines.findIndex((l) => l.includes('after-comment-os'));
+      const toolsIdx = lines.findIndex((l) => l.includes('tools/*'));
+      const commentIdx = lines.findIndex((l) => l.includes('templates/'));
+      // New entry should sit between tools/* and the trailing comment, not below it.
+      expect(newEntryIdx).toBeGreaterThan(toolsIdx);
+      expect(newEntryIdx).toBeLessThan(commentIdx);
+    });
+
     it('errors when no pnpm-workspace.yaml exists upward', async () => {
       const dir = await freshTmp();
       await expect(

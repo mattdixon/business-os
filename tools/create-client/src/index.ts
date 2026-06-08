@@ -111,7 +111,7 @@ export interface ScaffoldResult {
  * pnpm-workspace.yaml file. Returns the absolute path of that dir, or null
  * if we hit the filesystem root without finding one.
  */
-async function findWorkspaceRoot(start: string): Promise<string | null> {
+export async function findWorkspaceRoot(start: string): Promise<string | null> {
   let dir = resolve(start);
   for (let i = 0; i < 30; i++) {
     try {
@@ -141,10 +141,25 @@ async function registerInWorkspaceYaml(
 ): Promise<{ alreadyPresent: boolean }> {
   const content = await readFile(yamlPath, 'utf8');
   const quoted = `"${relativeEntry}"`;
+
+  // Exact-match: already explicitly registered?
   const escaped = relativeEntry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^\\s*-\\s*"?${escaped}"?\\s*$`, 'm');
-  if (re.test(content)) {
+  const exactRe = new RegExp(`^\\s*-\\s*"?${escaped}"?\\s*$`, 'm');
+  if (exactRe.test(content)) {
     return { alreadyPresent: true };
+  }
+
+  // Glob-match: a parent `- "<dir>/*"` already covers us?
+  // Match e.g. `clients/foo-os` against an entry like `- "clients/*"`.
+  const parent = relativeEntry.includes('/')
+    ? relativeEntry.slice(0, relativeEntry.lastIndexOf('/'))
+    : '';
+  if (parent) {
+    const parentEscaped = parent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const globRe = new RegExp(`^\\s*-\\s*"?${parentEscaped}/\\*"?\\s*$`, 'm');
+    if (globRe.test(content)) {
+      return { alreadyPresent: true };
+    }
   }
 
   // Locate the `packages:` key.
@@ -155,14 +170,15 @@ async function registerInWorkspaceYaml(
       `pnpm-workspace.yaml at ${yamlPath} has no "packages:" key — refusing to edit. Add the entry manually:\n  - ${quoted}`,
     );
   }
-  // Insert after the last existing list item under packages: (or directly after
-  // the header if the list is empty).
+  // Insert after the last actual list item under packages:. Blank lines and
+  // comments are skipped — they shouldn't advance the insertion point or the
+  // new entry lands after trailing footer comments.
   let insertAt = headerIdx + 1;
   for (let i = headerIdx + 1; i < lines.length; i++) {
-    if (/^\s*-\s*/.test(lines[i]!) || /^\s*#/.test(lines[i]!)) {
+    const line = lines[i]!;
+    if (/^\s*-\s*/.test(line)) {
       insertAt = i + 1;
-    } else if (lines[i]!.trim() === '') {
-      // blank line — keep going, may be inside packages: block
+    } else if (line.trim() === '' || /^\s*#/.test(line)) {
       continue;
     } else {
       break;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve } from 'node:path';
-import { scaffoldClient } from './index.js';
+import { scaffoldClient, findWorkspaceRoot } from './index.js';
 
 interface CliArgs {
   slug?: string;
@@ -33,7 +33,11 @@ Positional:
 
 Options:
   --name STR        Human-readable display name (default: title-cased slug)
-  --dir PATH        Target directory (default: ./<slug>-os)
+  --dir PATH        Target directory (default: ./<slug>-os, or
+                    <workspace-root>/clients/<slug>-os under --workspace-mode).
+                    Relative paths under --workspace-mode resolve against
+                    the workspace root, NOT CWD — so pnpm-filter-run
+                    works from anywhere.
   --workspace-mode  Place the scaffold inside an existing pnpm workspace
                     and auto-register it in pnpm-workspace.yaml. Required
                     until @business-os/* are published to a registry.
@@ -63,7 +67,26 @@ async function main(): Promise<void> {
     process.exit(args.slug ? 0 : 1);
   }
 
-  const targetDir = resolve(args.dir ?? `./${args.slug}-os`);
+  // Resolve --dir. Under --workspace-mode, default to <wsRoot>/clients/<slug>-os
+  // and resolve relative paths against the workspace root, not CWD. This makes
+  // `pnpm --filter @business-os/create-client start <slug> --workspace-mode`
+  // do the right thing regardless of which directory you invoked from.
+  let targetDir: string;
+  if (args.workspaceMode) {
+    const wsRoot = await findWorkspaceRoot(process.cwd());
+    if (!wsRoot) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'create-business-os-client: --workspace-mode set but no pnpm-workspace.yaml ' +
+          `found walking up from ${process.cwd()}. Run from inside the framework monorepo.`,
+      );
+      process.exit(1);
+    }
+    targetDir = resolve(wsRoot, args.dir ?? `clients/${args.slug}-os`);
+  } else {
+    targetDir = resolve(args.dir ?? `./${args.slug}-os`);
+  }
+
   try {
     const result = await scaffoldClient({
       slug: args.slug,

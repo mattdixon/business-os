@@ -464,6 +464,98 @@ d('admin/operator API (real Postgres)', () => {
     }
   });
 
+  it('agent bindings round-trip + validate against requiredConnectors + existence', async () => {
+    // Create two LLM connector instances (both can be connected — the
+    // one-active-per-cap restriction is gone).
+    const a = await app.inject({
+      method: 'POST',
+      url: '/api/connectors',
+      headers: { cookie },
+      payload: { capability: 'llm', providerSlug: 'anthropic', displayName: 'Anthropic A' },
+    });
+    const b = await app.inject({
+      method: 'POST',
+      url: '/api/connectors',
+      headers: { cookie },
+      payload: { capability: 'llm', providerSlug: 'anthropic', displayName: 'Anthropic B' },
+    });
+    const idA = a.json().instance.id;
+    const idB = b.json().instance.id;
+
+    // Email instance — used to verify capability mismatch is rejected.
+    const e = await app.inject({
+      method: 'POST',
+      url: '/api/connectors',
+      headers: { cookie },
+      payload: { capability: 'email', providerSlug: 'gmail', displayName: 'Gmail E' },
+    });
+    const idE = e.json().instance.id;
+
+    // Reject: capability the agent doesn't require.
+    const bad1 = await app.inject({
+      method: 'PUT',
+      url: '/api/agents/leadgen/bindings',
+      headers: { cookie },
+      payload: { bindings: { 'file-storage': idA } },
+    });
+    expect(bad1.statusCode).toBe(400);
+    expect(bad1.json().error).toBe('capability_not_required_by_agent');
+
+    // Reject: instance for the wrong capability.
+    const bad2 = await app.inject({
+      method: 'PUT',
+      url: '/api/agents/leadgen/bindings',
+      headers: { cookie },
+      payload: { bindings: { llm: idE } },
+    });
+    expect(bad2.statusCode).toBe(400);
+    expect(bad2.json().error).toBe('instance_capability_mismatch');
+
+    // Reject: nonexistent instance.
+    const bad3 = await app.inject({
+      method: 'PUT',
+      url: '/api/agents/leadgen/bindings',
+      headers: { cookie },
+      payload: { bindings: { llm: '00000000-0000-0000-0000-000000000000' } },
+    });
+    expect(bad3.statusCode).toBe(400);
+    expect(bad3.json().error).toBe('connector_instance_not_found');
+
+    // Happy path: bind both required caps.
+    const ok = await app.inject({
+      method: 'PUT',
+      url: '/api/agents/leadgen/bindings',
+      headers: { cookie },
+      payload: { bindings: { llm: idA, email: idE } },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().bindings).toEqual({ llm: idA, email: idE });
+
+    // GET surfaces bindings on the agent detail.
+    const get = await app.inject({
+      method: 'GET',
+      url: '/api/agents/leadgen',
+      headers: { cookie },
+    });
+    expect(get.json().connectorBindings).toEqual({ llm: idA, email: idE });
+
+    // Re-binding to instance B overwrites.
+    const re = await app.inject({
+      method: 'PUT',
+      url: '/api/agents/leadgen/bindings',
+      headers: { cookie },
+      payload: { bindings: { llm: idB, email: idE } },
+    });
+    expect(re.statusCode).toBe(200);
+    expect(re.json().bindings.llm).toBe(idB);
+
+    // Cleanup: delete the instances we created here so later tests aren't
+    // affected.
+    for (const id of [idA, idB, idE]) {
+      await app.inject({ method: 'DELETE', url: `/api/connectors/${id}`, headers: { cookie } });
+    }
+  });
+
   it('admin endpoints return 503 when inventory is not wired', async () => {
     const secrets = createSecretsStore(env.db, encryptionKey);
     const bare = buildApp({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Api, ApiError, type AgentRun, type AgentSummary } from '../lib/api';
+import { Api, ApiError, type AgentRun, type AgentSummary, type ConnectorCapability } from '../lib/api';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
 import { useToast } from '../lib/toast';
@@ -24,6 +25,9 @@ export function AgentDetail(): JSX.Element {
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [draftSettings, setDraftSettings] = useState<unknown>({});
+  const [capabilities, setCapabilities] = useState<ConnectorCapability[] | null>(null);
+  const [draftBindings, setDraftBindings] = useState<Record<string, string>>({});
+  const [savingBindings, setSavingBindings] = useState(false);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [runInput, setRunInput] = useState<unknown>({});
@@ -34,13 +38,38 @@ export function AgentDetail(): JSX.Element {
   const reload = async (): Promise<void> => {
     if (!slug) return;
     try {
-      const [a, r] = await Promise.all([Api.getAgent(slug), Api.listRuns(slug)]);
+      const [a, r, c] = await Promise.all([
+        Api.getAgent(slug),
+        Api.listRuns(slug),
+        Api.listConnectors(),
+      ]);
       setAgent(a);
       setRuns(r.runs);
       setRunsNextBefore(r.nextBefore);
       setDraftSettings(a.settings ?? {});
+      setCapabilities(c.capabilities);
+      setDraftBindings(a.connectorBindings ?? {});
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : 'load failed');
+    }
+  };
+
+  const saveBindings = async (): Promise<void> => {
+    if (!slug) return;
+    setSavingBindings(true);
+    try {
+      // Strip empty values — operator left a capability unset; we don't want
+      // to send "" through and trip the uuid validator.
+      const clean = Object.fromEntries(
+        Object.entries(draftBindings).filter(([, v]) => v && v.length > 0),
+      );
+      await Api.updateAgentBindings(slug, clean);
+      toast.success('Connector bindings saved.');
+      await reload();
+    } catch (e: unknown) {
+      toast.error(apiErrorMessage(e, 'Save failed.'));
+    } finally {
+      setSavingBindings(false);
     }
   };
 
@@ -172,17 +201,71 @@ export function AgentDetail(): JSX.Element {
               />
             </>
           )}
-          <div className="mt-3 text-xs text-ink-500">
-            Required connectors:{' '}
-            {agent.requiredConnectors.length === 0
-              ? '—'
-              : agent.requiredConnectors.map((c) => (
-                  <span key={c} className="pill-muted mr-1">
-                    {c}
-                  </span>
-                ))}
-          </div>
         </section>
+
+        {agent.requiredConnectors.length > 0 && (
+          <section className="card p-5 lg:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
+                Connectors
+              </h2>
+              <Link to="/connectors" className="text-xs text-brand hover:underline">
+                Manage connector instances →
+              </Link>
+            </div>
+            <p className="mb-4 text-xs text-ink-500">
+              Pick which connector instance this agent uses for each capability it needs.
+              Add new instances on the{' '}
+              <Link to="/connectors" className="underline">Connectors page</Link>; they'll
+              show up here once connected.
+            </p>
+            <div className="space-y-3">
+              {agent.requiredConnectors.map((cap) => {
+                const capDef = capabilities?.find((c) => c.capability === cap);
+                const options = capDef?.instances.filter((i) => i.isActive) ?? [];
+                const value = draftBindings[cap] ?? '';
+                return (
+                  <div key={cap} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[120px_1fr]">
+                    <span className="font-mono text-xs text-ink-700">{cap}</span>
+                    {options.length === 0 ? (
+                      <div className="text-xs text-ink-500">
+                        No connected instances yet —{' '}
+                        <Link to="/connectors" className="text-brand underline">
+                          add one
+                        </Link>
+                        .
+                      </div>
+                    ) : (
+                      <select
+                        className="input"
+                        value={value}
+                        onChange={(e) =>
+                          setDraftBindings((prev) => ({ ...prev, [cap]: e.target.value }))
+                        }
+                      >
+                        <option value="">— pick one —</option>
+                        {options.map((inst) => (
+                          <option key={inst.id} value={inst.id}>
+                            {inst.displayName} ({inst.providerSlug})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4">
+              <button
+                className="btn-primary"
+                onClick={saveBindings}
+                disabled={savingBindings}
+              >
+                {savingBindings ? 'Saving…' : 'Save bindings'}
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="card p-5 lg:col-span-2">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">

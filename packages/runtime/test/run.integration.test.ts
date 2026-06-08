@@ -6,7 +6,10 @@ import { connectorInstances, agentRuns, auditLog, settings as settingsTable } fr
 import { eq } from 'drizzle-orm';
 import { createSecretsStore } from '@business-os/core/secrets';
 import { Registry } from '../src/registry.js';
-import { createConnectorResolver, NoActiveConnectorError } from '../src/active-connectors.js';
+import {
+  createConnectorResolver,
+  MissingAgentBindingError,
+} from '../src/active-connectors.js';
 import { runAgent } from '../src/run.js';
 import { freshDb, pgReachable, TEST_DATABASE_URL } from './_db.js';
 
@@ -61,6 +64,7 @@ d('runAgent (real Postgres)', () => {
   let env: Awaited<ReturnType<typeof freshDb>>;
   let registry: Registry;
   let resolver: ReturnType<typeof createConnectorResolver>;
+  let emailInstanceId: string;
   const encryptionKey = new Uint8Array(randomBytes(32));
   const logger = pino({ level: 'silent' });
 
@@ -78,18 +82,22 @@ d('runAgent (real Postgres)', () => {
     });
 
     // Mark the email provider active.
-    await env.db.insert(connectorInstances).values({
-      capability: 'email',
-      providerSlug: 'fake-email',
-      displayName: 'Fake Email',
-      isActive: true,
-    });
+    const inserted = await env.db
+      .insert(connectorInstances)
+      .values({
+        capability: 'email',
+        providerSlug: 'fake-email',
+        displayName: 'Fake Email',
+        isActive: true,
+      })
+      .returning();
+    emailInstanceId = inserted[0]!.id;
 
-    // Seed agent settings.
-    await env.db.insert(settingsTable).values({
-      scope: 'agent:fake-leadgen',
-      value: { greeting: 'Welcome!' },
-    });
+    // Seed agent settings + binding (runner now requires bindings per agent).
+    await env.db.insert(settingsTable).values([
+      { scope: 'agent:fake-leadgen', value: { greeting: 'Welcome!' } },
+      { scope: 'agent-bindings:fake-leadgen', value: { email: emailInstanceId } },
+    ]);
   });
 
   afterAll(async () => {
@@ -149,12 +157,11 @@ d('runAgent (real Postgres)', () => {
     expect(rows[0]!.summary).toMatch(/error: kaboom/);
   });
 
-  it('throws NoActiveConnectorError when no provider is active for the capability', async () => {
-    // Disable the email provider.
+  it('throws MissingAgentBindingError when the agent has no binding for a required capability', async () => {
+    // Remove the binding row entirely — the agent should refuse to run.
     await env.db
-      .update(connectorInstances)
-      .set({ isActive: false })
-      .where(eq(connectorInstances.capability, 'email'));
+      .delete(settingsTable)
+      .where(eq(settingsTable.scope, 'agent-bindings:fake-leadgen'));
 
     await expect(
       runAgent(
@@ -163,6 +170,6 @@ d('runAgent (real Postgres)', () => {
         { to: 'x@y.z' },
         { kind: 'manual', detail: 'matt' },
       ),
-    ).rejects.toBeInstanceOf(NoActiveConnectorError);
+    ).rejects.toBeInstanceOf(MissingAgentBindingError);
   });
 });

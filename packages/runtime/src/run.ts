@@ -102,7 +102,12 @@ export async function runAgent(
       capability: C,
       opts?: { providerSlug?: string },
     ) =>
-      deps.connectors.resolve(capability, opts)) as unknown as AgentContext['connector'],
+      deps.connectors.resolve(capability, {
+        ...opts,
+        // Scope to this agent so the resolver uses its bindings (and fails
+        // loud if a required capability has no binding set).
+        agentSlug: slug,
+      })) as unknown as AgentContext['connector'],
     db: deps.db,
     audit: async (action, meta) => {
       const ac: AuditContext = {

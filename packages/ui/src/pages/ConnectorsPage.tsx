@@ -265,9 +265,9 @@ function InstanceCard(props: {
           <div className="flex items-center gap-2">
             <span className="font-medium">{props.instance.displayName}</span>
             {props.instance.isActive ? (
-              <span className="pill-ok">active</span>
+              <span className="pill-ok">connected</span>
             ) : (
-              <span className="pill-muted">inactive</span>
+              <span className="pill-muted">not connected</span>
             )}
           </div>
           <div className="font-mono text-xs text-ink-500">
@@ -329,13 +329,16 @@ function InstanceCard(props: {
           )}
           {props.instance.isActive ? (
             <button className="btn-secondary" onClick={props.onDeactivate}>
-              Deactivate
+              Disconnect
             </button>
-          ) : (
+          ) : !props.externalOAuth ? (
+            // For manual-credentials connectors, activation is a deliberate
+            // toggle. Composio-backed connectors flip active automatically on
+            // successful Connect, so no manual button needed.
             <button className="btn-primary" onClick={props.onActivate}>
-              Set active
+              Mark connected
             </button>
-          )}
+          ) : null}
           <button className="btn-danger" onClick={props.onRemove}>
             Delete
           </button>

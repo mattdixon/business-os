@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { pino } from 'pino';
 import { connectorInstances } from '@business-os/db';
+import { eq } from 'drizzle-orm';
 import { createSecretsStore } from '@business-os/core/secrets';
 import { Registry } from '../src/registry.js';
 import { createConnectorResolver, NoActiveConnectorError } from '../src/active-connectors.js';
@@ -88,5 +89,30 @@ d('ConnectorResolver providerSlug (real Postgres)', () => {
     await expect(
       resolver.resolve('llm', { providerSlug: 'bedrock' }),
     ).rejects.toBeInstanceOf(NoActiveConnectorError);
+  });
+
+  it('resolve({ agentSlug }) honors per-agent binding even when another instance is "active"', async () => {
+    const { settings } = await import('@business-os/db');
+    // anthropic is the globally-active llm in this test setup, but bind
+    // leadgen to the openai instance instead.
+    const openaiRow = await env.db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.providerSlug, 'openai'))
+      .limit(1);
+    await env.db.insert(settings).values({
+      scope: 'agent-bindings:leadgen',
+      value: { llm: openaiRow[0]!.id },
+    });
+    const llm = await resolver.resolve('llm', { agentSlug: 'leadgen' });
+    const r = await llm.complete({ messages: [{ role: 'user', content: 'x' }] });
+    expect(r.content).toBe('hello from openai');
+  });
+
+  it('resolve({ agentSlug }) throws MissingAgentBindingError when capability has no binding', async () => {
+    const { MissingAgentBindingError } = await import('../src/active-connectors.js');
+    await expect(
+      resolver.resolve('llm', { agentSlug: 'agent-with-no-bindings' }),
+    ).rejects.toBeInstanceOf(MissingAgentBindingError);
   });
 });

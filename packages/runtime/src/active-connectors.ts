@@ -11,30 +11,36 @@ import type { Registry } from './registry.js';
 import type { Logger } from 'pino';
 
 /**
- * Resolves the operator-chosen *active* provider for each capability.
+ * Resolves the connector an agent should use for each capability.
  *
- * The DB holds two things per registered provider:
- *  - a row in `connector_instances` (capability + provider_slug + active flag)
- *  - one or more rows in `secrets` (scope = "connector:<cap>:<instance-id>")
- *  - one row in `settings`  (scope = "connector:<cap>:<instance-id>")
+ * Two resolution modes:
+ *  - **Agent-scoped (`{ agentSlug }`)** — the framework looks up the agent's
+ *    bindings (`agent-bindings:<slug>` in the settings table) and resolves
+ *    to the specific connector instance the operator picked for this agent.
+ *    Fails loud if no binding exists for a capability the agent declared as
+ *    required. This is the path the runner always uses.
+ *  - **Default** (no agent context) — falls back to the first connected
+ *    instance for the capability. Used by ad-hoc tooling and the existing
+ *    tests; not used by agent runs.
  *
- * Per CLAUDE.md: agents ask `ctx.connector('email')` — never name a provider.
- * The active flag is what makes this routing work; only ONE provider per
- * capability can be active at a time.
+ * Per CLAUDE.md: agents call `ctx.connector('email')` — never name a provider.
+ * Multiple instances per capability are now allowed (one Gmail account per
+ * agent, etc); the binding map is what disambiguates.
  */
 
 export interface ConnectorResolver {
   /**
    * Resolve a connector for a capability.
-   * - Default: returns the operator-chosen *active* provider for the capability.
-   * - With `{ providerSlug }`: returns the named provider regardless of which
-   *   is currently marked active. Used when an agent wants to pin its own
-   *   provider per-run (e.g. operator configured Anthropic as the default
-   *   but a specific agent is wired to OpenAI in its settings).
+   * - With `{ agentSlug }`: looks up the agent's binding map and resolves
+   *   to the bound instance. Throws if no binding exists for `capability`.
+   * - With `{ providerSlug }`: returns the named provider (any instance).
+   *   Used by tooling, not agents.
+   * - Default: returns the first connected instance for `capability`. Legacy
+   *   path for non-agent callers.
    */
   resolve<C extends keyof ConnectorCapabilityMap>(
     capability: C,
-    opts?: { providerSlug?: string },
+    opts?: { providerSlug?: string; agentSlug?: string },
   ): Promise<ConnectorCapabilityMap[C]>;
 }
 
@@ -52,40 +58,87 @@ export class NoActiveConnectorError extends Error {
   }
 }
 
+export class MissingAgentBindingError extends Error {
+  constructor(agentSlug: string, capability: string) {
+    super(
+      `Agent "${agentSlug}" has no connector binding for capability "${capability}". ` +
+        `Open the agent's Settings page and pick a connector instance.`,
+    );
+    this.name = 'MissingAgentBindingError';
+  }
+}
+
 const CREDENTIAL_KEY = 'credentials';
+const AGENT_BINDINGS_SCOPE = (slug: string): string => `agent-bindings:${slug}`;
+
+async function loadAgentBindings(db: Db, slug: string): Promise<Record<string, string>> {
+  const rows = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(eq(settings.scope, AGENT_BINDINGS_SCOPE(slug)))
+    .limit(1);
+  const v = rows[0]?.value;
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, string>;
+  return {};
+}
 
 export function createConnectorResolver(deps: ResolverDeps): ConnectorResolver {
   return {
     async resolve<C extends keyof ConnectorCapabilityMap>(
       capability: C,
-      opts?: { providerSlug?: string },
+      opts?: { providerSlug?: string; agentSlug?: string },
     ): Promise<ConnectorCapabilityMap[C]> {
       const cap = capability as string;
-      const where = opts?.providerSlug
-        ? and(
-            eq(connectorInstances.capability, cap),
-            eq(connectorInstances.providerSlug, opts.providerSlug),
-          )
-        : and(
-            eq(connectorInstances.capability, cap),
-            eq(connectorInstances.isActive, true),
-          );
+
+      // Agent-scoped path: look up bindings, fail loud on missing.
+      let instanceId: string | undefined;
+      if (opts?.agentSlug && !opts?.providerSlug) {
+        const bindings = await loadAgentBindings(deps.db, opts.agentSlug);
+        instanceId = bindings[cap];
+        if (!instanceId) {
+          throw new MissingAgentBindingError(opts.agentSlug, cap);
+        }
+      }
+
+      const where = instanceId
+        ? eq(connectorInstances.id, instanceId)
+        : opts?.providerSlug
+          ? and(
+              eq(connectorInstances.capability, cap),
+              eq(connectorInstances.providerSlug, opts.providerSlug),
+            )
+          : and(
+              eq(connectorInstances.capability, cap),
+              eq(connectorInstances.isActive, true),
+            );
       const rows = await deps.db
         .select({
           id: connectorInstances.id,
           providerSlug: connectorInstances.providerSlug,
+          capability: connectorInstances.capability,
         })
         .from(connectorInstances)
         .where(where)
         .limit(1);
       const row = rows[0];
       if (!row) {
+        if (instanceId) {
+          throw new NoActiveConnectorError(
+            `${cap} (bound instance ${instanceId} no longer exists — re-bind in agent settings)`,
+          );
+        }
         if (opts?.providerSlug) {
           throw new NoActiveConnectorError(
             `${cap} (no instance for provider "${opts.providerSlug}")`,
           );
         }
         throw new NoActiveConnectorError(cap);
+      }
+      // Sanity: bound instance's capability must match requested capability.
+      if (instanceId && row.capability !== cap) {
+        throw new NoActiveConnectorError(
+          `${cap} (bound instance ${instanceId} is for capability "${row.capability}")`,
+        );
       }
 
       const provider = deps.registry.getConnectorProvider(capability, row.providerSlug);

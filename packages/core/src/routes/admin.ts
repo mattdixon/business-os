@@ -32,6 +32,7 @@ import { zodToFieldSchema } from '../zod-form.js';
  */
 
 const SETTINGS_AGENT_SCOPE = (slug: string): string => `agent:${slug}`;
+const SETTINGS_AGENT_BINDINGS_SCOPE = (slug: string): string => `agent-bindings:${slug}`;
 const SETTINGS_CONNECTOR_SCOPE = (cap: string, id: string): string =>
   `connector:${cap}:${id}`;
 const SECRETS_CONNECTOR_SCOPE = SETTINGS_CONNECTOR_SCOPE;
@@ -67,6 +68,21 @@ const SetConnectorCredentialsRequest = z.object({
 
 const TriggerAgentRequest = z.object({
   input: z.unknown().optional(),
+});
+
+/**
+ * Per-agent connector bindings: which connector instance to use for each
+ * capability the agent requires.
+ *
+ *   { "email": "ae4...uuid", "llm": "be3...uuid" }
+ *
+ * Validated against the agent's requiredConnectors + existing instances at
+ * write time. Missing keys are NOT auto-filled — agents fail loud at run
+ * time if a required capability has no binding (deliberate choice; silent
+ * fallback to "first connected" hides operator mistakes).
+ */
+const SetAgentBindingsRequest = z.object({
+  bindings: z.record(z.string().uuid()),
 });
 
 // -----------------------------------------------------------------------------
@@ -114,6 +130,20 @@ async function loadAgentSettings(req: FastifyRequest, slug: string): Promise<unk
     .where(eq(settingsTable.scope, SETTINGS_AGENT_SCOPE(slug)))
     .limit(1);
   return rows[0]?.value ?? null;
+}
+
+async function loadAgentBindings(
+  db: Db,
+  slug: string,
+): Promise<Record<string, string>> {
+  const rows = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, SETTINGS_AGENT_BINDINGS_SCOPE(slug)))
+    .limit(1);
+  const v = rows[0]?.value;
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, string>;
+  return {};
 }
 
 async function loadConnectorSettings(
@@ -179,6 +209,7 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       return;
     }
     const settingsValue = await loadAgentSettings(req, slug);
+    const bindings = await loadAgentBindings(req.deps.db, slug);
     return {
       slug: agent.manifest.slug,
       version: agent.manifest.version,
@@ -187,11 +218,88 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       requiredConnectors: agent.manifest.requiredConnectors,
       schedule: agent.manifest.schedule,
       settings: settingsValue,
+      connectorBindings: bindings,
       settingsSchema: zodToFieldSchema(agent.manifest.settingsSchema),
       inputSchema: agent.manifest.inputSchema
         ? zodToFieldSchema(agent.manifest.inputSchema)
         : null,
     };
+  });
+
+  // ---------- PUT /api/agents/:slug/bindings ----------
+  app.put('/api/agents/:slug/bindings', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const slug = (req.params as { slug: string }).slug;
+    let agent;
+    try {
+      agent = req.deps.inventory.getAgent(slug);
+    } catch {
+      reply.code(404).send({ error: 'agent_not_found' });
+      return;
+    }
+    const body = SetAgentBindingsRequest.safeParse(req.body);
+    if (!body.success) {
+      reply.code(400).send({ error: 'invalid_input' });
+      return;
+    }
+
+    // Reject capabilities the agent doesn't actually need — keeps bindings
+    // tight to the manifest and prevents accidental misbindings.
+    const required = new Set(agent.manifest.requiredConnectors);
+    for (const cap of Object.keys(body.data.bindings)) {
+      if (!required.has(cap)) {
+        reply.code(400).send({
+          error: 'capability_not_required_by_agent',
+          capability: cap,
+        });
+        return;
+      }
+    }
+
+    // Verify every referenced instance exists and matches the declared
+    // capability. Avoids silently binding to a deleted or mismatched instance.
+    for (const [cap, instanceId] of Object.entries(body.data.bindings)) {
+      const rows = await req.deps.db
+        .select({ id: connectorInstances.id, capability: connectorInstances.capability })
+        .from(connectorInstances)
+        .where(eq(connectorInstances.id, instanceId))
+        .limit(1);
+      const inst = rows[0];
+      if (!inst) {
+        reply.code(400).send({
+          error: 'connector_instance_not_found',
+          capability: cap,
+          instanceId,
+        });
+        return;
+      }
+      if (inst.capability !== cap) {
+        reply.code(400).send({
+          error: 'instance_capability_mismatch',
+          capability: cap,
+          instanceCapability: inst.capability,
+        });
+        return;
+      }
+    }
+
+    await req.deps.db
+      .insert(settingsTable)
+      .values({
+        scope: SETTINGS_AGENT_BINDINGS_SCOPE(slug),
+        value: body.data.bindings,
+        updatedBy: req.user!.id,
+      })
+      .onConflictDoUpdate({
+        target: settingsTable.scope,
+        set: {
+          value: body.data.bindings,
+          updatedAt: new Date(),
+          updatedBy: req.user!.id,
+        },
+      });
+    await req.audit('admin.agent.bindings.update', { slug, bindings: body.data.bindings });
+    return { ok: true as const, bindings: body.data.bindings };
   });
 
   // ---------- PUT /api/agents/:slug/settings ----------
@@ -457,18 +565,14 @@ export function registerAdminRoutes(app: FastifyInstance): void {
         });
     }
 
-    // If activating, deactivate all other instances for this capability first.
-    if (body.data.isActive === true) {
-      await req.deps.db
-        .update(connectorInstances)
-        .set({ isActive: false })
-        .where(
-          and(
-            eq(connectorInstances.capability, existing.capability),
-            eq(connectorInstances.isActive, true),
-          ),
-        );
-    }
+    // NOTE: previously this branch deactivated all other instances of the
+    // same capability when activating one (one-active-per-capability model).
+    // That restriction was removed when per-agent connector bindings landed:
+    // multiple Gmail / Outlook / IMAP instances can now coexist, all marked
+    // active, and each agent picks which one it uses via its bindings.
+    // `isActive` semantically now means "this instance is connected and
+    // available for an agent to bind to"; the name is left as-is to avoid
+    // a wider rename. See agent-bindings flow in this same file.
 
     const updates: Partial<typeof connectorInstances.$inferInsert> = {};
     if (body.data.displayName !== undefined) updates.displayName = body.data.displayName;
@@ -652,16 +756,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       const scope = SECRETS_CONNECTOR_SCOPE(instance.capability, id);
       await req.deps.secrets.put(scope, CREDENTIAL_KEY, JSON.stringify(credentialPayload));
 
-      // Deactivate other instances for this capability, then mark this one active.
-      await req.deps.db
-        .update(connectorInstances)
-        .set({ isActive: false })
-        .where(
-          and(
-            eq(connectorInstances.capability, instance.capability),
-            eq(connectorInstances.isActive, true),
-          ),
-        );
+      // Mark this instance active. We no longer deactivate siblings — multiple
+      // instances per capability can coexist, agents bind to specific ones.
       await req.deps.db
         .update(connectorInstances)
         .set({ isActive: true })

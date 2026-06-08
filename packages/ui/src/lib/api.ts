@@ -85,6 +85,12 @@ export interface AgentSummary extends AgentManifest {
   settingsSchema?: unknown;
   /** Same shape as settingsSchema; only set when the agent declared an inputSchema. */
   inputSchema?: unknown | null;
+  /**
+   * Per-agent connector instance bindings. `{ [capability]: instanceId }`.
+   * Set via PUT /api/agents/:slug/bindings. Agents fail loud at run time
+   * if a required capability has no binding here.
+   */
+  connectorBindings?: Record<string, string>;
   lastRun: AgentRun | null;
 }
 
@@ -174,6 +180,11 @@ export const Api = {
       method: 'PUT',
       body: { value },
     }),
+  updateAgentBindings: (slug: string, bindings: Record<string, string>) =>
+    api<{ ok: true; bindings: Record<string, string> }>(
+      `/api/agents/${slug}/bindings`,
+      { method: 'PUT', body: { bindings } },
+    ),
   runAgent: (slug: string, input: unknown) =>
     api<{ ok: true }>(`/api/agents/${slug}/run`, {
       method: 'POST',

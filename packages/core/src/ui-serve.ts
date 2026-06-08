@@ -1,35 +1,48 @@
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 
 /**
- * Static-serve the @business-os/ui Vite build at /.
+ * Static-serve the operator UI at /.
  *
- * Resolves the UI package's installed location and serves its built dist/
- * directory. Any path not handled by /auth, /api, /healthz, /readyz falls
- * back to index.html so the SPA router can take over.
+ * Two sources, in order of preference:
+ *   1. The client shell's own UI build at <CWD>/dist-ui (or wherever
+ *      shellUiDist points). This is what a shell that has registered
+ *      modules produces via its own Vite config — the bundle includes
+ *      module UI pages.
+ *   2. @business-os/ui's default pre-built dist. No modules wired in —
+ *      module pages render as a placeholder explaining how to switch
+ *      to a shell-owned build.
  *
- * If the dist directory hasn't been built (e.g. during framework dev), this
- * is a no-op + a warning. Production builds will have run the UI build as
- * part of `pnpm build`.
+ * If neither exists, this is a warn-and-no-op so the API still works.
  */
 
 const require = createRequire(import.meta.url);
 
 export interface UiServeOpts {
-  /**
-   * Override the UI package root. By default we resolve @business-os/ui
-   * from this package's node_modules.
-   */
+  /** Override the UI package root for the default fallback bundle. */
   uiPackageRoot?: string;
+  /**
+   * Absolute path to the shell's own UI build. Defaults to
+   * `<CWD>/dist-ui`. Set explicitly when the shell isn't in CWD (tests).
+   */
+  shellUiDist?: string;
 }
 
 export function registerUiServe(
   app: FastifyInstance,
   opts: UiServeOpts = {},
 ): void {
+  // 1. Shell-owned UI build wins when present.
+  const shellDist = opts.shellUiDist ?? resolve(process.cwd(), 'dist-ui');
+  if (existsSync(join(shellDist, 'index.html'))) {
+    mount(app, shellDist, 'shell-owned UI');
+    return;
+  }
+
+  // 2. Fall back to @business-os/ui's pre-built default bundle.
   let pkgRoot: string;
   try {
     const pkgJsonPath =
@@ -43,16 +56,21 @@ export function registerUiServe(
   const dist = join(pkgRoot, 'dist');
   if (!existsSync(dist)) {
     app.log.warn(
-      { dist },
-      '@business-os/ui dist/ not found; run `pnpm --filter @business-os/ui build`. UI serving disabled.',
+      { dist, shellDist },
+      'No UI bundle found. Build the shell UI (`pnpm build:ui`) or @business-os/ui (`pnpm --filter @business-os/ui build`).',
     );
     return;
   }
 
+  mount(app, dist, '@business-os/ui default bundle');
+}
+
+function mount(app: FastifyInstance, root: string, label: string): void {
+  app.log.info({ root, label }, 'UI: serving static assets');
+
   void app.register(fastifyStatic, {
-    root: dist,
+    root,
     prefix: '/',
-    // SPA fallback handled below via setNotFoundHandler.
     wildcard: false,
   });
 

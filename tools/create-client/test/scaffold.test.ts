@@ -12,7 +12,7 @@ describe('scaffoldClient', () => {
   it('rejects invalid slugs', async () => {
     const dir = await freshTmp();
     await expect(
-      scaffoldClient({ slug: 'CNN-Construction', targetDir: join(dir, 'x') }),
+      scaffoldClient({ slug: 'C-And-M-Construction', targetDir: join(dir, 'x') }),
     ).rejects.toThrow(/Invalid slug/);
     await expect(
       scaffoldClient({ slug: 'x', targetDir: join(dir, 'x') }),
@@ -33,33 +33,33 @@ describe('scaffoldClient', () => {
   it('writes all manifest files and substitutes placeholders', async () => {
     const dir = await freshTmp();
     const result = await scaffoldClient({
-      slug: 'cnn-construction',
-      name: 'CNN Construction',
-      targetDir: join(dir, 'cnn-construction-os'),
+      slug: 'c-and-m-construction',
+      name: 'C&M Construction',
+      targetDir: join(dir, 'c-and-m-construction-os'),
       secretsKey: 'TEST_KEY_FIXED',
     });
-    expect(result.slug).toBe('cnn-construction');
-    expect(result.name).toBe('CNN Construction');
+    expect(result.slug).toBe('c-and-m-construction');
+    expect(result.name).toBe('C&M Construction');
     expect(result.generatedSecretsKey).toBe(false);
 
     // Spot-check substitutions in three different files.
     const pkg = JSON.parse(
       await readFile(join(result.targetDir, 'package.json'), 'utf8'),
     );
-    expect(pkg.name).toBe('cnn-construction-os');
+    expect(pkg.name).toBe('c-and-m-construction-os');
 
     const env = await readFile(join(result.targetDir, '.env.example'), 'utf8');
-    expect(env).toContain('CLIENT_SLUG=cnn-construction');
-    expect(env).toContain('CLIENT_NAME=CNN Construction');
+    expect(env).toContain('CLIENT_SLUG=c-and-m-construction');
+    expect(env).toContain('CLIENT_NAME=C&M Construction');
     expect(env).toContain('SECRETS_KEY=TEST_KEY_FIXED');
-    expect(env).toContain('cnn-construction_os'); // DATABASE_URL DB name
+    expect(env).toContain('c-and-m-construction_os'); // DATABASE_URL DB name
 
     const compose = await readFile(join(result.targetDir, 'docker-compose.yml'), 'utf8');
-    expect(compose).toContain('cnn-construction-os-postgres');
-    expect(compose).toContain('cnn-construction_os');
+    expect(compose).toContain('c-and-m-construction-os-postgres');
+    expect(compose).toContain('c-and-m-construction_os');
 
     const readme = await readFile(join(result.targetDir, 'README.md'), 'utf8');
-    expect(readme).toContain('CNN Construction');
+    expect(readme).toContain('C&M Construction');
 
     // No .tmpl files leak through.
     const top = await readdir(result.targetDir);
@@ -103,18 +103,18 @@ describe('scaffoldClient', () => {
 
     it('registers the new package in pnpm-workspace.yaml', async () => {
       const { root, yamlPath } = await fakeWorkspace();
-      const target = join(root, 'clients', 'cnn-construction-os');
+      const target = join(root, 'clients', 'c-and-m-construction-os');
       const result = await scaffoldClient({
-        slug: 'cnn-construction',
+        slug: 'c-and-m-construction',
         targetDir: target,
         secretsKey: 'x',
         workspaceMode: true,
       });
       expect(result.workspace).toBeDefined();
-      expect(result.workspace!.packagesEntry).toBe('clients/cnn-construction-os');
+      expect(result.workspace!.packagesEntry).toBe('clients/c-and-m-construction-os');
       expect(result.workspace!.alreadyPresent).toBe(false);
       const yaml = await readFile(yamlPath, 'utf8');
-      expect(yaml).toContain('- "clients/cnn-construction-os"');
+      expect(yaml).toContain('- "clients/c-and-m-construction-os"');
       expect(yaml).toContain('- "packages/*"'); // existing entries preserved
     });
 

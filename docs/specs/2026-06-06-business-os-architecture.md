@@ -18,7 +18,7 @@ Lior is a reference architect (his approach inspires ours). He is not a co-autho
 
 ## Goals
 
-1. Ship a CNN Construction build in a reasonable timeline.
+1. Ship a C&M Construction build in a reasonable timeline.
 2. Make subsequent clients faster, not equally slow, by reusing the framework and shared agents.
 3. Make framework upgrades cheap to roll out across N live clients.
 4. Let clients diverge when they need to, without polluting the shared code.
@@ -202,7 +202,7 @@ The client's settings UI lists all registered providers per capability. The oper
 2. `@business-os/connector-sdk` — same.
 3. `@business-os/core` minimal — Fastify boot, Drizzle wiring, settings table, audit log table, one health endpoint.
 4. `@business-os/runtime` minimal — load a registry of agents, resolve `ctx.connector(cap)`, run an agent manually via CLI.
-5. **One end-to-end agent: Lead Gen.** Real connector (start with one LLM and one CRM — `@business-os/connector-openai` and `@business-os/connector-ghl`). Make it work for CNN's actual use case.
+5. **One end-to-end agent: Lead Gen.** Real connector (start with one LLM and one CRM — `@business-os/connector-openai` and `@business-os/connector-ghl`). Make it work for C&M's actual use case.
 6. Settings UI for the one agent + its connectors.
 7. `templates/client-starter/` + `pnpm create business-os-client` — once we know what a real client repo needs.
 8. THEN start generalizing — more agents, more connectors, the operator UI shell.
@@ -214,7 +214,7 @@ Don't design the whole framework in the abstract. The Lead Gen agent will reveal
 ## Open questions
 
 - npm registry: GitHub Packages under what org? (Probably make a new GH org `frontrange-systems` or `business-os`.)
-- Deploy target for CNN: Fly.io, Render, bare VM? Affects what `deploy/` scaffolding looks like.
+- Deploy target for C&M: Fly.io, Render, bare VM? Affects what `deploy/` scaffolding looks like.
 - LLM connector: which provider first — Anthropic, OpenAI, both?
 - Settings UI hosting: same Fastify server serves it, or separate Vite app behind same auth?
 

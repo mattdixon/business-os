@@ -5,9 +5,9 @@ Scaffolds a thin per-client Business OS install repo from `templates/client-star
 ## Use
 
 ```sh
-pnpm create business-os-client cnn-construction \
-  --name "CNN Construction" \
-  --dir ~/code/cnn-construction-os
+pnpm create business-os-client c-and-m-construction \
+  --name "C&M Construction" \
+  --dir ~/code/c-and-m-construction-os
 ```
 
 Positional argument is the kebab-case slug; flags:

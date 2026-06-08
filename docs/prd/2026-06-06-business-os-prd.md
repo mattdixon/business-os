@@ -28,7 +28,7 @@ A framework + agent library says yes to all three. We deliver custom builds, but
 
 **Buyer:** COO or CEO at a $10M–$50M operator-style business (construction, distribution, professional services, healthcare ops). They run a tight team, they're behind on automation, and they have specific revenue or cost outcomes they want a system to absorb.
 
-**First client:** CNN Construction (concrete). The build there proves the model.
+**First client:** C&M Construction (concrete). The build there proves the model.
 
 **Not for:**
 - VC-backed software companies who want to build it themselves.
@@ -108,9 +108,9 @@ Why hybrid: pure starter-template means every framework upgrade is a per-client 
 - A new shared agent ships as one package, gets adopted by any client with a config line and a settings UI visit.
 - A client can run for 90 days without a framework engineer touching their instance.
 
-**For the first install (CNN Construction):**
+**For the first install (C&M Construction):**
 
-- Lead Gen agent is running on real CNN data, pushing real leads into their CRM, on a schedule, by [date TBD].
+- Lead Gen agent is running on real C&M data, pushing real leads into their CRM, on a schedule, by [date TBD].
 - Their operator UI is the only place they need to configure or check the system.
 - The system survives the first month without framework patches required for stability.
 
@@ -125,7 +125,7 @@ Why hybrid: pure starter-template means every framework upgrade is a per-client 
 ## Open questions (resolve before deeper coding)
 
 - npm registry: GitHub Packages under which org?
-- Deploy target for CNN: Fly.io, Render, bare VM, their cloud?
+- Deploy target for C&M: Fly.io, Render, bare VM, their cloud?
 - First LLM connector: Anthropic, OpenAI, or both?
 - Operator UI hosting: served by the same Fastify process, or separate Vite app behind same auth?
 - Pricing structure: fixed-fee build + monthly retainer, or fixed-fee build + per-agent licensing?

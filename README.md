@@ -97,7 +97,7 @@ Most workspace tests run pure unit-style. The integration tests against real Pos
 
 - Node.js 20+
 - pnpm 9+ (this repo uses corepack: `corepack enable && corepack prepare pnpm@9.12.0 --activate`)
-- Docker Desktop with WSL integration enabled (if developing inside WSL), or Postgres available on `localhost:5432`
+- Docker Desktop with WSL integration enabled (if developing inside WSL), or Postgres available on `localhost:4732` (matches the docker-compose mapping; deliberately off the default 5432 so it doesn't collide with native Postgres installs)
 
 ---
 

@@ -140,6 +140,19 @@ export const Api = {
   disableTotp: (code: string) =>
     api<{ ok: true }>('/auth/totp/disable', { method: 'POST', body: { code } }),
 
+  listModules: () =>
+    api<{
+      modules: Array<{
+        slug: string;
+        version: string;
+        displayName: string;
+        description: string;
+        uiPages: Array<{ path: string; navLabel?: string }>;
+        settings: unknown;
+        settingsSchema: unknown;
+      }>;
+    }>('/api/modules'),
+
   getDashboard: () =>
     api<{
       agentCount: number;

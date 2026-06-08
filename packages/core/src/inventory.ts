@@ -41,6 +41,22 @@ export interface RegisteredConnectorProviderLike {
   capability: string;
 }
 
+export interface ModuleManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
+  slug: string;
+  version: string;
+  displayName: string;
+  description: string;
+  settingsSchema: TSettings;
+  migrationsDir?: string;
+  defaultAudience?: unknown;
+}
+
+export interface ModulePackageLike {
+  manifest: ModuleManifestLike;
+  registerRoutes?: (app: unknown, ctx: unknown) => void | Promise<void>;
+  uiPages?: Array<{ path: string; navLabel?: string }>;
+}
+
 /**
  * The framework's view of what's registered. Implemented by
  * @business-os/runtime's Registry.
@@ -53,6 +69,9 @@ export interface AgentInventory {
     capability: string,
     slug: string,
   ): RegisteredConnectorProviderLike;
+  /** Optional — older Registry shapes may not implement it yet. */
+  listModules?(): ModulePackageLike[];
+  getModule?(slug: string): ModulePackageLike;
 }
 
 /** Implemented by @business-os/runtime's Scheduler. */

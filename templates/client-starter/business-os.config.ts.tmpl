@@ -18,6 +18,13 @@ import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
 import leadgen from '@business-os/agent-leadgen';
 import prospecting from '@business-os/agent-prospecting';
 
+// ---- Modules (uncomment + add deps to register one) ----
+// Modules own a slice of business state: their own tables, REST routes, and
+// optional UI pages. The framework runs their migrations + mounts their routes
+// at /modules/<slug>/* automatically.
+//
+// import exampleModule from '@business-os/module-example';
+
 import type { MigrationOwner } from '@business-os/db';
 
 export function buildRegistry(): Registry {
@@ -37,6 +44,9 @@ export function buildRegistry(): Registry {
   // ---- Agents ----
   registry.registerAgent(leadgen);
   registry.registerAgent(prospecting);
+
+  // ---- Modules ----
+  // registry.registerModule(exampleModule);
 
   return registry;
 }

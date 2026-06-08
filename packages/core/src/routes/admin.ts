@@ -513,6 +513,81 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     return { ok: true as const };
   });
 
+  // ---------- GET /api/modules ----------
+  // List registered modules so the UI can render their pages + nav entries.
+  app.get('/api/modules', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    if (!req.deps.inventory.listModules) {
+      return { modules: [] };
+    }
+    const out = await Promise.all(
+      req.deps.inventory.listModules().map(async (mod) => {
+        const scope = `module:${mod.manifest.slug}`;
+        const rows = await req.deps.db
+          .select({ value: settingsTable.value })
+          .from(settingsTable)
+          .where(eq(settingsTable.scope, scope))
+          .limit(1);
+        return {
+          slug: mod.manifest.slug,
+          version: mod.manifest.version,
+          displayName: mod.manifest.displayName,
+          description: mod.manifest.description,
+          uiPages: mod.uiPages?.map((p) => ({ path: p.path, navLabel: p.navLabel })) ?? [],
+          settings: rows[0]?.value ?? null,
+          settingsSchema: zodToFieldSchema(
+            mod.manifest.settingsSchema as Parameters<typeof zodToFieldSchema>[0],
+          ),
+        };
+      }),
+    );
+    return { modules: out };
+  });
+
+  // ---------- PUT /api/modules/:slug/settings ----------
+  app.put(
+    '/api/modules/:slug/settings',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      if (!require503(req.deps.inventory, reply, 'inventory')) return;
+      if (!req.deps.inventory.listModules || !req.deps.inventory.getModule) {
+        reply.code(503).send({ error: 'modules_not_wired' });
+        return;
+      }
+      const slug = (req.params as { slug: string }).slug;
+      let mod;
+      try {
+        mod = req.deps.inventory.getModule(slug);
+      } catch {
+        reply.code(404).send({ error: 'module_not_found' });
+        return;
+      }
+      const body = req.body as { value?: unknown };
+      const parsed = (mod.manifest.settingsSchema as { safeParse: (v: unknown) => { success: boolean; data?: unknown; error?: { issues: unknown } } }).safeParse(body?.value);
+      if (!parsed.success) {
+        reply.code(400).send({
+          error: 'settings_schema_violation',
+          issues: parsed.error?.issues,
+        });
+        return;
+      }
+      const scope = `module:${slug}`;
+      await req.deps.db
+        .insert(settingsTable)
+        .values({ scope, value: parsed.data, updatedBy: req.user!.id })
+        .onConflictDoUpdate({
+          target: settingsTable.scope,
+          set: {
+            value: parsed.data,
+            updatedAt: new Date(),
+            updatedBy: req.user!.id,
+          },
+        });
+      await req.audit('admin.module.settings.update', { slug });
+      return { ok: true as const, settings: parsed.data };
+    },
+  );
+
   // ---------- GET /api/dashboard ----------
   // One round-trip overview used by the operator UI's landing page.
   app.get('/api/dashboard', { preHandler: requireUser }, async (req, reply) => {

@@ -152,12 +152,14 @@ export function ConnectorsPage(): JSX.Element {
                       capability={cap.capability}
                       instance={inst}
                       authKind={provider?.authKind ?? 'none'}
+                      externalOAuth={provider?.externalOAuth}
                       settingsSchema={provider?.settingsSchema as FieldSchema | undefined}
                       onActivate={() => activate(inst.id)}
                       onDeactivate={() => deactivate(inst.id)}
                       onSetCreds={(c) => setCreds(inst.id, c)}
                       onUpdateSettings={(s) => updateInstanceSettings(inst.id, s)}
                       onRemove={() => remove(inst.id)}
+                      onAfterConnect={reload}
                     />
                   );
                 })}
@@ -231,12 +233,15 @@ function InstanceCard(props: {
   capability: string;
   instance: ConnectorCapability['instances'][number];
   authKind: 'oauth2' | 'api-key' | 'none';
+  externalOAuth?: { provider: 'composio'; toolkit: string };
   settingsSchema?: FieldSchema;
   onActivate: () => Promise<void>;
   onDeactivate: () => Promise<void>;
   onSetCreds: (creds: unknown) => Promise<void>;
   onUpdateSettings: (settings: unknown) => Promise<void>;
   onRemove: () => Promise<void>;
+  /** Called after a successful external-OAuth connection so parent reloads. */
+  onAfterConnect: () => Promise<void>;
 }): JSX.Element {
   const [apiKey, setApiKey] = useState('');
   const [credsSaved, setCredsSaved] = useState(false);
@@ -271,7 +276,15 @@ function InstanceCard(props: {
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-2">
-          {props.authKind === 'api-key' && (
+          {props.externalOAuth && (
+            <ConnectButton
+              instanceId={props.instance.id}
+              toolkit={props.externalOAuth.toolkit}
+              broker={props.externalOAuth.provider}
+              onConnected={props.onAfterConnect}
+            />
+          )}
+          {!props.externalOAuth && props.authKind === 'api-key' && (
             <div>
               <label className="label">API key</label>
               <div className="flex items-center gap-2">
@@ -328,6 +341,7 @@ function InstanceCard(props: {
           </button>
         </div>
       </div>
+      {/* settings section */}
       {showSettings && hasSettingsSchema && props.settingsSchema && (
         <div className="mt-4 border-t border-ink-200 pt-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
@@ -367,5 +381,68 @@ function InstanceCard(props: {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * External-OAuth "Connect" button. Opens the broker's consent URL in a popup
+ * and polls the server every 2s until the broker reports an ACTIVE connection
+ * (or the operator gives up). Reloads the parent on success so the new
+ * connection state + active badge surface immediately.
+ */
+function ConnectButton(props: {
+  instanceId: string;
+  toolkit: string;
+  broker: 'composio';
+  onConnected: () => Promise<void>;
+}): JSX.Element {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState<'idle' | 'awaiting' | 'finalizing'>('idle');
+
+  const start = async (): Promise<void> => {
+    setBusy('awaiting');
+    let popup: Window | null = null;
+    try {
+      const { redirectUrl } = await Api.connectConnector(props.instanceId);
+      popup = window.open(redirectUrl, `${props.broker}-connect-${props.instanceId}`, 'width=600,height=720');
+      if (!popup) {
+        toast.error('Pop-up blocked. Allow pop-ups and try again.');
+        setBusy('idle');
+        return;
+      }
+
+      // Poll for completion. Stop on success, on the popup closing without a
+      // connection (operator cancelled), or after 5 minutes.
+      const deadline = Date.now() + 5 * 60_000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const out = await Api.finalizeConnectConnector(props.instanceId);
+        if ('ok' in out && out.ok) {
+          setBusy('idle');
+          try { popup.close(); } catch { /* ignore */ }
+          toast.success(`${props.toolkit} connected.`);
+          await props.onConnected();
+          return;
+        }
+        if (popup.closed) {
+          setBusy('idle');
+          toast.error('Connect window closed before authorization completed.');
+          return;
+        }
+      }
+      setBusy('idle');
+      toast.error('Connect timed out. Try again.');
+      try { popup.close(); } catch { /* ignore */ }
+    } catch (e: unknown) {
+      setBusy('idle');
+      toast.error(apiErrorMessage(e, 'Connect failed.'));
+      try { popup?.close(); } catch { /* ignore */ }
+    }
+  };
+
+  return (
+    <button className="btn-primary" disabled={busy !== 'idle'} onClick={start}>
+      {busy === 'awaiting' ? 'Waiting for consent…' : `Connect ${props.toolkit}`}
+    </button>
   );
 }

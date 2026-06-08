@@ -214,8 +214,14 @@ export const manifest = {
   // `api-key` here = the Composio platform API key; per-account OAuth state
   // lives at Composio and is referenced by extra.userId. From the framework's
   // POV this looks like an api-key connector even though the underlying
-  // provider auth is OAuth2.
+  // provider auth is OAuth2 — the framework picks up on `externalOAuth`
+  // below and drives the "Connect Gmail" flow accordingly instead of asking
+  // the operator to paste an API key.
   authKind: 'api-key' as const,
+  externalOAuth: {
+    provider: 'composio' as const,
+    toolkit: TOOLKIT,
+  },
   settingsSchema,
 };
 

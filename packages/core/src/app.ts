@@ -9,7 +9,11 @@ import { registerFastifySentry } from './sentry.js';
 import { registerModuleRoutes } from './modules.js';
 import type { SecretsStore } from './secrets/index.js';
 import { audit, type AuditContext } from './audit/index.js';
-import type { AgentInventory, ManualTriggerer } from './inventory.js';
+import type {
+  AgentInventory,
+  ManualTriggerer,
+  ExternalOAuthBrokerLike,
+} from './inventory.js';
 
 export const SESSION_COOKIE = 'bos_sess';
 
@@ -41,6 +45,23 @@ export interface AppDeps {
    * omitted, `POST /api/agents/:slug/run` returns 503.
    */
   trigger?: ManualTriggerer;
+  /**
+   * External OAuth brokers, keyed by provider name. The client shell
+   * constructs the broker (e.g. ComposioSubstrate with the install's
+   * COMPOSIO_API_KEY) and passes it here. Used by the /connect and
+   * /finalize-connect routes. Omit to disable the broker-driven Connect
+   * flow — Composio-backed connectors will return 503 on /connect.
+   */
+  externalOAuthBrokers?: {
+    composio?: ExternalOAuthBrokerLike;
+  };
+  /**
+   * Public URL of this install (e.g. https://os.cmconstruction.com or
+   * http://localhost:4938 in dev). Used when constructing OAuth callback
+   * URLs the broker redirects back to. Defaults to env PUBLIC_URL or the
+   * Host header at request time.
+   */
+  publicUrl?: string;
 }
 
 declare module 'fastify' {

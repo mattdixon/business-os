@@ -73,6 +73,30 @@ const TriggerAgentRequest = z.object({
 // Helpers
 // -----------------------------------------------------------------------------
 
+/**
+ * Deterministic Composio "entity" id for a connector instance. Used in both
+ * link initiation and active-connection lookup so we don't have to persist
+ * extra state between connect and finalize.
+ */
+function composioUserId(instanceId: string): string {
+  return `bos-${instanceId}`;
+}
+
+/**
+ * Public URL the broker should redirect the operator's browser back to after
+ * consent. Composio's hosted callback page will close itself; the UI then
+ * polls finalize-connect. For now we redirect back to the settings page —
+ * the actual capture happens server-side via getActiveConnection.
+ */
+function buildCallbackUrl(req: FastifyRequest, _provider: string): string {
+  const configured = req.deps.publicUrl;
+  if (configured) return `${configured.replace(/\/$/, '')}/connectors`;
+  const host = (req.headers['x-forwarded-host'] ?? req.headers.host) as string | undefined;
+  const proto = ((req.headers['x-forwarded-proto'] as string) ?? 'http').split(',')[0];
+  if (!host) return `http://localhost/connectors`;
+  return `${proto}://${host}/connectors`;
+}
+
 function require503<T>(thing: T | undefined, reply: FastifyReply, label: string): thing is T {
   if (!thing) {
     reply
@@ -322,6 +346,7 @@ export function registerAdminRoutes(app: FastifyInstance): void {
             slug: p.manifest.slug,
             displayName: p.manifest.displayName,
             authKind: p.manifest.authKind,
+            externalOAuth: p.manifest.externalOAuth,
             version: p.manifest.version,
             settingsSchema: zodToFieldSchema(p.manifest.settingsSchema),
           }),
@@ -490,6 +515,166 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     await req.audit('admin.connector.credentials.update', { id });
     return { ok: true as const };
   });
+
+  // ---------- POST /api/connectors/:id/connect ----------
+  //
+  // Initiates an external-OAuth flow (Composio-driven for now). Returns a
+  // redirect URL the operator's browser visits to grant access. After the
+  // operator returns, the UI calls finalize-connect (below) to persist the
+  // resulting credential.
+  //
+  // The composio user_id is deterministic (`bos-<instanceId>`) — no
+  // intermediate state to store between connect and finalize.
+  app.post('/api/connectors/:id/connect', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const id = (req.params as { id: string }).id;
+
+    const rows = await req.deps.db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, id))
+      .limit(1);
+    const instance = rows[0];
+    if (!instance) {
+      reply.code(404).send({ error: 'connector_instance_not_found' });
+      return;
+    }
+
+    let provider;
+    try {
+      provider = req.deps.inventory.getConnectorProvider(
+        instance.capability,
+        instance.providerSlug,
+      );
+    } catch {
+      reply.code(409).send({ error: 'provider_not_registered_anymore' });
+      return;
+    }
+    const ext = provider.manifest.externalOAuth;
+    if (!ext) {
+      reply.code(400).send({ error: 'connector_does_not_use_external_oauth' });
+      return;
+    }
+    const broker = req.deps.externalOAuthBrokers?.[ext.provider];
+    if (!broker) {
+      reply.code(503).send({
+        error: 'external_oauth_broker_not_wired',
+        hint: `Pass externalOAuthBrokers.${ext.provider} to startServer().`,
+      });
+      return;
+    }
+
+    const callbackUrl = buildCallbackUrl(req, ext.provider);
+    const authConfig = await broker.findOrCreateManagedAuthConfig(ext.toolkit);
+    const link = await broker.createConnectionLink({
+      userId: composioUserId(instance.id),
+      authConfigId: authConfig.id,
+      callbackUrl,
+    });
+    await req.audit('admin.connector.connect.initiate', {
+      id,
+      provider: ext.provider,
+      toolkit: ext.toolkit,
+    });
+    return { redirectUrl: link.redirectUrl };
+  });
+
+  // ---------- POST /api/connectors/:id/finalize-connect ----------
+  //
+  // Polled by the UI after the operator returns from the consent screen.
+  // Asks the broker whether the connection is now ACTIVE. If yes, persists
+  // the credential (broker API key + per-instance user_id + connected
+  // account id) and marks the instance active. If no, returns { pending: true }.
+  app.post(
+    '/api/connectors/:id/finalize-connect',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      if (!require503(req.deps.inventory, reply, 'inventory')) return;
+      const id = (req.params as { id: string }).id;
+
+      const rows = await req.deps.db
+        .select()
+        .from(connectorInstances)
+        .where(eq(connectorInstances.id, id))
+        .limit(1);
+      const instance = rows[0];
+      if (!instance) {
+        reply.code(404).send({ error: 'connector_instance_not_found' });
+        return;
+      }
+
+      let provider;
+      try {
+        provider = req.deps.inventory.getConnectorProvider(
+          instance.capability,
+          instance.providerSlug,
+        );
+      } catch {
+        reply.code(409).send({ error: 'provider_not_registered_anymore' });
+        return;
+      }
+      const ext = provider.manifest.externalOAuth;
+      if (!ext) {
+        reply.code(400).send({ error: 'connector_does_not_use_external_oauth' });
+        return;
+      }
+      const broker = req.deps.externalOAuthBrokers?.[ext.provider];
+      if (!broker) {
+        reply.code(503).send({ error: 'external_oauth_broker_not_wired' });
+        return;
+      }
+
+      const userId = composioUserId(instance.id);
+      const connectedAccountId = await broker.getActiveConnection(userId, ext.toolkit);
+      if (!connectedAccountId) {
+        return { pending: true as const };
+      }
+
+      // Persist credentials in the shape Composio-backed connectors expect:
+      // kind=api-key, key=COMPOSIO_API_KEY, extra=per-instance handles.
+      // We snapshot the broker API key from env into the encrypted store so
+      // the runtime can materialize the connector without a separate env
+      // lookup. Rotating COMPOSIO_API_KEY requires re-finalizing affected
+      // instances — acceptable for the rare key-rotation case.
+      const brokerApiKey = process.env[`${ext.provider.toUpperCase()}_API_KEY`];
+      if (!brokerApiKey) {
+        reply.code(500).send({
+          error: 'broker_api_key_missing_in_env',
+          hint: `${ext.provider.toUpperCase()}_API_KEY must be set in the server's environment.`,
+        });
+        return;
+      }
+      const credentialPayload = {
+        kind: 'api-key' as const,
+        key: brokerApiKey,
+        extra: { userId, connectedAccountId },
+      };
+      const scope = SECRETS_CONNECTOR_SCOPE(instance.capability, id);
+      await req.deps.secrets.put(scope, CREDENTIAL_KEY, JSON.stringify(credentialPayload));
+
+      // Deactivate other instances for this capability, then mark this one active.
+      await req.deps.db
+        .update(connectorInstances)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(connectorInstances.capability, instance.capability),
+            eq(connectorInstances.isActive, true),
+          ),
+        );
+      await req.deps.db
+        .update(connectorInstances)
+        .set({ isActive: true })
+        .where(eq(connectorInstances.id, id));
+
+      await req.audit('admin.connector.connect.finalize', {
+        id,
+        provider: ext.provider,
+        toolkit: ext.toolkit,
+      });
+      return { ok: true as const, connectedAccountId };
+    },
+  );
 
   // ---------- DELETE /api/connectors/:id ----------
   app.delete('/api/connectors/:id', { preHandler: requireUser }, async (req, reply) => {

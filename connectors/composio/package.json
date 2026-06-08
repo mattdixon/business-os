@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@business-os/connector-sdk": "workspace:^",
     "@composio/core": "0.10.0",
     "zod": "^3.23.0"
   },

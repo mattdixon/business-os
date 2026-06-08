@@ -1,4 +1,5 @@
 import { Composio, ComposioError } from '@composio/core';
+import type { ExternalOAuthBroker } from '@business-os/connector-sdk';
 
 /**
  * Substrate for Composio-backed connectors.
@@ -105,7 +106,7 @@ export class ComposioSubstrateError extends Error {
 // Substrate
 // -----------------------------------------------------------------------------
 
-export class ComposioSubstrate {
+export class ComposioSubstrate implements ExternalOAuthBroker {
   private readonly client: Composio;
 
   constructor(opts: ComposioSubstrateOptions) {

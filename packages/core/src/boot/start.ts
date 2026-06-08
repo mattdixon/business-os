@@ -7,7 +7,11 @@ import {
 import { buildApp, type AppDeps } from '../app.js';
 import { createSecretsStore, loadSecretsKey } from '../secrets/index.js';
 import { parseEnv, type FrameworkEnv } from './env.js';
-import type { AgentInventory, ManualTriggerer } from '../inventory.js';
+import type {
+  AgentInventory,
+  ManualTriggerer,
+  ExternalOAuthBrokerLike,
+} from '../inventory.js';
 
 /**
  * The framework's entry point. A client shell's index.ts does:
@@ -66,6 +70,20 @@ export interface StartServerOpts {
   mode?: StartMode;
   /** Override the issuer label shown in TOTP enrollment. */
   issuer?: string;
+  /**
+   * External OAuth brokers (Composio etc). The client shell constructs the
+   * concrete broker with its API key + passes it here. Currently only
+   * 'composio' is wired; future providers go in the same map.
+   */
+  externalOAuthBrokers?: {
+    composio?: ExternalOAuthBrokerLike;
+  };
+  /**
+   * Public URL of this install. Used to build OAuth callback URLs the broker
+   * redirects back to. Falls back to env PUBLIC_URL, then to the request's
+   * Host header.
+   */
+  publicUrl?: string;
   /** Override AppDeps (escape hatch for tests). Don't use in production. */
   overrideAppDeps?: Partial<AppDeps>;
 }
@@ -136,6 +154,8 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
           cookieSecure: env.NODE_ENV === 'production',
           inventory: opts.inventory,
           trigger,
+          externalOAuthBrokers: opts.externalOAuthBrokers,
+          publicUrl: opts.publicUrl ?? opts.env?.PUBLIC_URL,
           ...opts.overrideAppDeps,
         });
   if (app) {

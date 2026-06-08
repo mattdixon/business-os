@@ -4,7 +4,11 @@ import { z } from 'zod';
 import { buildApp, SESSION_COOKIE } from '../src/app.js';
 import { createSecretsStore } from '../src/secrets/index.js';
 import { createUser } from '../src/auth/users.js';
-import type { AgentInventory, ManualTriggerer } from '../src/inventory.js';
+import type {
+  AgentInventory,
+  ManualTriggerer,
+  ExternalOAuthBrokerLike,
+} from '../src/inventory.js';
 import { freshDb, pgReachable, TEST_DATABASE_URL } from './_db.js';
 
 const reachable = await pgReachable(TEST_DATABASE_URL);
@@ -53,6 +57,20 @@ function fakeInventory(): AgentInventory {
     authKind: 'oauth2' as const,
     settingsSchema: z.object({}),
   };
+  /**
+   * Composio-backed Gmail provider — same capability as 'gmail' above, but
+   * its externalOAuth field tells the framework to drive the Connect flow
+   * via the broker instead of asking the operator to paste credentials.
+   */
+  const gmailComposioManifest = {
+    slug: 'email-gmail-composio',
+    capability: 'email',
+    version: '0.1.0',
+    displayName: 'Gmail (via Composio)',
+    authKind: 'api-key' as const,
+    externalOAuth: { provider: 'composio' as const, toolkit: 'gmail' },
+    settingsSchema: z.object({}),
+  };
 
   return {
     listAgents: () => [{ manifest: agentManifest }],
@@ -62,7 +80,11 @@ function fakeInventory(): AgentInventory {
     },
     listConnectorProviders: (cap: string) => {
       if (cap === 'llm') return [{ manifest: llmProviderManifest, capability: 'llm' }];
-      if (cap === 'email') return [{ manifest: emailProviderManifest, capability: 'email' }];
+      if (cap === 'email')
+        return [
+          { manifest: emailProviderManifest, capability: 'email' },
+          { manifest: gmailComposioManifest, capability: 'email' },
+        ];
       return [];
     },
     getConnectorProvider: (cap: string, slug: string) => {
@@ -70,7 +92,37 @@ function fakeInventory(): AgentInventory {
         return { manifest: llmProviderManifest, capability: 'llm' };
       if (cap === 'email' && slug === 'gmail')
         return { manifest: emailProviderManifest, capability: 'email' };
+      if (cap === 'email' && slug === 'email-gmail-composio')
+        return { manifest: gmailComposioManifest, capability: 'email' };
       throw new Error('not found');
+    },
+  };
+}
+
+/**
+ * Test-controllable Composio broker stand-in. Tracks calls + lets each test
+ * decide what getActiveConnection should return (null = still pending).
+ */
+function fakeBroker(): ExternalOAuthBrokerLike & {
+  calls: { findOrCreate: string[]; createLink: unknown[]; getActive: unknown[] };
+  setActive: (id: string | null) => void;
+} {
+  const calls = { findOrCreate: [] as string[], createLink: [] as unknown[], getActive: [] as unknown[] };
+  let activeConnectionId: string | null = null;
+  return {
+    calls,
+    setActive: (id) => { activeConnectionId = id; },
+    findOrCreateManagedAuthConfig: async (toolkit) => {
+      calls.findOrCreate.push(toolkit);
+      return { id: `ac_${toolkit}`, toolkit };
+    },
+    createConnectionLink: async (p) => {
+      calls.createLink.push(p);
+      return { connectionRequestId: 'cr_1', redirectUrl: `https://composio/lk_${p.userId}` };
+    },
+    getActiveConnection: async (userId, toolkit) => {
+      calls.getActive.push({ userId, toolkit });
+      return activeConnectionId;
     },
   };
 }
@@ -81,6 +133,7 @@ d('admin/operator API (real Postgres)', () => {
   const triggered: Array<{ slug: string; input: unknown; userId: string }> = [];
   const encryptionKey = new Uint8Array(randomBytes(32));
   let cookie = '';
+  const broker = fakeBroker();
 
   const trigger: ManualTriggerer = {
     triggerManual: async (slug, input, userId) => {
@@ -91,6 +144,7 @@ d('admin/operator API (real Postgres)', () => {
   beforeAll(async () => {
     env = await freshDb();
     const secrets = createSecretsStore(env.db, encryptionKey);
+    process.env.COMPOSIO_API_KEY = 'composio-test-key';
     app = buildApp({
       db: env.db,
       secrets,
@@ -100,6 +154,7 @@ d('admin/operator API (real Postgres)', () => {
       serveUi: false,
       inventory: fakeInventory(),
       trigger,
+      externalOAuthBrokers: { composio: broker },
     });
     await app.ready();
     await createUser(env.db, {
@@ -278,6 +333,135 @@ d('admin/operator API (real Postgres)', () => {
     });
     const llmCapAfter = after.json().capabilities.find((c: { capability: string }) => c.capability === 'llm');
     expect(llmCapAfter.instances.find((i: { id: string }) => i.id === id)).toBeUndefined();
+  });
+
+  it('external-OAuth connect flow: initiate → pending → finalize persists creds + activates', async () => {
+    // Create a Composio-backed Gmail instance.
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/connectors',
+      headers: { cookie },
+      payload: {
+        capability: 'email',
+        providerSlug: 'email-gmail-composio',
+        displayName: 'Gmail (matt)',
+      },
+    });
+    expect(create.statusCode).toBe(200);
+    const id = create.json().instance.id;
+
+    // /connect returns the broker's redirect URL.
+    broker.calls.findOrCreate.length = 0;
+    broker.calls.createLink.length = 0;
+    const initiate = await app.inject({
+      method: 'POST',
+      url: `/api/connectors/${id}/connect`,
+      headers: { cookie },
+    });
+    expect(initiate.statusCode).toBe(200);
+    expect(initiate.json().redirectUrl).toMatch(/composio\/lk_bos-/);
+    expect(broker.calls.findOrCreate).toEqual(['gmail']);
+    expect(broker.calls.createLink).toHaveLength(1);
+
+    // Before the user has consented, finalize returns pending.
+    broker.setActive(null);
+    const pending = await app.inject({
+      method: 'POST',
+      url: `/api/connectors/${id}/finalize-connect`,
+      headers: { cookie },
+    });
+    expect(pending.statusCode).toBe(200);
+    expect(pending.json()).toEqual({ pending: true });
+
+    // Now the broker reports ACTIVE — finalize persists creds + activates.
+    broker.setActive('ca_real_account');
+    const done = await app.inject({
+      method: 'POST',
+      url: `/api/connectors/${id}/finalize-connect`,
+      headers: { cookie },
+    });
+    expect(done.statusCode).toBe(200);
+    expect(done.json()).toMatchObject({ ok: true, connectedAccountId: 'ca_real_account' });
+
+    // Instance should now be active.
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/connectors',
+      headers: { cookie },
+    });
+    const emailCap = list
+      .json()
+      .capabilities.find((c: { capability: string }) => c.capability === 'email');
+    const inst = emailCap.instances.find((i: { id: string }) => i.id === id);
+    expect(inst.isActive).toBe(true);
+  });
+
+  it('/connect rejects non-externalOAuth connectors with 400', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/connectors',
+      headers: { cookie },
+      payload: {
+        capability: 'email',
+        providerSlug: 'gmail',
+        displayName: 'Direct Gmail',
+      },
+    });
+    const id = create.json().instance.id;
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/connectors/${id}/connect`,
+      headers: { cookie },
+    });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().error).toBe('connector_does_not_use_external_oauth');
+  });
+
+  it('/connect returns 503 when the broker is not wired', async () => {
+    const secrets = createSecretsStore(env.db, encryptionKey);
+    const bare = buildApp({
+      db: env.db,
+      secrets,
+      encryptionKey,
+      clientSlug: 'test',
+      logger: false,
+      serveUi: false,
+      inventory: fakeInventory(),
+      // No externalOAuthBrokers
+    });
+    await bare.ready();
+    try {
+      const login = await bare.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'op@example.com', password: 'correct-horse-battery-staple' },
+      });
+      const setCookie = login.headers['set-cookie'];
+      const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      const m = (header ?? '').match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
+      const bareCookie = `${SESSION_COOKIE}=${m?.[1]}`;
+      // Make a fresh composio-backed instance against the bare app.
+      const create = await bare.inject({
+        method: 'POST',
+        url: '/api/connectors',
+        headers: { cookie: bareCookie },
+        payload: {
+          capability: 'email',
+          providerSlug: 'email-gmail-composio',
+          displayName: 'Gmail (bare)',
+        },
+      });
+      const id = create.json().instance.id;
+      const r = await bare.inject({
+        method: 'POST',
+        url: `/api/connectors/${id}/connect`,
+        headers: { cookie: bareCookie },
+      });
+      expect(r.statusCode).toBe(503);
+      expect(r.json().error).toBe('external_oauth_broker_not_wired');
+    } finally {
+      await bare.close();
+    }
   });
 
   it('admin endpoints return 503 when inventory is not wired', async () => {

@@ -115,6 +115,8 @@ export interface ConnectorCapability {
     slug: string;
     displayName: string;
     authKind: 'oauth2' | 'api-key' | 'none';
+    /** Set when the provider uses an external OAuth broker (Composio etc.). */
+    externalOAuth?: { provider: 'composio'; toolkit: string };
     version: string;
     settingsSchema?: unknown;
   }>;
@@ -237,4 +239,21 @@ export const Api = {
     }),
   deleteConnector: (id: string) =>
     api<{ ok: true }>(`/api/connectors/${id}`, { method: 'DELETE' }),
+
+  /**
+   * Initiate the external-OAuth flow for a Composio-backed instance.
+   * Returns a URL the caller should open in a popup; user grants access at
+   * the provider, then the caller polls finalizeConnectConnector.
+   */
+  connectConnector: (id: string) =>
+    api<{ redirectUrl: string }>(`/api/connectors/${id}/connect`, { method: 'POST' }),
+  /**
+   * Poll for connection completion. Returns { pending: true } until the
+   * broker reports an ACTIVE connection, then { ok: true, connectedAccountId }.
+   */
+  finalizeConnectConnector: (id: string) =>
+    api<{ ok: true; connectedAccountId: string } | { pending: true }>(
+      `/api/connectors/${id}/finalize-connect`,
+      { method: 'POST' },
+    ),
 };

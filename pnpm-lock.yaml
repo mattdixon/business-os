@@ -67,9 +67,15 @@ importers:
       '@business-os/connector-anthropic':
         specifier: workspace:^
         version: link:../../connectors/anthropic
+      '@business-os/connector-composio':
+        specifier: workspace:^
+        version: link:../../connectors/composio
       '@business-os/connector-crm-stub':
         specifier: workspace:^
         version: link:../../connectors/crm-stub
+      '@business-os/connector-email-gmail-composio':
+        specifier: workspace:^
+        version: link:../../connectors/email-gmail-composio
       '@business-os/connector-email-stub':
         specifier: workspace:^
         version: link:../../connectors/email-stub
@@ -168,6 +174,9 @@ importers:
 
   connectors/composio:
     dependencies:
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
       '@composio/core':
         specifier: 0.10.0
         version: 0.10.0(zod@3.25.76)

@@ -33,7 +33,33 @@ export interface ConnectorManifestLike {
   version: string;
   displayName: string;
   authKind: 'oauth2' | 'api-key' | 'none';
+  /**
+   * Set when the connector uses an external OAuth broker (e.g. Composio).
+   * Mirrors @business-os/connector-sdk's ConnectorManifest.externalOAuth.
+   */
+  externalOAuth?: {
+    provider: 'composio';
+    toolkit: string;
+  };
   settingsSchema: z.ZodTypeAny;
+}
+
+/**
+ * Structural interface for external OAuth brokers (Composio, Nango, ...).
+ * Core depends only on this shape; the client shell wires a concrete
+ * implementation (e.g. ComposioSubstrate from @business-os/connector-composio)
+ * into startServer's deps.
+ *
+ * Mirrors @business-os/connector-sdk's ExternalOAuthBroker.
+ */
+export interface ExternalOAuthBrokerLike {
+  findOrCreateManagedAuthConfig(toolkit: string): Promise<{ id: string; toolkit: string }>;
+  createConnectionLink(p: {
+    userId: string;
+    authConfigId: string;
+    callbackUrl: string;
+  }): Promise<{ connectionRequestId: string; redirectUrl: string }>;
+  getActiveConnection(userId: string, toolkit: string): Promise<string | null>;
 }
 
 export interface RegisteredConnectorProviderLike {

@@ -129,6 +129,18 @@ export interface ConnectorManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny
     tokenUrl: string;
     scopes: string[];
   };
+  /**
+   * Marks the connector as using an external OAuth broker (e.g. Composio).
+   * The framework's "Connect" flow uses this metadata to drive the dance:
+   * authKind stays 'api-key' (the operator-facing credential is the broker's
+   * API key + the per-account user_id), but the framework knows to call the
+   * broker's link/callback flow instead of presenting a paste-the-key form.
+   */
+  externalOAuth?: {
+    provider: 'composio';
+    /** Provider's toolkit slug, e.g. 'gmail', 'outlook', 'jira'. */
+    toolkit: string;
+  };
   /** Zod schema for connector-instance settings (non-secret config) */
   settingsSchema: TSettings;
 }
@@ -173,4 +185,38 @@ export function defineConnector<
   TSettings extends z.ZodTypeAny,
 >(pkg: ConnectorPackage<C, TSettings>): ConnectorPackage<C, TSettings> {
   return pkg;
+}
+
+// -----------------------------------------------------------------------------
+// External OAuth broker — interface implemented by connector packages that
+// front an integration platform (Composio, Nango, Pipedream Connect, ...).
+// Defined here so @business-os/core can drive the Connect-flow against any
+// broker without taking a direct dependency on a connector package.
+//
+// The client shell constructs the concrete broker (with API key etc.) and
+// passes it into startServer({ externalOAuthBrokers: { composio: substrate } }).
+// -----------------------------------------------------------------------------
+
+export interface ExternalOAuthBroker {
+  /**
+   * Resolve a broker auth config for `toolkit`, creating one if none exists.
+   * Returns an opaque id the broker uses to identify which OAuth app to
+   * present on the consent screen.
+   */
+  findOrCreateManagedAuthConfig(toolkit: string): Promise<{ id: string; toolkit: string }>;
+  /**
+   * Initiate a connection for `userId`. Returns the URL the operator's
+   * browser must visit to grant access.
+   */
+  createConnectionLink(p: {
+    userId: string;
+    authConfigId: string;
+    callbackUrl: string;
+  }): Promise<{ connectionRequestId: string; redirectUrl: string }>;
+  /**
+   * Look up the active connected-account id for (userId, toolkit), or null
+   * if the operator hasn't finished consenting yet. Polled by the framework
+   * after the operator returns from the consent screen.
+   */
+  getActiveConnection(userId: string, toolkit: string): Promise<string | null>;
 }

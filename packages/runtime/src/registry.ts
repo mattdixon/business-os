@@ -8,6 +8,7 @@ import type {
   ConnectorManifest,
   ConnectorContext,
 } from '@business-os/connector-sdk';
+import type { ModulePackage } from '@business-os/module-sdk';
 
 /**
  * The agent + connector registries.
@@ -61,9 +62,23 @@ export class UnknownConnectorProviderError extends Error {
   }
 }
 
+export class DuplicateModuleSlugError extends Error {
+  constructor(slug: string) {
+    super(`Module slug "${slug}" is already registered`);
+    this.name = 'DuplicateModuleSlugError';
+  }
+}
+export class UnknownModuleError extends Error {
+  constructor(slug: string) {
+    super(`No module registered with slug "${slug}"`);
+    this.name = 'UnknownModuleError';
+  }
+}
+
 export class Registry {
   private agents = new Map<string, RegisteredAgent>();
   private providers = new Map<string, Map<string, RegisteredConnectorProvider>>();
+  private modules = new Map<string, ModulePackage>();
 
   registerAgent(agent: RegisteredAgent): void {
     const slug = agent.manifest.slug;
@@ -110,5 +125,23 @@ export class Registry {
   ): RegisteredConnectorProvider<C>[] {
     const byCap = this.providers.get(capability as string);
     return byCap ? ([...byCap.values()] as RegisteredConnectorProvider<C>[]) : [];
+  }
+
+  // ---- Modules ----
+
+  registerModule(mod: ModulePackage): void {
+    const slug = mod.manifest.slug;
+    if (this.modules.has(slug)) throw new DuplicateModuleSlugError(slug);
+    this.modules.set(slug, mod);
+  }
+
+  getModule(slug: string): ModulePackage {
+    const m = this.modules.get(slug);
+    if (!m) throw new UnknownModuleError(slug);
+    return m;
+  }
+
+  listModules(): ModulePackage[] {
+    return [...this.modules.values()];
   }
 }

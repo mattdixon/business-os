@@ -23,6 +23,7 @@
     "@business-os/connector-sdk": "workspace:^",
     "@business-os/db": "workspace:^",
     "@business-os/core": "workspace:^",
+    "@business-os/module-sdk": "workspace:^",
     "croner": "^8.1.0",
     "drizzle-orm": "^0.33.0",
     "pg-boss": "^10.1.5",

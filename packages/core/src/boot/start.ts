@@ -83,7 +83,26 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
 
   const { db, sql } = createDb({ url: env.DATABASE_URL });
 
-  const owners: MigrationOwner[] = [coreMigrations, ...(opts.migrations ?? [])];
+  // Module migration owners discovered from the inventory — each registered
+  // module that ships migrationsDir contributes its own owner alongside
+  // anything passed in opts.migrations.
+  const moduleOwners: MigrationOwner[] = [];
+  if (opts.inventory.listModules) {
+    for (const mod of opts.inventory.listModules()) {
+      if (mod.manifest.migrationsDir) {
+        moduleOwners.push({
+          owner: `@business-os/module-${mod.manifest.slug}`,
+          dir: mod.manifest.migrationsDir,
+        });
+      }
+    }
+  }
+
+  const owners: MigrationOwner[] = [
+    coreMigrations,
+    ...moduleOwners,
+    ...(opts.migrations ?? []),
+  ];
   const applied = await runMigrations(sql, owners);
   if (applied.applied.length > 0) {
     // eslint-disable-next-line no-console

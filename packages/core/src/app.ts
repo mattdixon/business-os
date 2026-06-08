@@ -6,6 +6,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerUiServe } from './ui-serve.js';
 import { registerFastifySentry } from './sentry.js';
+import { registerModuleRoutes } from './modules.js';
 import type { SecretsStore } from './secrets/index.js';
 import { audit, type AuditContext } from './audit/index.js';
 import type { AgentInventory, ManualTriggerer } from './inventory.js';
@@ -125,6 +126,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   registerFastifySentry(app);
   registerAuthRoutes(app);
   registerAdminRoutes(app);
+
+  // Modules go under /modules/<slug>. Register after core routes; the await
+  // happens during boot via the onReady hook so plugin registration order
+  // doesn't conflict with Fastify's "already started" rule.
+  app.addHook('onReady', async () => {
+    try {
+      await registerModuleRoutes(app, deps);
+    } catch (err) {
+      app.log.warn({ err }, 'module route registration failed');
+    }
+  });
 
   if (deps.serveUi !== false) {
     registerUiServe(app);

@@ -7,7 +7,10 @@ services:
       POSTGRES_PASSWORD: businessos
       POSTGRES_DB: {{CLIENT_SLUG}}_os
     ports:
-      - "5432:5432"
+      # Host port 4732 → container 5432. Off-default to avoid colliding with
+      # native Postgres installs or other Postgres containers. Matches
+      # DATABASE_URL in .env.example.
+      - "4732:5432"
     volumes:
       - {{CLIENT_SLUG}}-os-pgdata:/var/lib/postgresql/data
 

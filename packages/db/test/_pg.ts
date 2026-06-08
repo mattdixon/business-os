@@ -10,7 +10,7 @@ import postgres from 'postgres';
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ??
   process.env.DATABASE_URL ??
-  'postgres://businessos:businessos@localhost:5432/businessos_dev';
+  'postgres://businessos:businessos@localhost:4732/businessos_dev';
 
 export async function pgReachable(url: string): Promise<boolean> {
   const sql = postgres(url, { max: 1, idle_timeout: 1, connect_timeout: 2 });

@@ -5,9 +5,11 @@ services:
     environment:
       POSTGRES_USER: businessos
       POSTGRES_PASSWORD: businessos
-      POSTGRES_DB: businessos_control
+      POSTGRES_DB: businessos_dev
     ports:
-      - "5432:5432"
+      # Host port 4732 → container 5432. Off-default to avoid colliding
+      # with native Postgres installs and other dev-time Postgres containers.
+      - "4732:5432"
     volumes:
       - businessos-pgdata:/var/lib/postgresql/data
 

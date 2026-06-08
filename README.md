@@ -2,7 +2,7 @@
 
 A framework and a library of pluggable agents that we install **once per client** as a custom operating system. Each client gets their own deployment, their own database, their own infra. This is a high-ticket professional services build, not a SaaS.
 
-**First client:** CNN Construction (concrete).
+**First client:** C&M Construction (concrete).
 
 ## What this repo is
 
@@ -28,16 +28,16 @@ Scaffolds a client shell **inside this monorepo** under `clients/`, registers it
 pnpm install
 pnpm -r build                          # one-time, so workspace packages resolve via dist/
 
-pnpm --filter @business-os/create-client start cnn-construction \
-  --name "CNN Construction" \
-  --dir ./clients/cnn-construction-os \
+pnpm --filter @business-os/create-client start c-and-m-construction \
+  --name "C&M Construction" \
+  --dir ./clients/c-and-m-construction-os \
   --workspace-mode
 
 # Workspace gets re-resolved; install the new package's transitive deps:
 pnpm install
 
 # Bring up Postgres for the install (uses the per-client docker-compose.yml).
-cd clients/cnn-construction-os
+cd clients/c-and-m-construction-os
 docker compose up -d postgres
 cp .env.example .env                   # fresh SECRETS_KEY is already baked in
 pnpm dev                               # runs migrations + Fastify + worker
@@ -46,7 +46,7 @@ pnpm dev                               # runs migrations + Fastify + worker
 Then in a second terminal:
 
 ```sh
-cd clients/cnn-construction-os
+cd clients/c-and-m-construction-os
 pnpm seed:dev                          # admin@localhost / change-me-now-please + sample settings
 ```
 
@@ -63,11 +63,11 @@ The `email-stub` and `crm-stub` connectors are already active after `seed:dev`, 
 Once `@business-os/*` are published to a private registry, the same scaffolder builds a repo outside the monorepo:
 
 ```sh
-pnpm create business-os-client cnn-construction \
-  --name "CNN Construction" \
-  --dir ~/code/cnn-construction-os
+pnpm create business-os-client c-and-m-construction \
+  --name "C&M Construction" \
+  --dir ~/code/c-and-m-construction-os
 
-cd ~/code/cnn-construction-os
+cd ~/code/c-and-m-construction-os
 cp .env.example .env
 pnpm install
 docker compose up -d postgres

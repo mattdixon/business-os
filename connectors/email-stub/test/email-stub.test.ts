@@ -37,7 +37,7 @@ describe('connector-email-stub', () => {
       buildCtx([
         {
           from: 'lead@acme.com',
-          to: ['ops@cnn.example'],
+          to: ['ops@cm.example'],
           subject: 'Inquiry',
           text: 'Hi, interested in services.',
         },

@@ -8,7 +8,7 @@ Read this first. Captures durable conventions and locked decisions. **Don't re-l
 
 A framework and a library of pluggable agents that we install **once per client** as a custom operating system. Each client gets their own deployment, their own database, their own infra. This is a high-ticket professional services build ($500K+ engagements), not a SaaS.
 
-**First client:** CNN Construction (concrete).
+**First client:** C&M Construction (concrete).
 
 **Inspiration:** Lior Krolewicz's Master Key OS workshop (2026-06-05). Lior is a reference architect, not a co-author. We're building this independently.
 
@@ -85,7 +85,7 @@ business-os/                              ← this repo (the framework monorepo)
 ### What a client repo looks like (NOT in this monorepo — scaffolded separately per client)
 
 ```
-cnn-construction-os/
+c-and-m-construction-os/
 ├── package.json               # depends on @business-os/core + agents + connectors at pinned versions
 ├── business-os.config.ts      # registry: which agents enabled, which connectors registered, default schedules
 ├── .env                       # framework-level secrets (DB URL, SECRETS_KEY, system email API key)
@@ -128,7 +128,7 @@ export async function run(ctx: AgentContext, input: unknown): Promise<AgentResul
 
 `ctx` gives the agent: logger, db (scoped), connectors (resolved by capability), settings (decrypted at runtime), audit log helper, and the framework's standard tools (LLM client, scheduling, etc).
 
-When a client wants custom behavior: **either** add a config knob to the shared agent (preferred), **or** fork into `agents/leadgen-cnn/` in their repo and now it's theirs.
+When a client wants custom behavior: **either** add a config knob to the shared agent (preferred), **or** fork into `agents/leadgen-cm/` in their repo and now it's theirs.
 
 ---
 

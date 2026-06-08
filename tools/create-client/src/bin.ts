@@ -29,7 +29,7 @@ Usage: create-business-os-client <slug> [options]
 Scaffolds a new Business OS client install repo.
 
 Positional:
-  slug              kebab-case identifier (e.g. cnn-construction)
+  slug              kebab-case identifier (e.g. c-and-m-construction)
 
 Options:
   --name STR        Human-readable display name (default: title-cased slug)
@@ -41,11 +41,11 @@ Options:
 
 Examples:
   # Scaffold a standalone shell (requires @business-os/* to be published):
-  pnpm create business-os-client cnn-construction --name "CNN Construction"
+  pnpm create business-os-client c-and-m-construction --name "C&M Construction"
 
   # Scaffold into the framework monorepo so workspace:^ deps resolve locally:
-  pnpm create business-os-client cnn-construction \\
-    --dir ./clients/cnn-construction-os \\
+  pnpm create business-os-client c-and-m-construction \\
+    --dir ./clients/c-and-m-construction-os \\
     --workspace-mode
 
 After it runs (workspace-mode):

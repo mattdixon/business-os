@@ -214,7 +214,7 @@ d('admin/operator API (real Postgres)', () => {
       payload: {
         capability: 'llm',
         providerSlug: 'anthropic',
-        displayName: 'Anthropic (CNN)',
+        displayName: 'Anthropic (C&M)',
       },
     });
     expect(create.statusCode).toBe(200);

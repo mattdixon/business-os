@@ -36,11 +36,26 @@ under Connectors, then click Run now on Lead Generation.
 
 `pnpm seed:dev` aborts in production (NODE_ENV=production).
 
-## Add a connector or agent
+## Add a connector, agent, or module
 
 1. Add the package to `dependencies` in `package.json`.
 2. Import + register it in `business-os.config.ts`.
-3. Restart. The operator UI surfaces the new thing for configuration.
+3. For a **module that ships UI pages**, also import its `./ui` entry in
+   `src/ui/main.tsx` and add it to `createOperatorApp({ modules: [...] })`.
+4. Run `pnpm build:ui` (or `pnpm dev:ui` for live reload) to rebuild
+   the operator UI with the new pages.
+5. Restart the server. The UI now exposes the new agent/connector/module.
+
+## Operator UI
+
+The operator UI is built from `src/ui/main.tsx` into `dist-ui/`. The Fastify
+server serves that bundle at `/` when it exists, falling back to
+`@business-os/ui`'s default bundle when it doesn't.
+
+```sh
+pnpm build:ui              # production bundle into dist-ui/
+pnpm dev:ui                # Vite dev server on port 4938 (proxies API calls to 4673)
+```
 
 ## Deploy
 

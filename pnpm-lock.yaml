@@ -53,6 +53,85 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
 
+  clients/smoke-test:
+    dependencies:
+      '@business-os/agent-leadgen':
+        specifier: workspace:^
+        version: link:../../agents/leadgen
+      '@business-os/agent-prospecting':
+        specifier: workspace:^
+        version: link:../../agents/prospecting
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+      '@business-os/connector-anthropic':
+        specifier: workspace:^
+        version: link:../../connectors/anthropic
+      '@business-os/connector-crm-stub':
+        specifier: workspace:^
+        version: link:../../connectors/crm-stub
+      '@business-os/connector-email-stub':
+        specifier: workspace:^
+        version: link:../../connectors/email-stub
+      '@business-os/connector-openai':
+        specifier: workspace:^
+        version: link:../../connectors/openai
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      '@business-os/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@business-os/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@business-os/module-sdk':
+        specifier: workspace:^
+        version: link:../../packages/module-sdk
+      '@business-os/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      '@business-os/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.1
+        version: 4.7.0(vite@5.4.21(@types/node@20.19.42))
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.5.0(postcss@8.5.15)
+      postcss:
+        specifier: ^8.4.41
+        version: 8.5.15
+      tailwindcss:
+        specifier: ^3.4.10
+        version: 3.4.19(tsx@4.22.4)
+      tsx:
+        specifier: ^4.16.0
+        version: 4.22.4
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@20.19.42)
+
   connectors/anthropic:
     dependencies:
       '@anthropic-ai/sdk':
@@ -351,6 +430,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@business-os/module-sdk':
+        specifier: workspace:^
+        version: link:../module-sdk
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -403,6 +485,85 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
+
+  tools/create-client/clients/smoke-test:
+    dependencies:
+      '@business-os/agent-leadgen':
+        specifier: workspace:^
+        version: link:../../../../agents/leadgen
+      '@business-os/agent-prospecting':
+        specifier: workspace:^
+        version: link:../../../../agents/prospecting
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../../../../packages/agent-sdk
+      '@business-os/connector-anthropic':
+        specifier: workspace:^
+        version: link:../../../../connectors/anthropic
+      '@business-os/connector-crm-stub':
+        specifier: workspace:^
+        version: link:../../../../connectors/crm-stub
+      '@business-os/connector-email-stub':
+        specifier: workspace:^
+        version: link:../../../../connectors/email-stub
+      '@business-os/connector-openai':
+        specifier: workspace:^
+        version: link:../../../../connectors/openai
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../../../packages/connector-sdk
+      '@business-os/core':
+        specifier: workspace:^
+        version: link:../../../../packages/core
+      '@business-os/db':
+        specifier: workspace:^
+        version: link:../../../../packages/db
+      '@business-os/module-sdk':
+        specifier: workspace:^
+        version: link:../../../../packages/module-sdk
+      '@business-os/runtime':
+        specifier: workspace:^
+        version: link:../../../../packages/runtime
+      '@business-os/ui':
+        specifier: workspace:^
+        version: link:../../../../packages/ui
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.1
+        version: 4.7.0(vite@5.4.21(@types/node@20.19.42))
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.5.0(postcss@8.5.15)
+      postcss:
+        specifier: ^8.4.41
+        version: 8.5.15
+      tailwindcss:
+        specifier: ^3.4.10
+        version: 3.4.19(tsx@4.22.4)
+      tsx:
+        specifier: ^4.16.0
+        version: 4.22.4
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@20.19.42)
 
 packages:
 

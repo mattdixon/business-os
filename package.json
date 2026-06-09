@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "create-client": "pnpm --filter @business-os/create-client run start"
+    "create-client": "pnpm --filter @business-os/create-client run start",
+    "dev:cm": "pnpm --dir clients/c-and-m-construction-os dev:all"
   },
   "devDependencies": {
     "turbo": "^2.1.0",

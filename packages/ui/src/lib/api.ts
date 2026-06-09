@@ -259,6 +259,15 @@ export const Api = {
     }),
   deleteConnector: (id: string) =>
     api<{ ok: true }>(`/api/connectors/${id}`, { method: 'DELETE' }),
+  /**
+   * Calls the connector's verify() hook. Cheap auth probe — no billable
+   * tokens. Returns ok=true on success, or ok=false with an error message.
+   */
+  testConnector: (id: string) =>
+    api<{ ok: true; message?: string } | { ok: false; error: string }>(
+      `/api/connectors/${id}/test`,
+      { method: 'POST' },
+    ),
 
   /**
    * Initiate the external-OAuth flow for a Composio-backed instance.

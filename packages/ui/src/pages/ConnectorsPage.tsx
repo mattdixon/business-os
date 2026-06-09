@@ -248,6 +248,11 @@ function InstanceCard(props: {
   const [apiKey, setApiKey] = useState('');
   const [credsSaved, setCredsSaved] = useState(false);
   const [credsError, setCredsError] = useState<string | null>(null);
+  // Hide the API key form by default — most operators set it once and
+  // never touch it again. Click "Update key" to reveal.
+  const [editingKey, setEditingKey] = useState(false);
+  const [testState, setTestState] = useState<'idle' | 'testing' | 'ok' | 'err'>('idle');
+  const [testError, setTestError] = useState<string | null>(null);
   const [draftSettings, setDraftSettings] = useState<unknown>(props.instance.settings ?? {});
   const [settingsSaveState, setSettingsSaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>(
     'idle',
@@ -288,7 +293,19 @@ function InstanceCard(props: {
               onConnected={props.onAfterConnect}
             />
           )}
-          {!props.externalOAuth && props.authKind === 'api-key' && (
+          {!props.externalOAuth && props.authKind === 'api-key' && !editingKey && (
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                setEditingKey(true);
+                setCredsSaved(false);
+                setCredsError(null);
+              }}
+            >
+              {props.instance.isActive ? 'Update key' : 'Set key'}
+            </button>
+          )}
+          {!props.externalOAuth && props.authKind === 'api-key' && editingKey && (
             <div>
               <label className="label">API key</label>
               <div className="flex items-center gap-2">
@@ -302,6 +319,7 @@ function InstanceCard(props: {
                     setCredsSaved(false);
                     setCredsError(null);
                   }}
+                  autoFocus
                 />
                 <button
                   className="btn-secondary"
@@ -311,12 +329,23 @@ function InstanceCard(props: {
                       await props.onSetCreds({ key: apiKey });
                       setApiKey('');
                       setCredsSaved(true);
+                      setEditingKey(false);
                     } catch (e: unknown) {
                       setCredsError(e instanceof Error ? e.message : 'save failed');
                     }
                   }}
                 >
                   Save
+                </button>
+                <button
+                  className="btn-ghost"
+                  onClick={() => {
+                    setEditingKey(false);
+                    setApiKey('');
+                    setCredsError(null);
+                  }}
+                >
+                  Cancel
                 </button>
               </div>
               {credsSaved && <div className="mt-1 text-xs text-ok">Saved (encrypted).</div>}
@@ -336,17 +365,41 @@ function InstanceCard(props: {
               Disconnect
             </button>
           ) : !props.externalOAuth ? (
-            // For manual-credentials connectors, activation is a deliberate
-            // toggle. Composio-backed connectors flip active automatically on
-            // successful Connect, so no manual button needed.
-            <button className="btn-primary" onClick={props.onActivate}>
-              Mark connected
+            // For manual-credentials connectors: hit the connector's verify()
+            // hook via the test endpoint. Cheap auth probe — no billable
+            // tokens. On success, the instance is flipped to active so the
+            // operator doesn't have to take a second action.
+            <button
+              className="btn-primary"
+              disabled={testState === 'testing'}
+              onClick={async () => {
+                setTestState('testing');
+                setTestError(null);
+                try {
+                  const res = await Api.testConnector(props.instance.id);
+                  if (res.ok) {
+                    setTestState('ok');
+                    await props.onActivate();
+                  } else {
+                    setTestState('err');
+                    setTestError(res.error);
+                  }
+                } catch (e: unknown) {
+                  setTestState('err');
+                  setTestError(e instanceof Error ? e.message : 'test failed');
+                }
+              }}
+            >
+              {testState === 'testing' ? 'Testing…' : 'Test connection'}
             </button>
           ) : null}
           <button className="btn-danger" onClick={props.onRemove}>
             Delete
           </button>
         </div>
+        {testError && (
+          <div className="mt-2 text-xs text-bad">{testError}</div>
+        )}
       </div>
       {/* settings section */}
       {showSettings && hasSettingsSchema && props.settingsSchema && (

@@ -65,6 +65,16 @@ export interface ExternalOAuthBrokerLike {
 export interface RegisteredConnectorProviderLike {
   manifest: ConnectorManifestLike;
   capability: string;
+  /**
+   * Optional "test reachability" hook the connector implements. Core's
+   * POST /api/connectors/:id/test calls this with the saved credentials +
+   * parsed settings. Throwing surfaces as the test error in the UI.
+   */
+  verify?: (ctx: {
+    credentials: unknown;
+    settings: unknown;
+    logger: { info: (o: object | string, m?: string) => void; warn: (o: object | string, m?: string) => void; error: (o: object | string, m?: string) => void };
+  }) => Promise<void>;
 }
 
 export interface ModuleManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {

@@ -15,6 +15,63 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  agents/inbox-categorize:
+    dependencies:
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
+  agents/inbox-cleanup:
+    dependencies:
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
+  agents/inbox-surface:
+    dependencies:
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
   agents/leadgen:
     dependencies:
       '@business-os/agent-sdk':

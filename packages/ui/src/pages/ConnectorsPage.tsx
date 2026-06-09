@@ -223,16 +223,26 @@ function AddForm(props: {
   ) => Promise<void>;
 }): JSX.Element {
   const initialProviderSlug = props.providers[0]?.slug ?? '';
+  const initialProviderDisplay = props.providers[0]?.displayName ?? '';
+  const initialModel =
+    props.capability === 'llm' ? (KNOWN_LLM_MODELS[initialProviderSlug] ?? [])[0] ?? '' : '';
+
+  // Auto-format: "Provider · model" for LLM; just "Provider" otherwise.
+  const autoDisplayName = (providerDisplay: string, modelId: string): string =>
+    modelId ? `${providerDisplay} · ${modelId}` : providerDisplay;
+
   const [providerSlug, setProviderSlug] = useState(initialProviderSlug);
-  const [displayName, setDisplayName] = useState(props.providers[0]?.displayName ?? '');
+  const [displayName, setDisplayName] = useState(
+    autoDisplayName(initialProviderDisplay, initialModel),
+  );
+  // Tracks whether the operator hand-edited the display name. As long as
+  // this is false, the name stays in sync with provider+model picks. Once
+  // they type into the field, we stop overwriting.
+  const [displayNameDirty, setDisplayNameDirty] = useState(false);
   const [apiKey, setApiKey] = useState('');
   // Default to the first known model for the initial provider so Save & test
   // isn't disabled before the operator interacts with the model dropdown.
-  const [model, setModel] = useState<string>(
-    props.capability === 'llm'
-      ? (KNOWN_LLM_MODELS[initialProviderSlug] ?? [])[0] ?? ''
-      : '',
-  );
+  const [model, setModel] = useState<string>(initialModel);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -242,15 +252,26 @@ function AddForm(props: {
   const isExternalOAuth = !!selectedProvider?.externalOAuth;
   const availableModels = isLlm ? KNOWN_LLM_MODELS[providerSlug] ?? [] : [];
 
-  // Reset model when provider switches.
+  // Reset model + auto-name when provider switches.
   function pickProvider(slug: string) {
     setProviderSlug(slug);
     const p = props.providers.find((x) => x.slug === slug);
-    if (p) setDisplayName(p.displayName);
+    const newProviderDisplay = p?.displayName ?? '';
     const models = (isLlm ? KNOWN_LLM_MODELS[slug] : undefined) ?? [];
-    setModel(models[0] ?? '');
+    const newModel = models[0] ?? '';
+    setModel(newModel);
+    if (!displayNameDirty) {
+      setDisplayName(autoDisplayName(newProviderDisplay, newModel));
+    }
     setApiKey('');
     setError(null);
+  }
+
+  function pickModel(modelId: string) {
+    setModel(modelId);
+    if (!displayNameDirty) {
+      setDisplayName(autoDisplayName(selectedProvider?.displayName ?? '', modelId));
+    }
   }
 
   const canSave =
@@ -305,8 +326,11 @@ function AddForm(props: {
           <input
             className="input"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="e.g. Anthropic — primary"
+            onChange={(e) => {
+              setDisplayName(e.target.value);
+              setDisplayNameDirty(true);
+            }}
+            placeholder="auto-filled — edit to override"
           />
         </div>
         {isLlm && availableModels.length > 0 && (
@@ -315,7 +339,7 @@ function AddForm(props: {
             <select
               className="input"
               value={model || availableModels[0]}
-              onChange={(e) => setModel(e.target.value)}
+              onChange={(e) => pickModel(e.target.value)}
             >
               {availableModels.map((m) => (
                 <option key={m} value={m}>

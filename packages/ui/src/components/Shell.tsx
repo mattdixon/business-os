@@ -44,6 +44,7 @@ export function Shell(): JSX.Element {
           <NavItem to="/dashboard">Dashboard</NavItem>
           <NavItem to="/agents">Agents</NavItem>
           <NavItem to="/connectors">Connectors</NavItem>
+          <NavItem to="/providers">Providers</NavItem>
           {modules.length > 0 && <SidebarLabel>Modules</SidebarLabel>}
           {modules.map((m) =>
             m.pages.length === 0 ? (

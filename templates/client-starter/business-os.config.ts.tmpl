@@ -1,20 +1,21 @@
 /**
  * {{CLIENT_NAME}} — Business OS registry.
  *
- * This file declares WHAT is installed at this client. Schedules,
- * credentials, on/off, and per-agent settings live in the DB and are
- * managed in the operator UI — NOT here.
+ * Every framework connector ships via `@business-os/connectors-all` —
+ * the operator decides which ones are visible from the Providers admin
+ * page, not by editing this file. Credentials, schedules, on/off, and
+ * per-agent settings live in the DB and are managed in the operator UI.
  *
- * To add a shared agent: import + register it below. To add a client-custom
- * agent: drop it under `./agents/` and register it the same way.
+ * Add client-custom agents below by dropping them under `./agents/` and
+ * registering them the same way as the shared ones.
  */
 
-import { Registry, Scheduler } from '@business-os/runtime';
-import { createConnectorResolver } from '@business-os/runtime';
-import anthropic from '@business-os/connector-anthropic';
-import openai from '@business-os/connector-openai';
-import emailStub from '@business-os/connector-email-stub';
-import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
+import { Registry, Scheduler, createConnectorResolver } from '@business-os/runtime';
+import {
+  allFrameworkConnectors,
+  allFrameworkConnectorMigrations,
+} from '@business-os/connectors-all';
+
 import leadgen from '@business-os/agent-leadgen';
 import prospecting from '@business-os/agent-prospecting';
 
@@ -31,15 +32,9 @@ export function buildRegistry(): Registry {
   const registry = new Registry();
 
   // ---- Connectors ----
-  // LLM providers — operator picks per agent via the settings UI.
-  registry.registerConnectorProvider(anthropic);
-  registry.registerConnectorProvider(openai);
-
-  // Dev/demo providers for email + crm. Swap for real Gmail / HubSpot etc.
-  // by registering the corresponding @business-os/connector-* and activating
-  // it in the operator UI.
-  registry.registerConnectorProvider(emailStub);
-  registry.registerConnectorProvider(crmStub);
+  // Every framework connector is registered. The Providers admin page
+  // controls which appear in the operator UI's Add Instance dropdown.
+  registry.registerMany(allFrameworkConnectors);
 
   // ---- Agents ----
   registry.registerAgent(leadgen);
@@ -51,9 +46,9 @@ export function buildRegistry(): Registry {
   return registry;
 }
 
-/** Additional migration owners for agents + connectors that ship their own. */
+/** Additional migration owners for client-custom agents/connectors. */
 export const extraMigrations: MigrationOwner[] = [
-  crmStubMigrations,
+  ...allFrameworkConnectorMigrations,
 ];
 
 export type { Registry, Scheduler };

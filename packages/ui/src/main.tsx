@@ -10,6 +10,7 @@ import { AgentsList } from './pages/AgentsList';
 import { AgentDetail } from './pages/AgentDetail';
 import { RunDetail } from './pages/RunDetail';
 import { ConnectorsPage } from './pages/ConnectorsPage';
+import { ProvidersPage } from './pages/ProvidersPage';
 import { AuditPage } from './pages/AuditPage';
 import { ModulePagePlaceholder } from './pages/ModulePagePlaceholder';
 import { Settings } from './pages/Settings';
@@ -44,6 +45,7 @@ createRoot(root).render(
               <Route path="agents/:slug" element={<AgentDetail />} />
               <Route path="runs/:id" element={<RunDetail />} />
               <Route path="connectors" element={<ConnectorsPage />} />
+              <Route path="providers" element={<ProvidersPage />} />
               <Route path="modules/:slug/*" element={<ModulePagePlaceholder />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="settings" element={<Settings />} />

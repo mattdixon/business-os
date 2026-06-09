@@ -86,6 +86,18 @@ export class Registry {
     this.agents.set(slug, agent);
   }
 
+  /**
+   * Batch-register every connector in `providers`. Used by client shells
+   * to wire `@business-os/connectors-all` in one line instead of N
+   * individual calls. Fails fast on the first duplicate, leaving previously-
+   * registered providers in place.
+   */
+  registerMany<C extends keyof ConnectorCapabilityMap>(
+    providers: ReadonlyArray<RegisteredConnectorProvider<C>>,
+  ): void {
+    for (const p of providers) this.registerConnectorProvider(p);
+  }
+
   registerConnectorProvider<C extends keyof ConnectorCapabilityMap>(
     provider: RegisteredConnectorProvider<C>,
   ): void {

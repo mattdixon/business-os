@@ -1,0 +1,178 @@
+import { useEffect, useState } from 'react';
+import { Api, ApiError } from '../lib/api';
+import { PageHeader } from '../components/PageHeader';
+import { useToast } from '../lib/toast';
+
+/**
+ * Operator-facing marketplace for framework connector providers.
+ *
+ * Every connector that ships with `@business-os/connectors-all` appears here
+ * with a toggle. Enabling a provider makes it visible in the Connectors
+ * page's "Add instance" dropdown. Disabling hides it from that dropdown but
+ * leaves any already-configured instances alone — they keep working until
+ * the operator deletes them.
+ */
+
+interface ProvidersResponse {
+  capabilities: Array<{
+    capability: string;
+    providers: Array<{
+      slug: string;
+      displayName: string;
+      authKind: 'oauth2' | 'api-key' | 'none';
+      externalOAuth?: { provider: 'composio'; toolkit: string };
+      version: string;
+      enabled: boolean;
+    }>;
+  }>;
+}
+
+export function ProvidersPage(): JSX.Element {
+  const { toast } = useToast();
+  const [data, setData] = useState<ProvidersResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null); // key being toggled
+
+  const reload = async (): Promise<void> => {
+    try {
+      const r = await Api.listProviders();
+      setData(r);
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : 'load failed');
+    }
+  };
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  const toggle = async (capability: string, slug: string, next: boolean): Promise<void> => {
+    const key = `${capability}:${slug}`;
+    setBusy(key);
+    // Optimistic update so the switch feels instant. Revert on failure.
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        capabilities: prev.capabilities.map((cap) =>
+          cap.capability !== capability
+            ? cap
+            : {
+                ...cap,
+                providers: cap.providers.map((p) =>
+                  p.slug === slug ? { ...p, enabled: next } : p,
+                ),
+              },
+        ),
+      };
+    });
+    try {
+      await Api.setProviderEnabled(capability, slug, next);
+      toast.success(`${slug}: ${next ? 'enabled' : 'disabled'}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'toggle failed');
+      await reload(); // resync state
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Providers"
+        description="Every framework connector available to this install. Disable a provider to hide it from the Add Instance dropdown — existing instances keep working."
+      />
+      <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+        {error && (
+          <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+            {error}
+          </div>
+        )}
+        {!data && <div className="text-sm text-ink-500 dark:text-ink-400">Loading…</div>}
+        {data?.capabilities.map((cap) => (
+          <section key={cap.capability} className="card p-6">
+            <div className="mb-4">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                Capability
+              </div>
+              <h2 className="mt-0.5 font-mono text-lg font-semibold tracking-tight">
+                {cap.capability}
+              </h2>
+            </div>
+            {cap.providers.length === 0 ? (
+              <div className="text-sm text-ink-500 dark:text-ink-400">
+                No framework providers registered for this capability.
+              </div>
+            ) : (
+              <ul className="divide-y divide-ink-100 dark:divide-ink-800">
+                {cap.providers.map((p) => {
+                  const key = `${cap.capability}:${p.slug}`;
+                  const isBusy = busy === key;
+                  return (
+                    <li
+                      key={p.slug}
+                      className="flex items-center justify-between gap-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink-900 dark:text-ink-100">
+                          {p.displayName}
+                        </div>
+                        <div className="mt-0.5 font-mono text-xs text-ink-500 dark:text-ink-400">
+                          {p.slug} · {p.authKind}
+                          {p.externalOAuth ? ` · ${p.externalOAuth.provider}` : ''} · v
+                          {p.version}
+                        </div>
+                      </div>
+                      <Toggle
+                        checked={p.enabled}
+                        disabled={isBusy}
+                        onChange={(next) => void toggle(cap.capability, p.slug, next)}
+                        label={`${p.enabled ? 'Disable' : 'Enable'} ${p.displayName}`}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Minimal switch component using a native checkbox under a styled track.
+ * Avoids pulling another Radix package for one switch — when we need a
+ * proper radix-switch elsewhere we'll factor this out.
+ */
+function Toggle(props: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}): JSX.Element {
+  return (
+    <label
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+        props.checked
+          ? 'bg-accent'
+          : 'bg-ink-200 dark:bg-ink-700'
+      } ${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      aria-label={props.label}
+    >
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={props.checked}
+        disabled={props.disabled}
+        onChange={(e) => props.onChange(e.target.checked)}
+      />
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          props.checked ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </label>
+  );
+}

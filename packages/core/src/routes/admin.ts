@@ -37,6 +37,26 @@ const SETTINGS_CONNECTOR_SCOPE = (cap: string, id: string): string =>
   `connector:${cap}:${id}`;
 const SECRETS_CONNECTOR_SCOPE = SETTINGS_CONNECTOR_SCOPE;
 const CREDENTIAL_KEY = 'credentials';
+/**
+ * Per-install enable/disable flag for a (capability, providerSlug) pair.
+ * Persisted in the `settings` table. Disabled providers stay registered in
+ * memory (the runtime always knows about them) but the operator UI hides
+ * them from the Add Instance dropdown until re-enabled.
+ *
+ * Default when no row exists: enabled.
+ */
+const PROVIDER_ENABLED_SCOPE = (cap: string, slug: string): string =>
+  `provider:${cap}:${slug}`;
+
+async function isProviderEnabled(db: Db, cap: string, slug: string): Promise<boolean> {
+  const rows = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, PROVIDER_ENABLED_SCOPE(cap, slug)))
+    .limit(1);
+  const v = rows[0]?.value as { enabled?: boolean } | undefined;
+  return v?.enabled !== false; // missing row OR { enabled: true } -> enabled
+}
 
 // -----------------------------------------------------------------------------
 // Schemas (kept inline; promotable to api-contract once a second consumer needs them)
@@ -487,10 +507,9 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     // operator-configured instances per capability.
     const caps = new Set<string>();
     // Walk known capabilities — the registry doesn't expose `listCapabilities`,
-    // so we drain the type-registry by probing each known key. Today: email,
-    // crm, llm, file-storage. New capabilities added to ConnectorCapabilityMap
-    // need adding here too.
-    for (const cap of ['email', 'crm', 'llm', 'file-storage']) caps.add(cap);
+    // so we drain the type-registry by probing each known key. New capabilities
+    // added to ConnectorCapabilityMap need adding here too.
+    for (const cap of ['email', 'email-inbox', 'crm', 'llm', 'file-storage']) caps.add(cap);
 
     const instances = await req.deps.db
       .select()
@@ -499,16 +518,24 @@ export function registerAdminRoutes(app: FastifyInstance): void {
 
     const result = await Promise.all(
       [...caps].map(async (capability) => {
-        const providers = req.deps.inventory!.listConnectorProviders(capability).map(
-          (p) => ({
-            slug: p.manifest.slug,
-            displayName: p.manifest.displayName,
-            authKind: p.manifest.authKind,
-            externalOAuth: p.manifest.externalOAuth,
-            version: p.manifest.version,
-            settingsSchema: zodToFieldSchema(p.manifest.settingsSchema),
+        const allProviders = req.deps.inventory!.listConnectorProviders(capability);
+        // Filter by operator's enable/disable choice. Disabled providers are
+        // still registered (so existing instances keep working) but hidden
+        // from the Add Instance dropdown.
+        const providers = await Promise.all(
+          allProviders.map(async (p) => {
+            const enabled = await isProviderEnabled(req.deps.db, capability, p.manifest.slug);
+            return {
+              slug: p.manifest.slug,
+              displayName: p.manifest.displayName,
+              authKind: p.manifest.authKind,
+              externalOAuth: p.manifest.externalOAuth,
+              version: p.manifest.version,
+              settingsSchema: zodToFieldSchema(p.manifest.settingsSchema),
+              enabled,
+            };
           }),
-        );
+        ).then((arr) => arr.filter((p) => p.enabled));
         const capInstances = await Promise.all(
           instances
             .filter((i) => i.capability === capability)
@@ -997,6 +1024,74 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     await req.audit('admin.connector.delete', { id });
     return { ok: true as const };
   });
+
+  // ---------- GET /api/providers ----------
+  // List every framework-registered connector provider with its current
+  // enable/disable state. Powers the Providers admin page. The Connectors
+  // page filters by enabled (above); this page surfaces them all.
+  app.get('/api/providers', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    reply.header('cache-control', 'no-store');
+
+    const caps = ['email', 'email-inbox', 'crm', 'llm', 'file-storage'];
+    const groups = await Promise.all(
+      caps.map(async (capability) => {
+        const providers = await Promise.all(
+          req.deps.inventory!.listConnectorProviders(capability).map(async (p) => ({
+            slug: p.manifest.slug,
+            displayName: p.manifest.displayName,
+            authKind: p.manifest.authKind,
+            externalOAuth: p.manifest.externalOAuth,
+            version: p.manifest.version,
+            enabled: await isProviderEnabled(req.deps.db, capability, p.manifest.slug),
+          })),
+        );
+        return { capability, providers };
+      }),
+    );
+    return { capabilities: groups };
+  });
+
+  // ---------- PUT /api/providers/:capability/:slug ----------
+  // Toggle a single provider's enabled state. Disabling does NOT delete
+  // existing instances of that provider — operator does that explicitly
+  // from the Connectors page. The instances keep working at runtime; they
+  // just don't get new siblings until the provider is re-enabled.
+  app.put(
+    '/api/providers/:capability/:slug',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      if (!require503(req.deps.inventory, reply, 'inventory')) return;
+      const { capability, slug } = req.params as { capability: string; slug: string };
+      const body = z.object({ enabled: z.boolean() }).safeParse(req.body);
+      if (!body.success) {
+        reply.code(400).send({ error: 'invalid_input' });
+        return;
+      }
+      // Refuse to operate on unknown providers — keeps the settings table
+      // from accruing orphan rows for packages that aren't registered.
+      try {
+        req.deps.inventory.getConnectorProvider(capability, slug);
+      } catch {
+        reply.code(404).send({ error: 'unknown_provider' });
+        return;
+      }
+      const scope = PROVIDER_ENABLED_SCOPE(capability, slug);
+      await req.deps.db
+        .insert(settingsTable)
+        .values({ scope, value: { enabled: body.data.enabled } })
+        .onConflictDoUpdate({
+          target: settingsTable.scope,
+          set: { value: { enabled: body.data.enabled }, updatedAt: new Date() },
+        });
+      await req.audit('admin.provider.enabled.update', {
+        capability,
+        slug,
+        enabled: body.data.enabled,
+      });
+      return { ok: true as const, enabled: body.data.enabled };
+    },
+  );
 
   // ---------- GET /api/modules ----------
   // List registered modules so the UI can render their pages + nav entries.

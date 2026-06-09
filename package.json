@@ -15,7 +15,8 @@
     "lint": "turbo run lint",
     "create-client": "pnpm --filter @business-os/create-client run start",
     "dev:cm": "pnpm --dir clients/c-and-m-construction-os dev:all",
-    "dev:personal": "pnpm --dir clients/personal-email-os dev:all"
+    "dev:personal": "pnpm --dir clients/personal-email-os dev:all",
+    "clean": "node scripts/clean.mjs"
   },
   "devDependencies": {
     "turbo": "^2.1.0",

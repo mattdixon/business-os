@@ -150,7 +150,26 @@ export const manifest = {
   settingsSchema,
 };
 
+/**
+ * Cheapest reachable endpoint to confirm the key works: GET /v1/models.
+ * Free, no token consumption. Anthropic returns 401 on a bad key, 200
+ * with a model list on a good one. Network errors bubble up with the
+ * SDK's own message.
+ */
+async function verify(ctx: ConnectorContext<Settings>): Promise<void> {
+  if (ctx.credentials.kind !== 'api-key') {
+    throw new Error(`connector-anthropic requires api-key credentials, got "${ctx.credentials.kind}"`);
+  }
+  const client = new Anthropic({
+    apiKey: ctx.credentials.key,
+    baseURL: ctx.settings.baseUrl,
+  });
+  // SDK exposes .models.list(); throws on non-2xx with a clear message.
+  await client.models.list({ limit: 1 });
+}
+
 export default defineConnector({
   manifest,
   factory: (ctx) => makeLlm(ctx as ConnectorContext<Settings>),
+  verify: (ctx) => verify(ctx as ConnectorContext<Settings>),
 });

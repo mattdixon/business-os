@@ -308,6 +308,16 @@ export interface ConnectorPackage<
 > {
   manifest: ConnectorManifest<TSettings>;
   factory(ctx: ConnectorContext<z.infer<TSettings>>): ConnectorCapabilityMap[C];
+  /**
+   * Optional "is this connector reachable?" hook. The operator UI calls it
+   * via POST /api/connectors/:id/test. Implementations SHOULD hit the
+   * cheapest endpoint the provider exposes that requires authentication —
+   * e.g. listing models (Anthropic + OpenAI), a Composio ping, or a
+   * 0-byte HEAD against a known URL. They MUST NOT consume billable
+   * tokens or perform side-effects. Throw on failure with a human-
+   * readable message; the framework surfaces it in the UI.
+   */
+  verify?(ctx: ConnectorContext<z.infer<TSettings>>): Promise<void>;
 }
 
 export function defineConnector<

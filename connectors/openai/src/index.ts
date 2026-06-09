@@ -138,7 +138,20 @@ export const manifest = {
   settingsSchema,
 };
 
+/**
+ * Cheapest authenticated endpoint to confirm the key works: GET /v1/models.
+ * Free, no token consumption. Returns 401 on a bad key.
+ */
+async function verify(ctx: ConnectorContext<Settings>): Promise<void> {
+  if (ctx.credentials.kind !== 'api-key') {
+    throw new Error(`connector-openai requires api-key credentials, got "${ctx.credentials.kind}"`);
+  }
+  const client = buildClient(ctx);
+  await client.models.list();
+}
+
 export default defineConnector({
   manifest,
   factory: (ctx) => makeLlm(ctx as ConnectorContext<Settings>),
+  verify: (ctx) => verify(ctx as ConnectorContext<Settings>),
 });

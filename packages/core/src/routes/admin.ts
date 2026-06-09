@@ -772,6 +772,70 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     },
   );
 
+  // ---------- POST /api/connectors/:id/test ----------
+  //
+  // Calls the connector package's optional `verify(ctx)` hook with the saved
+  // credentials + settings. Used by the UI's "Test connection" button.
+  // verify() implementations hit the cheapest auth-required endpoint the
+  // provider exposes (Anthropic + OpenAI list models; Composio-backed
+  // connectors get this for free via the Connect flow). NO billable tokens.
+  //
+  // On success, returns { ok: true } and the UI flips the instance to active.
+  // On failure, returns { ok: false, error: <message> } — UI shows it inline.
+  app.post('/api/connectors/:id/test', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const id = (req.params as { id: string }).id;
+    const existing = await req.deps.db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, id))
+      .limit(1);
+    if (!existing[0]) {
+      reply.code(404).send({ error: 'connector_instance_not_found' });
+      return;
+    }
+    const inst = existing[0];
+
+    const provider = req.deps.inventory.getConnectorProvider(
+      inst.capability,
+      inst.providerSlug,
+    );
+    if (!provider.verify) {
+      // No verify hook — nothing to test. Treat as success so Composio-backed
+      // connectors don't get stuck behind a missing button.
+      return { ok: true as const, message: 'no test available for this connector' };
+    }
+
+    // Pull credentials + parsed settings into the ctx the connector expects.
+    const scope = SECRETS_CONNECTOR_SCOPE(inst.capability, id);
+    const rawCreds = await req.deps.secrets.get(scope, CREDENTIAL_KEY);
+    if (!rawCreds) {
+      return { ok: false as const, error: 'No credentials saved yet — save the key first.' };
+    }
+    let credentials: unknown;
+    try {
+      credentials = JSON.parse(rawCreds.toString());
+    } catch {
+      return { ok: false as const, error: 'Saved credentials are unreadable.' };
+    }
+    const rawSettings = await loadConnectorSettings(req.deps.db, inst.capability, id);
+    const settings = provider.manifest.settingsSchema.parse(rawSettings ?? {});
+
+    try {
+      await provider.verify({
+        credentials: credentials as never,
+        settings: settings as never,
+        logger: { info: () => {}, warn: () => {}, error: () => {} },
+      });
+      await req.audit('admin.connector.test.ok', { id, providerSlug: inst.providerSlug });
+      return { ok: true as const };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      await req.audit('admin.connector.test.failed', { id, providerSlug: inst.providerSlug, error: message });
+      return { ok: false as const, error: message };
+    }
+  });
+
   // ---------- DELETE /api/connectors/:id ----------
   app.delete('/api/connectors/:id', { preHandler: requireUser }, async (req, reply) => {
     const id = (req.params as { id: string }).id;

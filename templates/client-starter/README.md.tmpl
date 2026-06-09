@@ -9,32 +9,42 @@ gets deployed to {{CLIENT_NAME}}'s infrastructure.
 credentials, and per-agent settings via the operator UI, NOT by editing
 files in this repo.
 
-## Local development
+## Local development — one command
 
 ```sh
 pnpm install
-# Start Postgres for this install
-docker compose up -d postgres
-# Boot the API + worker (also runs migrations on first boot)
-pnpm dev
+pnpm dev:all
 ```
 
-The API listens on `http://localhost:4673`.
+`pnpm dev:all` runs identically in WSL bash and Windows PowerShell. It:
 
-## One-command demo
+1. starts Postgres via `docker compose up -d postgres`,
+2. waits for it to accept connections,
+3. runs `pnpm migrate` (forward-only, idempotent),
+4. runs `pnpm seed:dev` (idempotent — re-runs are no-ops),
+5. boots the API and the Vite UI dev server in parallel with prefixed logs.
 
-After scaffolding + booting, in a second terminal:
+API: `http://localhost:4673` · UI: `http://localhost:4938`. Ctrl+C stops
+the dev processes; Postgres keeps running (`docker compose down` to stop).
 
-```sh
-pnpm seed:dev
-```
-
-Creates `admin@localhost` (password from `.env`), activates the email-stub
-and crm-stub connector instances, and seeds sample leadgen + prospecting
-agent settings. Sign in to the UI, paste an Anthropic or OpenAI API key
-under Connectors, then click Run now on Lead Generation.
+Seed creates `admin@localhost` (password from `.env`), activates the
+email-stub and crm-stub connector instances, and seeds sample leadgen +
+prospecting agent settings. Sign in to the UI, paste an Anthropic or
+OpenAI API key under Connectors, then click Run now on Lead Generation.
 
 `pnpm seed:dev` aborts in production (NODE_ENV=production).
+
+### Manual / piecewise
+
+Useful when debugging a specific step:
+
+```sh
+docker compose up -d postgres   # Postgres only
+pnpm migrate                    # apply migrations
+pnpm seed:dev                   # seed admin + sample settings
+pnpm dev                        # API + worker, foreground
+pnpm dev:ui                     # Vite UI dev server, foreground
+```
 
 ## Add a connector, agent, or module
 

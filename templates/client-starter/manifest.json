@@ -17,7 +17,8 @@
     "postcss.config.js.tmpl",
     "README.md.tmpl",
     "deploy/Dockerfile.tmpl",
-    "docker-compose.yml.tmpl"
+    "docker-compose.yml.tmpl",
+    "scripts/dev-up.mjs.tmpl"
   ],
   "verbatim": [
     "agents/.gitkeep",
@@ -40,6 +41,7 @@
     "postcss.config.js.tmpl": "postcss.config.js",
     "README.md.tmpl": "README.md",
     "deploy/Dockerfile.tmpl": "deploy/Dockerfile",
-    "docker-compose.yml.tmpl": "docker-compose.yml"
+    "docker-compose.yml.tmpl": "docker-compose.yml",
+    "scripts/dev-up.mjs.tmpl": "scripts/dev-up.mjs"
   }
 }

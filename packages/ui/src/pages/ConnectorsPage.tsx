@@ -222,10 +222,17 @@ function AddForm(props: {
     extras?: { credentials?: Record<string, unknown>; settings?: unknown },
   ) => Promise<void>;
 }): JSX.Element {
-  const [providerSlug, setProviderSlug] = useState(props.providers[0]?.slug ?? '');
+  const initialProviderSlug = props.providers[0]?.slug ?? '';
+  const [providerSlug, setProviderSlug] = useState(initialProviderSlug);
   const [displayName, setDisplayName] = useState(props.providers[0]?.displayName ?? '');
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState<string>('');
+  // Default to the first known model for the initial provider so Save & test
+  // isn't disabled before the operator interacts with the model dropdown.
+  const [model, setModel] = useState<string>(
+    props.capability === 'llm'
+      ? (KNOWN_LLM_MODELS[initialProviderSlug] ?? [])[0] ?? ''
+      : '',
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

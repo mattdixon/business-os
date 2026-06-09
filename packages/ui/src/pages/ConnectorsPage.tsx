@@ -6,12 +6,21 @@ import { useToast } from '../lib/toast';
 
 function apiErrorMessage(e: unknown, fallback: string): string {
   if (!(e instanceof ApiError)) return fallback;
-  const body = e.body as { issues?: Array<{ path?: string[]; message?: string }> } | null;
+  const body = e.body as {
+    issues?: Array<{ path?: string[]; message?: string }>;
+    message?: string;
+  } | null;
   if (body?.issues?.length) {
     return body.issues
       .map((i) => `${i.path?.join('.') ?? 'value'}: ${i.message ?? 'invalid'}`)
       .join('; ');
   }
+  // Routes that fail validation (e.g. verify_failed from the connector
+  // setup flow) put the human-readable detail on `body.message` while
+  // `body.error` is the machine code that becomes `e.message`. Prefer
+  // body.message so the operator sees "401 Invalid API key" instead of
+  // the bare "verify_failed".
+  if (body?.message) return body.message;
   return e.message || fallback;
 }
 
@@ -55,7 +64,11 @@ export function ConnectorsPage(): JSX.Element {
       setAdding(null);
       await reload();
     } catch (e: unknown) {
+      // Show a toast AND re-throw so the AddForm's inline error block
+      // also lights up. Operators were missing the toast when their eye
+      // was on the form.
       toast.error(apiErrorMessage(e, 'Add failed.'));
+      throw e;
     }
   };
 
@@ -255,13 +268,9 @@ function AddForm(props: {
       }
       await props.onAdd(props.capability, providerSlug, displayName, extras);
     } catch (e: unknown) {
-      // Surface verify_failed message inline rather than a toast — operator's
-      // attention is already on this form.
-      const fallback = e instanceof Error ? e.message : 'save failed';
-      // The Api layer surfaces ApiError with `body.message` on verify_failed;
-      // pull that out if present.
-      const apiBody = (e as { body?: { message?: string } }).body;
-      setError(apiBody?.message ?? fallback);
+      // verify_failed and other 400s carry the human message on body.message;
+      // apiErrorMessage knows how to dig it out.
+      setError(apiErrorMessage(e, 'Save failed.'));
     } finally {
       setBusy(false);
     }
@@ -517,12 +526,10 @@ function InstanceCard(props: {
                       setCredsSaved(true);
                       setEditingKey(false);
                     } catch (e: unknown) {
-                      // PUT /credentials now auto-tests on the server.
+                      // PUT /credentials now auto-tests on the server;
                       // verify_failed comes back as 400 with body.message
                       // holding the provider's actual error.
-                      const fallback = e instanceof Error ? e.message : 'save failed';
-                      const apiBody = (e as { body?: { message?: string } }).body;
-                      setCredsError(apiBody?.message ?? fallback);
+                      setCredsError(apiErrorMessage(e, 'Save failed.'));
                     }
                   }}
                 >

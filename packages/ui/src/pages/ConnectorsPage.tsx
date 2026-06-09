@@ -38,10 +38,20 @@ export function ConnectorsPage(): JSX.Element {
     capability: string,
     providerSlug: string,
     displayName: string,
+    extras?: { credentials?: Record<string, unknown>; settings?: unknown },
   ): Promise<void> => {
     try {
-      await Api.createConnector({ capability, providerSlug, displayName });
-      toast.success('Connector instance added.');
+      await Api.createConnector({
+        capability,
+        providerSlug,
+        displayName,
+        ...(extras ?? {}),
+      });
+      toast.success(
+        extras?.credentials
+          ? 'Connected — credentials tested and saved.'
+          : 'Connector instance added.',
+      );
       setAdding(null);
       await reload();
     } catch (e: unknown) {
@@ -174,58 +184,174 @@ export function ConnectorsPage(): JSX.Element {
   );
 }
 
+/**
+ * Hand-curated model dropdowns per LLM provider. These don't have to mirror
+ * the full provider catalog — they're the models we've validated against the
+ * connector + that ship with cost-table entries. Operator can override per
+ * agent (LlmPicker.model) later.
+ */
+const KNOWN_LLM_MODELS: Record<string, string[]> = {
+  anthropic: [
+    'claude-opus-4-7',
+    'claude-sonnet-4-6',
+    'claude-haiku-4-5-20251001',
+  ],
+  openai: ['gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini'],
+};
+
 function AddForm(props: {
   capability: string;
   providers: ConnectorCapability['providers'];
-  onAdd: (capability: string, providerSlug: string, displayName: string) => Promise<void>;
+  onAdd: (
+    capability: string,
+    providerSlug: string,
+    displayName: string,
+    extras?: { credentials?: Record<string, unknown>; settings?: unknown },
+  ) => Promise<void>;
 }): JSX.Element {
   const [providerSlug, setProviderSlug] = useState(props.providers[0]?.slug ?? '');
-  const [displayName, setDisplayName] = useState(
-    props.providers[0]?.displayName ?? '',
-  );
+  const [displayName, setDisplayName] = useState(props.providers[0]?.displayName ?? '');
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedProvider = props.providers.find((p) => p.slug === providerSlug);
+  const isLlm = props.capability === 'llm';
+  const isApiKey = selectedProvider?.authKind === 'api-key' && !selectedProvider?.externalOAuth;
+  const isExternalOAuth = !!selectedProvider?.externalOAuth;
+  const availableModels = isLlm ? KNOWN_LLM_MODELS[providerSlug] ?? [] : [];
+
+  // Reset model when provider switches.
+  function pickProvider(slug: string) {
+    setProviderSlug(slug);
+    const p = props.providers.find((x) => x.slug === slug);
+    if (p) setDisplayName(p.displayName);
+    const models = (isLlm ? KNOWN_LLM_MODELS[slug] : undefined) ?? [];
+    setModel(models[0] ?? '');
+    setApiKey('');
+    setError(null);
+  }
+
+  const canSave =
+    !busy &&
+    !!providerSlug &&
+    !!displayName &&
+    (isExternalOAuth || !isApiKey || !!apiKey) &&
+    (!isLlm || !availableModels.length || !!model);
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const extras: { credentials?: Record<string, unknown>; settings?: unknown } = {};
+      if (isApiKey && apiKey) {
+        extras.credentials = { kind: 'api-key', key: apiKey };
+      }
+      if (isLlm && model) {
+        // Stamp the chosen model as the connector instance's default. Per-agent
+        // override is still available via LlmPicker.model.
+        extras.settings = { defaultModel: model };
+      }
+      await props.onAdd(props.capability, providerSlug, displayName, extras);
+    } catch (e: unknown) {
+      // Surface verify_failed message inline rather than a toast — operator's
+      // attention is already on this form.
+      const fallback = e instanceof Error ? e.message : 'save failed';
+      // The Api layer surfaces ApiError with `body.message` on verify_failed;
+      // pull that out if present.
+      const apiBody = (e as { body?: { message?: string } }).body;
+      setError(apiBody?.message ?? fallback);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="mt-4 rounded-md border border-ink-200 bg-ink-50 p-4 dark:border-ink-700 dark:bg-ink-950/40">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="label">Provider</label>
           <select
             className="input"
             value={providerSlug}
-            onChange={(e) => {
-              setProviderSlug(e.target.value);
-              const p = props.providers.find((x) => x.slug === e.target.value);
-              if (p) setDisplayName(p.displayName);
-            }}
+            onChange={(e) => pickProvider(e.target.value)}
           >
             {props.providers.map((p) => (
               <option key={p.slug} value={p.slug}>
-                {p.displayName} ({p.authKind})
+                {p.displayName}
               </option>
             ))}
           </select>
         </div>
-        <div className="sm:col-span-2">
+        <div>
           <label className="label">Display name</label>
           <input
             className="input"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g. Anthropic — primary"
           />
         </div>
+        {isLlm && availableModels.length > 0 && (
+          <div>
+            <label className="label">Default model</label>
+            <select
+              className="input"
+              value={model || availableModels[0]}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              {availableModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {isApiKey && (
+          <div className={isLlm && availableModels.length > 0 ? '' : 'sm:col-span-1'}>
+            <label className="label">API key</label>
+            <input
+              className="input-mono"
+              // Plain text — keeps Chrome/1Password from nagging on what is
+              // an API token, not a password.
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
+              placeholder="paste here"
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setError(null);
+              }}
+            />
+          </div>
+        )}
+        {isExternalOAuth && (
+          <div className="sm:col-span-2 text-xs text-ink-500 dark:text-ink-400">
+            This provider uses {selectedProvider!.externalOAuth!.provider}. Click Save to add
+            it; you'll connect the account from the instance card.
+          </div>
+        )}
       </div>
-      <div className="mt-3">
-        <button
-          className="btn-primary"
-          disabled={busy || !providerSlug || !displayName}
-          onClick={async () => {
-            setBusy(true);
-            await props.onAdd(props.capability, providerSlug, displayName);
-            setBusy(false);
-          }}
-        >
-          {busy ? 'Adding…' : 'Add'}
+      {error && (
+        <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+          {error}
+        </div>
+      )}
+      <div className="mt-3 flex items-center gap-2">
+        <button className="btn-primary" disabled={!canSave} onClick={submit}>
+          {busy ? 'Testing…' : isApiKey ? 'Save & test' : 'Save'}
         </button>
+        <span className="text-xs text-ink-500 dark:text-ink-400">
+          {isApiKey ? 'We test the key before saving — nothing persists if it fails.' : null}
+        </span>
       </div>
     </div>
   );
@@ -391,11 +517,16 @@ function InstanceCard(props: {
                       setCredsSaved(true);
                       setEditingKey(false);
                     } catch (e: unknown) {
-                      setCredsError(e instanceof Error ? e.message : 'save failed');
+                      // PUT /credentials now auto-tests on the server.
+                      // verify_failed comes back as 400 with body.message
+                      // holding the provider's actual error.
+                      const fallback = e instanceof Error ? e.message : 'save failed';
+                      const apiBody = (e as { body?: { message?: string } }).body;
+                      setCredsError(apiBody?.message ?? fallback);
                     }
                   }}
                 >
-                  Save
+                  Save & test
                 </button>
                 <button
                   className="btn-ghost"

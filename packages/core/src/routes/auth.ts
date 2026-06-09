@@ -176,6 +176,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
       .where(eq(users.id, req.user!.id))
       .returning({ theme: users.theme });
 
+    if (!updated) return reply.code(404).send({ error: 'user_not_found' });
     await req.audit('user.preferences.updated', { fields: Object.keys(patch) });
     return { ok: true as const, preferences: { theme: updated.theme } };
   });

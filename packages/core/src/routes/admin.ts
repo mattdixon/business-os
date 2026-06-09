@@ -478,6 +478,11 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   // ---------- GET /api/connectors ----------
   app.get('/api/connectors', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    // Tell the browser never to cache this — connector state changes
+    // mid-session (Save & test, Disconnect, Update key) and operators
+    // were seeing stale "not connected" after a fresh add until they
+    // hard-refreshed.
+    reply.header('cache-control', 'no-store');
     // Build the capability → providers map from the registry, then attach the
     // operator-configured instances per capability.
     const caps = new Set<string>();

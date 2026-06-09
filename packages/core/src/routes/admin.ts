@@ -50,6 +50,16 @@ const CreateConnectorInstanceRequest = z.object({
   capability: z.string().min(1),
   providerSlug: z.string().min(1),
   displayName: z.string().min(1),
+  /**
+   * Optional one-shot setup. When provided, the framework runs the
+   * provider's verify() against this credential payload BEFORE persisting
+   * the instance. If verify fails, nothing is written and the operator
+   * sees the provider's error. If it succeeds, the instance is created,
+   * the credentials saved, settings applied (if any), and isActive set
+   * to true — one round-trip from "Add" to "Connected".
+   */
+  credentials: z.record(z.unknown()).optional(),
+  settings: z.unknown().optional(),
 });
 
 const UpdateConnectorInstanceRequest = z.object({
@@ -157,6 +167,40 @@ async function loadConnectorSettings(
     .where(eq(settingsTable.scope, SETTINGS_CONNECTOR_SCOPE(capability, instanceId)))
     .limit(1);
   return rows[0]?.value ?? null;
+}
+
+/**
+ * Run the connector's verify() hook against a *proposed* credentials object —
+ * without persisting. Used by POST /api/connectors and PUT /credentials so
+ * the operator gets a real test before anything is saved.
+ *
+ * Returns ok=true when verify is missing (Composio paths) or succeeds, ok=
+ * false with the provider's error message on failure.
+ */
+async function runVerify(args: {
+  provider: import('../inventory.js').RegisteredConnectorProviderLike;
+  proposedCredentials: Record<string, unknown>;
+  proposedSettings?: unknown;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!args.provider.verify) return { ok: true };
+  const creds: Record<string, unknown> = { ...args.proposedCredentials };
+  if (typeof creds.kind !== 'string') creds.kind = args.provider.manifest.authKind;
+  let settings: unknown;
+  try {
+    settings = args.provider.manifest.settingsSchema.parse(args.proposedSettings ?? {});
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'invalid settings' };
+  }
+  try {
+    await args.provider.verify({
+      credentials: creds,
+      settings,
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -445,7 +489,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
 
     const instances = await req.deps.db
       .select()
-      .from(connectorInstances);
+      .from(connectorInstances)
+      .orderBy(desc(connectorInstances.createdAt));
 
     const result = await Promise.all(
       [...caps].map(async (capability) => {
@@ -489,6 +534,10 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   });
 
   // ---------- POST /api/connectors ----------
+  // One-shot: validate provider exists → if credentials provided, run
+  // verify() FIRST (no persisting on failure) → insert instance →
+  // save creds + settings → flip isActive=true. Anything that fails
+  // partway leaves the operator with no half-broken row to clean up.
   app.post('/api/connectors', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;
     const body = CreateConnectorInstanceRequest.safeParse(req.body);
@@ -496,26 +545,74 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       reply.code(400).send({ error: 'invalid_input' });
       return;
     }
+    let provider;
     try {
-      req.deps.inventory.getConnectorProvider(body.data.capability, body.data.providerSlug);
+      provider = req.deps.inventory.getConnectorProvider(
+        body.data.capability,
+        body.data.providerSlug,
+      );
     } catch {
       reply.code(400).send({ error: 'unknown_provider' });
       return;
     }
+
+    // If creds supplied, test them BEFORE inserting the row so a failed
+    // setup doesn't leave a stub instance behind.
+    if (body.data.credentials) {
+      const verifyResult = await runVerify({
+        provider,
+        proposedCredentials: body.data.credentials as Record<string, unknown>,
+        proposedSettings: body.data.settings,
+      });
+      if (!verifyResult.ok) {
+        await req.audit('admin.connector.create.verify_failed', {
+          capability: body.data.capability,
+          providerSlug: body.data.providerSlug,
+          error: verifyResult.error,
+        });
+        return reply.code(400).send({ error: 'verify_failed', message: verifyResult.error });
+      }
+    }
+
     const rows = await req.deps.db
       .insert(connectorInstances)
       .values({
         capability: body.data.capability,
         providerSlug: body.data.providerSlug,
         displayName: body.data.displayName,
-        isActive: false,
+        isActive: !!body.data.credentials, // active iff creds were tested+saved here
       })
       .returning();
+    const instance = rows[0]!;
+
+    if (body.data.credentials) {
+      const creds: Record<string, unknown> = { ...(body.data.credentials as Record<string, unknown>) };
+      if (typeof creds.kind !== 'string') creds.kind = provider.manifest.authKind;
+      await req.deps.secrets.put(
+        SECRETS_CONNECTOR_SCOPE(body.data.capability, instance.id),
+        CREDENTIAL_KEY,
+        JSON.stringify(creds),
+      );
+    }
+    if (body.data.settings !== undefined) {
+      await req.deps.db
+        .insert(settingsTable)
+        .values({
+          scope: SETTINGS_CONNECTOR_SCOPE(body.data.capability, instance.id),
+          value: body.data.settings,
+        })
+        .onConflictDoUpdate({
+          target: settingsTable.scope,
+          set: { value: body.data.settings, updatedAt: new Date() },
+        });
+    }
+
     await req.audit('admin.connector.create', {
       capability: body.data.capability,
       providerSlug: body.data.providerSlug,
+      activated: !!body.data.credentials,
     });
-    return { instance: rows[0] };
+    return { instance };
   });
 
   // ---------- PATCH /api/connectors/:id ----------
@@ -602,7 +699,12 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   });
 
   // ---------- PUT /api/connectors/:id/credentials ----------
+  // Always tests new credentials against the provider's verify() hook
+  // BEFORE persisting. On test failure, nothing is written — the existing
+  // (working) credentials stay in place. On success, the new creds replace
+  // the old and the instance stays active.
   app.put('/api/connectors/:id/credentials', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
     const id = (req.params as { id: string }).id;
     const body = SetConnectorCredentialsRequest.safeParse(req.body);
     if (!body.success) {
@@ -618,12 +720,28 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       reply.code(404).send({ error: 'connector_instance_not_found' });
       return;
     }
-    const scope = SECRETS_CONNECTOR_SCOPE(existing[0].capability, id);
-    await req.deps.secrets.put(
-      scope,
-      CREDENTIAL_KEY,
-      JSON.stringify(body.data.credentials),
-    );
+    const inst = existing[0];
+    const provider = req.deps.inventory.getConnectorProvider(inst.capability, inst.providerSlug);
+
+    const verifyResult = await runVerify({
+      provider,
+      proposedCredentials: body.data.credentials as Record<string, unknown>,
+      proposedSettings: await loadConnectorSettings(req.deps.db, inst.capability, id),
+    });
+    if (!verifyResult.ok) {
+      await req.audit('admin.connector.credentials.verify_failed', { id, error: verifyResult.error });
+      return reply.code(400).send({ error: 'verify_failed', message: verifyResult.error });
+    }
+
+    const scope = SECRETS_CONNECTOR_SCOPE(inst.capability, id);
+    const creds: Record<string, unknown> = { ...(body.data.credentials as Record<string, unknown>) };
+    if (typeof creds.kind !== 'string') creds.kind = provider.manifest.authKind;
+    await req.deps.secrets.put(scope, CREDENTIAL_KEY, JSON.stringify(creds));
+    // Update with new key should leave the instance active.
+    await req.deps.db
+      .update(connectorInstances)
+      .set({ isActive: true })
+      .where(eq(connectorInstances.id, id));
     await req.audit('admin.connector.credentials.update', { id });
     return { ok: true as const };
   });

@@ -245,6 +245,14 @@ export const Api = {
     capability: string;
     providerSlug: string;
     displayName: string;
+    /**
+     * Optional one-shot setup. When provided, the server runs verify()
+     * BEFORE persisting. On verify failure, nothing is written and the
+     * call rejects with the provider's error. On success, the instance
+     * is created + active in one round-trip.
+     */
+    credentials?: Record<string, unknown>;
+    settings?: unknown;
   }) => api<{ instance: ConnectorCapability['instances'][number] }>(`/api/connectors`, {
     method: 'POST',
     body,

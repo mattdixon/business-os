@@ -1,0 +1,29 @@
+# Personal Email — single-binary deploy image.
+#
+# Builds the typed entrypoint then runs `node dist/index.js`. Worker mode is
+# `node dist/index.js --worker` — wire that into a separate process (systemd
+# unit, Fly machine, ECS task, etc.) running off the same image.
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml* /app/.npmrc* ./
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=builder /app/dist ./dist
+
+USER node
+EXPOSE 4673
+CMD ["node", "dist/index.js"]

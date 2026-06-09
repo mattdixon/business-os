@@ -1,0 +1,89 @@
+/**
+ * Personal Email — entry point.
+ *
+ * Same binary serves both modes:
+ *   pnpm start              -> API process (Fastify listening on API_PORT)
+ *   pnpm start:worker       -> background worker (scheduler running, no HTTP)
+ *
+ * `pnpm dev` is the development equivalent using tsx.
+ *
+ * The dotenv preload MUST stay at the top — it populates process.env from
+ * .env before anything else reads it (DATABASE_URL, SECRETS_KEY, etc.).
+ */
+import 'dotenv/config';
+
+import { startServer, captureAgentError } from '@business-os/core';
+import { createSecretsStore, loadSecretsKey } from '@business-os/core/secrets';
+import { createDb } from '@business-os/db';
+import {
+  Scheduler,
+  createConnectorResolver,
+  createJobsBackend,
+} from '@business-os/runtime';
+import { pino } from 'pino';
+
+import { buildRegistry, extraMigrations } from '../business-os.config.js';
+
+const mode: 'api' | 'worker' | 'both' = process.argv.includes('--worker')
+  ? 'worker'
+  : process.env.NODE_ENV === 'development'
+    ? 'both'
+    : 'api';
+
+const registry = buildRegistry();
+const databaseUrl = process.env.DATABASE_URL!;
+
+const started = await startServer({
+  inventory: registry,
+  migrations: extraMigrations,
+  mode,
+  triggerFactory: ({ startScheduler }) => {
+    const { db } = createDb({ url: databaseUrl });
+    const secrets = createSecretsStore(db, loadSecretsKey(process.env));
+    const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
+    const connectors = createConnectorResolver({ db, secrets, registry, logger });
+    const jobs = createJobsBackend({
+      databaseUrl,
+      db,
+      registry,
+      connectors,
+      logger,
+    });
+    const onAgentError = (err: unknown, ctx: { agentSlug: string; runId: string }): void => {
+      captureAgentError(err, {
+        agentSlug: ctx.agentSlug,
+        runId: ctx.runId,
+        clientSlug: process.env.CLIENT_SLUG ?? 'personal-email',
+      });
+    };
+    const scheduler = new Scheduler({ db, registry, connectors, logger, jobs, onAgentError });
+    return {
+      triggerManual: (slug, input, userId) =>
+        scheduler.triggerManual(slug, input, userId),
+      start: () => {
+        if (startScheduler) {
+          scheduler.start();
+          void jobs.start();
+        }
+      },
+      stop: async () => {
+        await scheduler.stop();
+        await jobs.stop();
+      },
+    };
+  },
+});
+
+const handle = async (sig: NodeJS.Signals): Promise<void> => {
+  // eslint-disable-next-line no-console
+  console.log(`[personal-email-os] ${sig} received, shutting down...`);
+  await started.shutdown();
+  process.exit(0);
+};
+process.on('SIGINT', handle);
+process.on('SIGTERM', handle);
+
+if (started.url) {
+  // eslint-disable-next-line no-console
+  console.log(`[personal-email-os] ready: ${started.url}`);
+}

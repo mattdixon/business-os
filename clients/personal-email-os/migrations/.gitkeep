@@ -1,0 +1,2 @@
+# Place client-specific .sql migrations in this directory. They run alongside
+# framework + agent migrations.

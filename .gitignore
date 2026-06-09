@@ -12,3 +12,7 @@ coverage/
 
 # Scaffolded client shells — each is its own repo, not part of the framework monorepo
 clients/
+# ...except personal-email-os, which is Matt's own deployable install and
+# lives in this repo so its config is version-controlled. Other clients
+# (e.g. c-and-m-construction-os) stay out and get their own repos.
+!clients/personal-email-os/

@@ -1,0 +1,3 @@
+# Place client-custom agents in this directory.
+# Shared agents are imported from @business-os/agent-* packages in
+# business-os.config.ts.

@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: personal-email-os-postgres
+    environment:
+      POSTGRES_USER: businessos
+      POSTGRES_PASSWORD: businessos
+      POSTGRES_DB: personal-email_os
+    ports:
+      # Host port 4734 → container 5432. Off-default to avoid colliding with
+      # native Postgres installs or other Postgres containers. Matches
+      # DATABASE_URL in .env.example.
+      - "4734:5432"
+    volumes:
+      - personal-email-os-pgdata:/var/lib/postgresql/data
+
+volumes:
+  personal-email-os-pgdata:

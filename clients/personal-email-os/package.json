@@ -1,0 +1,53 @@
+{
+  "name": "personal-email-os",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:worker": "tsx src/index.ts --worker",
+    "dev:ui": "vite --config vite.ui.config.ts",
+    "dev:all": "node scripts/dev-up.mjs",
+    "build": "tsc -p tsconfig.json && pnpm build:ui",
+    "build:ui": "vite build --config vite.ui.config.ts",
+    "start": "node dist/index.js",
+    "start:worker": "node dist/index.js --worker",
+    "migrate": "tsx src/migrate.ts",
+    "seed:dev": "tsx src/seed-dev.ts"
+  },
+  "dependencies": {
+    "@business-os/agent-inbox-categorize": "workspace:^",
+    "@business-os/agent-inbox-cleanup": "workspace:^",
+    "@business-os/agent-inbox-surface": "workspace:^",
+    "@business-os/agent-sdk": "workspace:^",
+    "@business-os/connector-anthropic": "workspace:^",
+    "@business-os/connector-composio": "workspace:^",
+    "@business-os/connector-email-inbox-gmail-composio": "workspace:^",
+    "@business-os/connector-email-inbox-imap": "workspace:^",
+    "@business-os/connector-email-inbox-outlook-composio": "workspace:^",
+    "@business-os/connector-openai": "workspace:^",
+    "@business-os/connector-sdk": "workspace:^",
+    "@business-os/core": "workspace:^",
+    "@business-os/db": "workspace:^",
+    "@business-os/module-sdk": "workspace:^",
+    "@business-os/runtime": "workspace:^",
+    "@business-os/ui": "workspace:^",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.33.0",
+    "pino": "^9.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

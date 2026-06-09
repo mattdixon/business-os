@@ -27,12 +27,12 @@ export function Dashboard(): JSX.Element {
   if (error) {
     return (
       <div className="p-8">
-        <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
+        <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
       </div>
     );
   }
   if (!data) {
-    return <div className="p-8 text-ink-500">Loading…</div>;
+    return <div className="p-8 text-ink-500 dark:text-ink-400">Loading…</div>;
   }
 
   const ok = data.recentRuns.filter((r) => r.ok === true).length;
@@ -56,16 +56,16 @@ export function Dashboard(): JSX.Element {
         />
 
         <section className="card p-5 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
             Recent runs
           </h2>
           {data.recentRuns.length === 0 ? (
-            <div className="py-6 text-center text-sm text-ink-400">
+            <div className="py-6 text-center text-sm text-ink-400 dark:text-ink-500">
               No runs yet. Open an agent and click "Run now".
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Started</th>
                   <th className="px-3 py-2 text-left font-medium">Agent</th>
@@ -73,22 +73,22 @@ export function Dashboard(): JSX.Element {
                   <th className="px-3 py-2 text-left font-medium">Summary</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {data.recentRuns.map((r) => (
                   <tr
                     key={r.id}
-                    className="cursor-pointer hover:bg-ink-50"
+                    className="cursor-pointer hover:bg-ink-50 dark:hover:bg-ink-800"
                     onClick={() => {
                       window.location.href = `/runs/${r.id}`;
                     }}
                   >
-                    <td className="px-3 py-2 font-mono text-xs text-ink-500">
+                    <td className="px-3 py-2 font-mono text-xs text-ink-500 dark:text-ink-400">
                       {new Date(r.startedAt).toLocaleString()}
                     </td>
                     <td className="px-3 py-2">
                       <Link
                         to={`/agents/${r.agentSlug}`}
-                        className="font-mono text-xs text-ink-700 hover:text-accent"
+                        className="font-mono text-xs text-ink-700 hover:text-accent dark:text-ink-300"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {r.agentSlug}
@@ -103,7 +103,7 @@ export function Dashboard(): JSX.Element {
                         <span className="pill-warn">running</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-700">{r.summary ?? '—'}</td>
+                    <td className="px-3 py-2 text-ink-700 dark:text-ink-300">{r.summary ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -112,18 +112,18 @@ export function Dashboard(): JSX.Element {
         </section>
 
         <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
             Capability coverage
           </h2>
           <div className="space-y-2 text-sm">
             {data.capabilities.map((c) => (
               <div
                 key={c.capability}
-                className="flex items-center justify-between border-b border-ink-100 py-2 last:border-b-0"
+                className="flex items-center justify-between border-b border-ink-100 py-2 last:border-b-0 dark:border-ink-800"
               >
                 <div>
                   <div className="font-mono">{c.capability}</div>
-                  <div className="text-xs text-ink-500">
+                  <div className="text-xs text-ink-500 dark:text-ink-400">
                     {c.registered} provider{c.registered === 1 ? '' : 's'} · {c.configured} instance
                     {c.configured === 1 ? '' : 's'}
                   </div>
@@ -153,9 +153,9 @@ export function Dashboard(): JSX.Element {
 function Tile(props: { label: string; value: string; sub?: string; href?: string }): JSX.Element {
   const inner = (
     <div className="card flex h-full flex-col p-5">
-      <div className="text-xs uppercase tracking-wide text-ink-500">{props.label}</div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight text-ink-900">{props.value}</div>
-      {props.sub && <div className="mt-1 text-xs text-ink-500">{props.sub}</div>}
+      <div className="text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">{props.label}</div>
+      <div className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-ink-100">{props.value}</div>
+      {props.sub && <div className="mt-1 text-xs text-ink-500 dark:text-ink-400">{props.sub}</div>}
     </div>
   );
   return props.href ? (

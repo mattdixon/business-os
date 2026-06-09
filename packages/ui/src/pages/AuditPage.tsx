@@ -101,18 +101,18 @@ export function AuditPage(): JSX.Element {
         </div>
 
         {error && (
-          <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
+          <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
         )}
         {!entries ? (
-          <div className="text-ink-500">Loading…</div>
+          <div className="text-ink-500 dark:text-ink-400">Loading…</div>
         ) : entries.length === 0 ? (
-          <div className="card p-8 text-center text-sm text-ink-500">
+          <div className="card p-8 text-center text-sm text-ink-500 dark:text-ink-400">
             No audit entries match these filters.
           </div>
         ) : (
           <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
+              <thead className="bg-ink-50 text-xs uppercase tracking-wide text-ink-500 dark:bg-ink-800 dark:text-ink-400">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">When</th>
                   <th className="px-4 py-2 text-left font-medium">Action</th>
@@ -121,35 +121,35 @@ export function AuditPage(): JSX.Element {
                   <th className="px-4 py-2 text-left font-medium">Meta</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {entries.map((e) => (
                   <tr key={e.id}>
-                    <td className="px-4 py-2 align-top font-mono text-xs text-ink-500">
+                    <td className="px-4 py-2 align-top font-mono text-xs text-ink-500 dark:text-ink-400">
                       {new Date(e.at).toLocaleString()}
                     </td>
                     <td className="px-4 py-2 align-top">
                       <span className="font-mono text-xs">{e.action}</span>
                     </td>
-                    <td className="px-4 py-2 align-top text-xs text-ink-700">
+                    <td className="px-4 py-2 align-top text-xs text-ink-700 dark:text-ink-300">
                       {e.userEmail ? (
                         <span className="font-mono">{e.userEmail}</span>
                       ) : (
-                        <span className="text-ink-400">system</span>
+                        <span className="text-ink-400 dark:text-ink-500">system</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 align-top text-xs text-ink-700">
+                    <td className="px-4 py-2 align-top text-xs text-ink-700 dark:text-ink-300">
                       {e.agentSlug && <span className="pill-muted">agent:{e.agentSlug}</span>}
                       {e.requestId && (
-                        <span className="ml-1 font-mono text-ink-400">{e.requestId.slice(0, 8)}</span>
+                        <span className="ml-1 font-mono text-ink-400 dark:text-ink-500">{e.requestId.slice(0, 8)}</span>
                       )}
                     </td>
                     <td className="px-4 py-2 align-top">
                       {e.meta ? (
-                        <pre className="max-w-md overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-ink-700">
+                        <pre className="max-w-md overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-ink-700 dark:text-ink-300">
                           {JSON.stringify(e.meta, null, 0)}
                         </pre>
                       ) : (
-                        <span className="text-ink-400">—</span>
+                        <span className="text-ink-400 dark:text-ink-500">—</span>
                       )}
                     </td>
                   </tr>

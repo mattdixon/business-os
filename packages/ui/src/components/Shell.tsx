@@ -34,18 +34,18 @@ export function Shell(): JSX.Element {
   }, [state.kind]);
 
   return (
-    <div className="flex h-full min-h-screen bg-ink-50 text-ink-900">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-ink-200 bg-white">
-        <div className="border-b border-ink-200 px-4 py-4">
+    <div className="flex h-full min-h-screen bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900">
+        <div className="border-b border-ink-200 px-4 py-4 dark:border-ink-800">
           <div className="text-sm font-semibold tracking-tight">Business OS</div>
-          <div className="text-xs text-ink-400">Operator</div>
+          <div className="text-xs text-ink-400 dark:text-ink-500">Operator</div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2 text-sm">
           <NavItem to="/dashboard">Dashboard</NavItem>
           <NavItem to="/agents">Agents</NavItem>
           <NavItem to="/connectors">Connectors</NavItem>
           {modules.length > 0 && (
-            <div className="mt-3 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-400">
+            <div className="mt-3 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-400 dark:text-ink-500">
               Modules
             </div>
           )}
@@ -67,13 +67,13 @@ export function Shell(): JSX.Element {
                 ))
             ),
           )}
-          <div className="mt-3 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-400">
+          <div className="mt-3 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-400 dark:text-ink-500">
             Operator
           </div>
           <NavItem to="/audit">Audit log</NavItem>
           <NavItem to="/settings">Settings</NavItem>
         </nav>
-        <div className="border-t border-ink-200 px-4 py-3 text-xs text-ink-500">
+        <div className="border-t border-ink-200 px-4 py-3 text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
           <div className="truncate">{user?.email ?? '—'}</div>
           <button
             className="mt-2 text-accent hover:underline"
@@ -100,8 +100,8 @@ function NavItem({ to, children }: { to: string; children: React.ReactNode }): J
       className={({ isActive }) =>
         `rounded px-3 py-1.5 ${
           isActive
-            ? 'bg-ink-100 font-medium text-ink-900'
-            : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'
+            ? 'bg-ink-100 font-medium text-ink-900 dark:bg-ink-800 dark:text-ink-100'
+            : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900 dark:text-ink-400 dark:hover:bg-ink-800 dark:hover:text-ink-100'
         }`
       }
     >

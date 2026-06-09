@@ -129,12 +129,12 @@ export function AgentDetail(): JSX.Element {
   if (error) {
     return (
       <div className="p-8">
-        <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
+        <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
       </div>
     );
   }
   if (!agent) {
-    return <div className="p-8 text-ink-500">Loading…</div>;
+    return <div className="p-8 text-ink-500 dark:text-ink-400">Loading…</div>;
   }
 
   const schema = agent.settingsSchema as FieldSchema | undefined;
@@ -152,7 +152,7 @@ export function AgentDetail(): JSX.Element {
       />
       <div className="grid gap-6 p-8 lg:grid-cols-2">
         <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
             Settings
           </h2>
           {schema ? (
@@ -179,7 +179,7 @@ export function AgentDetail(): JSX.Element {
         </section>
 
         <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
             Manual run input
           </h2>
           {agent.inputSchema ? (
@@ -190,7 +190,7 @@ export function AgentDetail(): JSX.Element {
             />
           ) : (
             <>
-              <p className="mb-3 text-xs text-ink-500">
+              <p className="mb-3 text-xs text-ink-500 dark:text-ink-400">
                 JSON passed to <code className="font-mono">run(ctx, input)</code>.
               </p>
               <textarea
@@ -213,7 +213,7 @@ export function AgentDetail(): JSX.Element {
                 Manage connector instances →
               </Link>
             </div>
-            <p className="mb-4 text-xs text-ink-500">
+            <p className="mb-4 text-xs text-ink-500 dark:text-ink-400">
               Pick which connector instance this agent uses for each capability it needs.
               Add new instances on the{' '}
               <Link to="/connectors" className="underline">Connectors page</Link>; they'll
@@ -226,9 +226,9 @@ export function AgentDetail(): JSX.Element {
                 const value = draftBindings[cap] ?? '';
                 return (
                   <div key={cap} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[120px_1fr]">
-                    <span className="font-mono text-xs text-ink-700">{cap}</span>
+                    <span className="font-mono text-xs text-ink-700 dark:text-ink-300">{cap}</span>
                     {options.length === 0 ? (
-                      <div className="text-xs text-ink-500">
+                      <div className="text-xs text-ink-500 dark:text-ink-400">
                         No connected instances yet —{' '}
                         <Link to="/connectors" className="text-brand underline">
                           add one
@@ -268,14 +268,14 @@ export function AgentDetail(): JSX.Element {
         )}
 
         <section className="card p-5 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
             Recent runs
           </h2>
           {runs.length === 0 ? (
-            <div className="py-6 text-center text-sm text-ink-400">No runs yet.</div>
+            <div className="py-6 text-center text-sm text-ink-400 dark:text-ink-500">No runs yet.</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Started</th>
                   <th className="px-3 py-2 text-left font-medium">Result</th>
@@ -283,16 +283,16 @@ export function AgentDetail(): JSX.Element {
                   <th className="px-3 py-2 text-left font-medium">Summary</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {runs.map((r) => (
                   <tr
                     key={r.id}
-                    className="cursor-pointer hover:bg-ink-50"
+                    className="cursor-pointer hover:bg-ink-50 dark:hover:bg-ink-800"
                     onClick={() => {
                       window.location.href = `/runs/${r.id}`;
                     }}
                   >
-                    <td className="px-3 py-2 font-mono text-xs text-ink-500">
+                    <td className="px-3 py-2 font-mono text-xs text-ink-500 dark:text-ink-400">
                       {new Date(r.startedAt).toLocaleString()}
                     </td>
                     <td className="px-3 py-2">
@@ -304,8 +304,8 @@ export function AgentDetail(): JSX.Element {
                         <span className="pill-warn">running</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-ink-700">{r.trigger}</td>
-                    <td className="px-3 py-2 text-ink-700">{r.summary ?? '—'}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-ink-700 dark:text-ink-300">{r.trigger}</td>
+                    <td className="px-3 py-2 text-ink-700 dark:text-ink-300">{r.summary ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

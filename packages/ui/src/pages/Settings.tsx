@@ -181,7 +181,7 @@ function EnrollTotp(props: { onChange: () => Promise<void> }): JSX.Element {
   if (stage === 'idle') {
     return (
       <div>
-        <p className="mb-3 text-sm text-ink-600">
+        <p className="mb-3 text-sm text-ink-600 dark:text-ink-400">
           TOTP is not enabled on your account. Enrolling adds a required second factor at
           login.
         </p>
@@ -194,28 +194,28 @@ function EnrollTotp(props: { onChange: () => Promise<void> }): JSX.Element {
   }
 
   if (stage === 'enrolling' || !enrollment) {
-    return <div className="text-sm text-ink-500">Generating secret…</div>;
+    return <div className="text-sm text-ink-500 dark:text-ink-400">Generating secret…</div>;
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm text-ink-600">
+        <p className="text-sm text-ink-600 dark:text-ink-400">
           Paste the secret into your authenticator app (1Password, Authy, Google
           Authenticator, etc.), or copy the otpauth URI directly.
         </p>
       </div>
-      <div className="rounded border border-ink-200 bg-ink-50 p-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500">
+      <div className="rounded border border-ink-200 bg-ink-50 p-4 dark:border-ink-700 dark:bg-ink-900">
+        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">
           otpauth URI
         </div>
-        <div className="break-all font-mono text-xs text-ink-700">{enrollment.otpauthUri}</div>
+        <div className="break-all font-mono text-xs text-ink-700 dark:text-ink-300">{enrollment.otpauthUri}</div>
       </div>
-      <div className="rounded border border-ink-200 bg-ink-50 p-4">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500">
+      <div className="rounded border border-ink-200 bg-ink-50 p-4 dark:border-ink-700 dark:bg-ink-900">
+        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">
           Or enter manually
         </div>
-        <div className="font-mono text-sm text-ink-700">{enrollment.secret}</div>
+        <div className="font-mono text-sm text-ink-700 dark:text-ink-300">{enrollment.secret}</div>
       </div>
 
       <div>
@@ -232,7 +232,7 @@ function EnrollTotp(props: { onChange: () => Promise<void> }): JSX.Element {
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
           {error}
         </div>
       )}
@@ -278,7 +278,7 @@ function DisableTotp(props: { onChange: () => Promise<void> }): JSX.Element {
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="pill-ok">enabled</span>
-        <span className="text-ink-600">
+        <span className="text-ink-600 dark:text-ink-400">
           Login requires a second factor in addition to your password.
         </span>
       </div>
@@ -295,7 +295,7 @@ function DisableTotp(props: { onChange: () => Promise<void> }): JSX.Element {
         />
       </div>
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
           {error}
         </div>
       )}

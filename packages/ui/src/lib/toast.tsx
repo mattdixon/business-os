@@ -62,10 +62,10 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
             className={
               'pointer-events-auto max-w-sm rounded border px-4 py-2 text-left text-sm shadow-md transition ' +
               (t.kind === 'success'
-                ? 'border-green-200 bg-green-50 text-green-900'
+                ? 'border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-900/30 dark:text-green-200'
                 : t.kind === 'error'
-                  ? 'border-red-200 bg-red-50 text-red-900'
-                  : 'border-ink-200 bg-white text-ink-900')
+                  ? 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200'
+                  : 'border-ink-200 bg-white text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100')
             }
           >
             {t.message}

@@ -123,9 +123,9 @@ function FieldRenderer(props: FieldProps): JSX.Element {
     case 'object': {
       const obj = (value && typeof value === 'object' ? (value as Record<string, unknown>) : {}) || {};
       return (
-        <div className={path === '' ? 'space-y-4' : 'space-y-3 rounded border border-ink-200 bg-ink-50 p-3'}>
+        <div className={path === '' ? 'space-y-4' : 'space-y-3 rounded border border-ink-200 bg-ink-50 p-3 dark:border-ink-700 dark:bg-ink-900'}>
           {path !== '' && label && (
-            <div className="text-xs font-medium uppercase tracking-wide text-ink-500">
+            <div className="text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">
               {label}
             </div>
           )}
@@ -213,14 +213,14 @@ function FieldRenderer(props: FieldProps): JSX.Element {
             type="checkbox"
             checked={v}
             onChange={(e) => onChange(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-ink-300 text-accent focus:ring-accent"
+            className="mt-1 h-4 w-4 rounded border-ink-300 text-accent focus:ring-accent dark:border-ink-600"
           />
           <div>
-            <label htmlFor={path} className="text-sm font-medium text-ink-900">
+            <label htmlFor={path} className="text-sm font-medium text-ink-900 dark:text-ink-100">
               {label}
             </label>
             {schema.description && (
-              <div className="text-xs text-ink-500">{schema.description}</div>
+              <div className="text-xs text-ink-500 dark:text-ink-400">{schema.description}</div>
             )}
           </div>
         </div>
@@ -283,7 +283,7 @@ function FieldRenderer(props: FieldProps): JSX.Element {
 }
 
 function Help({ children }: { children: React.ReactNode }): JSX.Element {
-  return <div className="mt-1 text-xs text-ink-500">{children}</div>;
+  return <div className="mt-1 text-xs text-ink-500 dark:text-ink-400">{children}</div>;
 }
 
 function UnknownEditor(props: {

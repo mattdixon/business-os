@@ -24,7 +24,7 @@ export function ModulePagePlaceholder(): JSX.Element {
         description="This module's UI isn't included in the default UI build."
       />
       <div className="p-8">
-        <div className="card max-w-2xl p-6 text-sm text-ink-700">
+        <div className="card max-w-2xl p-6 text-sm text-ink-700 dark:text-ink-300">
           <p className="mb-3">
             The module's <strong>server</strong> side is wired up — its REST routes
             are mounted under <code className="font-mono">/modules/{slug}/*</code>{' '}
@@ -38,7 +38,7 @@ export function ModulePagePlaceholder(): JSX.Element {
             replacement <code className="font-mono">dist/</code> that core serves
             instead of the default.
           </p>
-          <p className="text-ink-500">
+          <p className="text-ink-500 dark:text-ink-400">
             (Shell-owned UI build lands in the next slice — for now, only the
             module's API is reachable from the browser.)
           </p>

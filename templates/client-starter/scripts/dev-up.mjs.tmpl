@@ -17,6 +17,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { existsSync } from 'node:fs';
 
 const COLORS = {
   api: '\x1b[36m', // cyan
@@ -95,6 +96,18 @@ function spawnPrefixed(label, script) {
 }
 
 async function main() {
+  // First-run install. The client shell is its own repo (not part of the
+  // framework workspace), so a root-level `pnpm install` doesn't populate
+  // node_modules here. Detect the missing `tsx` binary as a proxy for
+  // "deps not installed" and run install once.
+  const tsxBin = process.platform === 'win32'
+    ? 'node_modules/.bin/tsx.cmd'
+    : 'node_modules/.bin/tsx';
+  if (!existsSync(tsxBin)) {
+    step('pnpm install (first run)');
+    run('pnpm', ['install']);
+  }
+
   step('docker compose up -d postgres');
   run('docker', ['compose', 'up', '-d', 'postgres']);
 

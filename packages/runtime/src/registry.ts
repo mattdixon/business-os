@@ -89,7 +89,12 @@ export class Registry {
   registerConnectorProvider<C extends keyof ConnectorCapabilityMap>(
     provider: RegisteredConnectorProvider<C>,
   ): void {
-    const cap = provider.capability as string;
+    // The capability is the source of truth on the connector's manifest, not
+    // on the wrapper. Connectors built via defineConnector({ manifest, factory })
+    // never set a top-level `capability` field, so reading it from the wrapper
+    // produced `undefined` — every provider ended up under one bucket and
+    // listConnectorProviders(<any cap>) returned empty.
+    const cap = (provider.capability ?? provider.manifest.capability) as string;
     const slug = provider.manifest.slug;
     let byCap = this.providers.get(cap);
     if (!byCap) {

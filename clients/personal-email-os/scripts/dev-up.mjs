@@ -110,10 +110,17 @@ async function main() {
 
   // Build the framework workspace packages so this shell's `tsx src/index.ts`
   // imports fresh dist/ from @business-os/runtime, @business-os/core, etc.
-  // Turbo caches — a no-op rebuild is ~1s.
+  // The shell itself doesn't need to be built — `tsx` runs from source. We
+  // exclude clients/ from the build to avoid pulling unrelated pre-existing
+  // TS errors in other clients into the boot path. Turbo caches — a no-op
+  // rebuild is ~1s.
   if (existsSync('../../pnpm-workspace.yaml') || existsSync('../../../pnpm-workspace.yaml')) {
-    step('pnpm build (framework workspace packages)');
-    run('pnpm', ['-w', 'build'], { allowFail: true });
+    step('pnpm turbo build (framework only, excluding clients)');
+    run(
+      'pnpm',
+      ['-w', 'turbo', 'run', 'build', '--filter=!./clients/*'],
+      { allowFail: true },
+    );
   }
 
   step('docker compose up -d postgres');

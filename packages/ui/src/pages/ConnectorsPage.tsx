@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../lib/toast';
 
 function apiErrorMessage(e: unknown, fallback: string): string {
@@ -100,13 +101,15 @@ export function ConnectorsPage(): JSX.Element {
     }
   };
   const remove = async (id: string): Promise<void> => {
-    if (!confirm('Delete this connector instance? Credentials will be wiped.')) return;
+    // No browser confirm — the InstanceCard wraps the Delete button in a
+    // <ConfirmDialog> and only calls remove() after the operator confirms.
     try {
       await Api.deleteConnector(id);
       toast.success('Deleted.');
       await reload();
     } catch (e: unknown) {
       toast.error(apiErrorMessage(e, 'Delete failed.'));
+      throw e; // ConfirmDialog surfaces it inline and keeps itself open
     }
   };
 
@@ -594,9 +597,23 @@ function InstanceCard(props: {
               Disconnect
             </button>
           ) : null}
-          <button className="btn-danger" onClick={props.onRemove}>
-            Delete
-          </button>
+          <ConfirmDialog
+            title="Delete this connector instance?"
+            description={
+              <>
+                <span className="font-medium text-ink-800 dark:text-ink-200">
+                  {props.instance.displayName}
+                </span>{' '}
+                will be removed and its saved credentials wiped. Any agent
+                bound to this instance will lose its binding.
+              </>
+            }
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={props.onRemove}
+          >
+            <button className="btn-danger">Delete</button>
+          </ConfirmDialog>
         </div>
         {testError && (
           <div className="mt-2 text-xs text-bad">{testError}</div>

@@ -4,7 +4,10 @@
   "description": "Operator UI for Business OS installs. Library (createOperatorApp) + a default pre-built bundle.",
   "type": "module",
   "main": "./src/lib/manifest.ts",
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "exports": {
     ".": {
       "types": "./src/lib/manifest.ts",
@@ -26,6 +29,8 @@
   },
   "dependencies": {
     "@business-os/module-sdk": "workspace:^",
+    "@radix-ui/react-alert-dialog": "^1.1.16",
+    "@radix-ui/react-dialog": "^1.1.16",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",

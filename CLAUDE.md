@@ -215,3 +215,23 @@ When implementing for a specific client:
 - Ask before introducing a new top-level package.
 - Ask before changing anything in the "Locked technical decisions" table above.
 - Default to building the smallest piece that proves the agent contract. Don't design the whole framework in the abstract — build one agent end-to-end (Lead Gen) and let it pull the framework into shape.
+
+---
+
+## Telegram channel responses
+
+When responding to messages from the Telegram channel (any `<channel source="plugin:telegram:telegram" ...>` message):
+
+- **Never use AskUserQuestion, ExitPlanMode, or any other interactive-selection tool.** Those render only in the local TUI. The Telegram channel plugin does not forward them to Telegram, so the sender sees silence and the session parks indefinitely waiting for a local keystroke.
+- If you need to ask a clarifying question, send it as a plain text Telegram reply via the channel's `reply` tool. The sender will reply with another message.
+- If you would normally present numbered options, write them as numbered text in the reply body instead.
+
+**Acknowledge immediately**
+- Within the first action after receiving a channel message, add a react (👀 or 🔥) so Matt knows the message landed. Then proceed to read context and respond.
+- The react is your heartbeat. It prevents the "is the bot stuck?" feedback loop while you're still gathering context.
+
+**Long-running work — send progress**
+- If a task will take more than about 60 seconds of tool calls, send a brief reply first ("Working on it, will report back") so Matt knows you're alive.
+- For multi-step jobs, use `edit_message` to update that progress reply instead of sending a new message each step. edit_message doesn't trigger push notifications, so Matt's phone won't ping repeatedly.
+- When the job completes, send a NEW reply (not an edit). New replies trigger notifications — that's how he knows it's done and can look.
+- If you're mid-subagent when a new message arrives, send a quick reply acknowledging the new request and stating whether you'll finish the current task first or interrupt. Don't let inbound messages sit unacknowledged behind a long-running task.

@@ -136,6 +136,11 @@ export interface ConnectorCapability {
     isActive: boolean;
     createdAt: string;
     settings?: unknown;
+    /**
+     * True iff credentials have been saved for this instance. Drives which
+     * action the operator UI surfaces (Set key / Test / Update key).
+     */
+    hasCredentials: boolean;
   }>;
 }
 

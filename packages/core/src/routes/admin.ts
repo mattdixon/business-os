@@ -464,6 +464,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
             .filter((i) => i.capability === capability)
             .map(async (i) => {
               const settingsValue = await loadConnectorSettings(req.deps.db, capability, i.id);
+              const credsScope = SECRETS_CONNECTOR_SCOPE(capability, i.id);
+              const credBytes = await req.deps.secrets.get(credsScope, CREDENTIAL_KEY);
               return {
                 id: i.id,
                 providerSlug: i.providerSlug,
@@ -471,6 +473,12 @@ export function registerAdminRoutes(app: FastifyInstance): void {
                 isActive: i.isActive,
                 createdAt: i.createdAt,
                 settings: settingsValue,
+                /**
+                 * True iff the operator has saved credentials. The UI uses
+                 * this to know which action to surface — "Set key" vs
+                 * "Test connection" vs "Update key".
+                 */
+                hasCredentials: !!credBytes,
               };
             }),
         );
@@ -812,11 +820,20 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     if (!rawCreds) {
       return { ok: false as const, error: 'No credentials saved yet — save the key first.' };
     }
-    let credentials: unknown;
+    let credentials: Record<string, unknown>;
     try {
-      credentials = JSON.parse(rawCreds.toString());
+      const parsed = JSON.parse(rawCreds.toString());
+      if (!parsed || typeof parsed !== 'object') throw new Error('not an object');
+      credentials = parsed as Record<string, unknown>;
     } catch {
       return { ok: false as const, error: 'Saved credentials are unreadable.' };
+    }
+    // Operator-set credentials are sometimes saved without a `kind` field
+    // (the UI used to PUT `{ key }` directly). Backfill from the manifest's
+    // authKind so connectors that strictly check `credentials.kind` don't
+    // see undefined.
+    if (typeof credentials.kind !== 'string') {
+      credentials.kind = provider.manifest.authKind;
     }
     const rawSettings = await loadConnectorSettings(req.deps.db, inst.capability, id);
     const settings = provider.manifest.settingsSchema.parse(rawSettings ?? {});

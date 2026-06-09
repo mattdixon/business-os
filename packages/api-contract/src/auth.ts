@@ -59,3 +59,17 @@ export type ConfirmTotpRequest = z.infer<typeof ConfirmTotpRequest>;
 
 export const ConfirmTotpResponse = z.object({ ok: z.literal(true) });
 export type ConfirmTotpResponse = z.infer<typeof ConfirmTotpResponse>;
+
+export const Theme = z.enum(['light', 'dark', 'system']);
+export type Theme = z.infer<typeof Theme>;
+
+export const UpdatePreferencesRequest = z.object({
+  theme: Theme.optional(),
+});
+export type UpdatePreferencesRequest = z.infer<typeof UpdatePreferencesRequest>;
+
+export const UpdatePreferencesResponse = z.object({
+  ok: z.literal(true),
+  preferences: z.object({ theme: Theme }),
+});
+export type UpdatePreferencesResponse = z.infer<typeof UpdatePreferencesResponse>;

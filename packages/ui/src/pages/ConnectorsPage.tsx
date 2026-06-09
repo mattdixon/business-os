@@ -104,17 +104,19 @@ export function ConnectorsPage(): JSX.Element {
         title="Connectors"
         description="What this install can talk to. Operator picks the active provider per capability."
       />
-      <div className="space-y-6 px-8 py-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
         {error && (
-          <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
+          <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
         )}
-        {!caps && <div className="text-ink-500">Loading…</div>}
+        {!caps && <div className="text-sm text-ink-500 dark:text-ink-400">Loading…</div>}
         {caps?.map((cap) => (
-          <section key={cap.capability} className="card p-5">
-            <header className="mb-4 flex items-center justify-between">
+          <section key={cap.capability} className="card p-6">
+            <header className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-wide text-ink-500">capability</div>
-                <h2 className="font-mono text-lg font-semibold">{cap.capability}</h2>
+                <div className="text-[11px] font-medium uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                  Capability
+                </div>
+                <h2 className="mt-0.5 font-mono text-lg font-semibold tracking-tight">{cap.capability}</h2>
               </div>
               {cap.providers.length > 0 && (
                 <button
@@ -129,7 +131,7 @@ export function ConnectorsPage(): JSX.Element {
             </header>
 
             {cap.providers.length === 0 && (
-              <div className="text-sm text-ink-500">
+              <div className="text-sm text-ink-500 dark:text-ink-400">
                 No providers registered for this capability.
               </div>
             )}
@@ -183,7 +185,7 @@ function AddForm(props: {
   );
   const [busy, setBusy] = useState(false);
   return (
-    <div className="mt-3 rounded border border-ink-200 bg-ink-50 p-4">
+    <div className="mt-4 rounded-md border border-ink-200 bg-ink-50 p-4 dark:border-ink-700 dark:bg-ink-950/40">
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <label className="label">Provider</label>
@@ -259,18 +261,20 @@ function InstanceCard(props: {
     Object.keys((props.settingsSchema as { fields: object }).fields).length > 0;
 
   return (
-    <div className="rounded border border-ink-200 bg-white p-4">
+    <div className="rounded-md border border-ink-200 bg-white p-4 transition-colors dark:border-ink-700 dark:bg-ink-900">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{props.instance.displayName}</span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-ink-900 dark:text-ink-100">
+              {props.instance.displayName}
+            </span>
             {props.instance.isActive ? (
               <span className="pill-ok">connected</span>
             ) : (
               <span className="pill-muted">not connected</span>
             )}
           </div>
-          <div className="font-mono text-xs text-ink-500">
+          <div className="mt-0.5 font-mono text-xs text-ink-500 dark:text-ink-400">
             {props.instance.providerSlug} · {props.authKind} · added{' '}
             {new Date(props.instance.createdAt).toLocaleDateString()}
           </div>
@@ -346,8 +350,8 @@ function InstanceCard(props: {
       </div>
       {/* settings section */}
       {showSettings && hasSettingsSchema && props.settingsSchema && (
-        <div className="mt-4 border-t border-ink-200 pt-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
+        <div className="divider mt-4 pt-4">
+          <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Provider settings
           </h3>
           <SchemaForm
@@ -356,7 +360,7 @@ function InstanceCard(props: {
             onChange={setDraftSettings}
           />
           {settingsError && (
-            <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+            <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
               {settingsError}
             </div>
           )}

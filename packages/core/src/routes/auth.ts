@@ -137,15 +137,47 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
   // ---- GET /auth/me ----
   app.get('/auth/me', { preHandler: requireUser }, async (req) => {
-    // Look up TOTP-enrollment state from the user row so the UI knows whether to
-    // show the enroll flow or the disable button.
+    // Look up TOTP-enrollment state + UI prefs from the user row in one query
+    // so the UI knows whether to show enroll vs disable and can boot with the
+    // user's chosen theme (no flash of wrong theme on first paint).
     const rows = await req.deps.db
-      .select({ totpSecretEncrypted: users.totpSecretEncrypted })
+      .select({
+        totpSecretEncrypted: users.totpSecretEncrypted,
+        theme: users.theme,
+      })
       .from(users)
       .where(eq(users.id, req.user!.id))
       .limit(1);
     const totpEnrolled = !!rows[0]?.totpSecretEncrypted;
-    return { user: req.user, totpEnrolled };
+    const theme = rows[0]?.theme ?? 'system';
+    return { user: req.user, totpEnrolled, preferences: { theme } };
+  });
+
+  // ---- PATCH /auth/me/preferences ----
+  app.patch('/auth/me/preferences', { preHandler: requireUser }, async (req, reply) => {
+    const parsed = authContract.UpdatePreferencesRequest.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'invalid_input' });
+
+    const patch: { theme?: 'light' | 'dark' | 'system' } = {};
+    if (parsed.data.theme) patch.theme = parsed.data.theme;
+    // Nothing to do? Read current and return it.
+    if (Object.keys(patch).length === 0) {
+      const [row] = await req.deps.db
+        .select({ theme: users.theme })
+        .from(users)
+        .where(eq(users.id, req.user!.id))
+        .limit(1);
+      return { ok: true as const, preferences: { theme: row?.theme ?? 'system' } };
+    }
+
+    const [updated] = await req.deps.db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, req.user!.id))
+      .returning({ theme: users.theme });
+
+    await req.audit('user.preferences.updated', { fields: Object.keys(patch) });
+    return { ok: true as const, preferences: { theme: updated.theme } };
   });
 
   // ---- POST /auth/password-reset/request ----

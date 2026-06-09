@@ -34,6 +34,8 @@ export const users = pgTable(
     displayName: text('display_name'),
     /** Base32 TOTP secret, encrypted at rest. NULL = MFA not enrolled. */
     totpSecretEncrypted: text('totp_secret_encrypted'),
+    /** UI theme preference. 'system' follows prefers-color-scheme. */
+    theme: text('theme', { enum: ['light', 'dark', 'system'] }).notNull().default('system'),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

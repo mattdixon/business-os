@@ -42,14 +42,16 @@ export function Login(): JSX.Element {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 dark:bg-ink-950">
       <form
         onSubmit={onSubmit}
-        className="card w-full max-w-sm space-y-5 p-8"
+        className="card w-full max-w-sm space-y-5 p-8 shadow"
       >
         <header>
-          <h1 className="text-base font-semibold">Business OS</h1>
-          <p className="mt-1 text-sm text-ink-500">Sign in to the operator console.</p>
+          <h1 className="text-lg font-semibold tracking-tight">Business OS</h1>
+          <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
+            Sign in to the operator console.
+          </p>
         </header>
 
         <div>
@@ -102,7 +104,7 @@ export function Login(): JSX.Element {
         )}
 
         {error && (
-          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
             {error}
           </div>
         )}
@@ -111,7 +113,7 @@ export function Login(): JSX.Element {
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <div className="text-center text-xs text-ink-500">
+        <div className="text-center text-xs text-ink-500 dark:text-ink-400">
           <Link to="/reset/request" className="text-accent hover:underline">
             Forgot your password?
           </Link>

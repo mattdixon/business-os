@@ -10,47 +10,91 @@
   }
   body {
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    /*
+     * Default background + foreground for the document. Dark variant
+     * activates via the `dark` class on <html> (set by ThemeProvider).
+     */
+    @apply bg-ink-50 text-ink-900 antialiased;
+  }
+  html.dark body {
+    @apply bg-ink-950 text-ink-100;
+  }
+
+  /* Tighter focus ring across the app: visible but not garish. */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent/60 ring-offset-2 ring-offset-ink-50;
+  }
+  html.dark *:focus-visible {
+    @apply ring-offset-ink-950;
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-ink-900;
+  }
+  html.dark ::selection {
+    @apply bg-accent/30 text-ink-50;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-accent text-white hover:bg-accent-hover;
   }
   .btn-secondary {
-    @apply btn bg-white text-ink-900 ring-1 ring-ink-200 hover:bg-ink-50;
+    @apply btn bg-white text-ink-900 ring-1 ring-ink-200 hover:bg-ink-50
+           dark:bg-ink-800 dark:text-ink-100 dark:ring-ink-700 dark:hover:bg-ink-700;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-700 hover:bg-ink-100
+           dark:text-ink-200 dark:hover:bg-ink-800;
   }
   .btn-danger {
     @apply btn bg-bad text-white hover:bg-red-700;
   }
+
   .input {
-    @apply w-full rounded border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-900
+           placeholder:text-ink-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent
+           dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:placeholder:text-ink-500;
   }
   .input-mono {
     @apply input font-mono;
   }
+
   .card {
-    @apply rounded-md border border-ink-200 bg-white shadow-sm;
+    @apply rounded-lg border border-ink-200 bg-white shadow-sm
+           dark:border-ink-800 dark:bg-ink-900;
   }
+
   .label {
-    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500;
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-500
+           dark:text-ink-400;
   }
+
   .pill {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
   }
   .pill-ok {
-    @apply pill bg-green-100 text-green-900;
+    @apply pill bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-200;
   }
   .pill-bad {
-    @apply pill bg-red-100 text-red-900;
+    @apply pill bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-200;
   }
   .pill-warn {
-    @apply pill bg-amber-100 text-amber-900;
+    @apply pill bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200;
   }
   .pill-muted {
-    @apply pill bg-ink-100 text-ink-700;
+    @apply pill bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300;
+  }
+
+  .divider {
+    @apply border-t border-ink-200 dark:border-ink-800;
+  }
+
+  .section-heading {
+    @apply text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400;
   }
 }

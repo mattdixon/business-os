@@ -56,9 +56,12 @@ export async function api<T = unknown>(path: string, opts: RequestOpts = {}): Pr
 
 // ----- Typed wrappers -----
 
+export type Theme = 'light' | 'dark' | 'system';
+
 export interface Me {
   user: { id: string; email: string } | null;
   totpEnrolled?: boolean;
+  preferences?: { theme: Theme };
 }
 
 export interface TotpEnrollResponse {
@@ -147,6 +150,12 @@ export const Api = {
     api<{ ok: true }>('/auth/totp/confirm', { method: 'POST', body: { code } }),
   disableTotp: (code: string) =>
     api<{ ok: true }>('/auth/totp/disable', { method: 'POST', body: { code } }),
+
+  updatePreferences: (patch: { theme?: Theme }) =>
+    api<{ ok: true; preferences: { theme: Theme } }>('/auth/me/preferences', {
+      method: 'PATCH',
+      body: patch,
+    }),
 
   listModules: () =>
     api<{

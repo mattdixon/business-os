@@ -108,6 +108,14 @@ async function main() {
     run('pnpm', ['install']);
   }
 
+  // Build the framework workspace packages so this shell's `tsx src/index.ts`
+  // imports fresh dist/ from @business-os/runtime, @business-os/core, etc.
+  // Turbo caches — a no-op rebuild is ~1s.
+  if (existsSync('../../pnpm-workspace.yaml') || existsSync('../../../pnpm-workspace.yaml')) {
+    step('pnpm build (framework workspace packages)');
+    run('pnpm', ['-w', 'build'], { allowFail: true });
+  }
+
   step('docker compose up -d postgres');
   run('docker', ['compose', 'up', '-d', 'postgres']);
 

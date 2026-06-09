@@ -12,7 +12,15 @@ import type { z } from 'zod';
  *   whose impl satisfies the capability interface.
  */
 export interface ConnectorCapabilityMap {
+  /** Outbound send. Resend, Postmark, Gmail-send, Outlook-send. */
   email: EmailCapability;
+  /**
+   * Inbound + manipulation: list, label, archive, delete, search. Gmail
+   * via Composio, Outlook via Composio, IMAP direct. Distinct from
+   * `email` (send) so agents that only need send don't depend on an
+   * inbox-capable provider, and vice versa.
+   */
+  'email-inbox': EmailInboxCapability;
   crm: CrmCapability;
   llm: LlmCapability;
   'file-storage': FileStorageCapability;
@@ -24,8 +32,130 @@ export interface ConnectorCapabilityMap {
 
 export interface EmailCapability {
   send(msg: OutboundEmail): Promise<{ messageId: string }>;
+  /**
+   * @deprecated Use the `email-inbox` capability instead. Kept on the
+   * interface for transitional reasons; will be removed in a future
+   * breaking change. New connectors SHOULD NOT implement these.
+   */
   listInbox?(opts: ListInboxOpts): Promise<InboundEmail[]>;
+  /** @deprecated See listInbox. */
   getMessage?(id: string): Promise<InboundEmail>;
+}
+
+// -----------------------------------------------------------------------------
+// email-inbox — distinct from outbound `email`
+// -----------------------------------------------------------------------------
+
+export interface EmailInboxCapability {
+  /**
+   * List messages matching the given query. Implementations MUST honor
+   * `pageSize` (default 50, max 200). Returns a stable cursor that may be
+   * passed back in `opts.cursor` for the next page.
+   */
+  listMessages(opts: ListMessagesOpts): Promise<ListMessagesResult>;
+
+  /** Fetch a single message including its full body. */
+  getMessage(id: string): Promise<InboxMessage>;
+
+  /** Mark one or more messages read/unread. */
+  markRead(ids: string[]): Promise<void>;
+  markUnread(ids: string[]): Promise<void>;
+
+  /**
+   * Move messages out of the inbox without deleting. Gmail = remove
+   * `INBOX` label. Outlook = move to Archive folder. IMAP = move to the
+   * configured archive folder.
+   */
+  archive(ids: string[]): Promise<void>;
+
+  /**
+   * Soft-delete. Gmail = move to Trash. Outlook = move to Deleted Items.
+   * IMAP = move to the configured trash folder.
+   */
+  trash(ids: string[]): Promise<void>;
+
+  /**
+   * Permanent delete. Gmail/Outlook = purge from trash. IMAP = expunge
+   * from trash folder. Use with care — there is no undo.
+   */
+  deletePermanently(ids: string[]): Promise<void>;
+
+  /**
+   * Add or remove a label/category/folder tag.
+   *   Gmail: applies a label (creating it if needed).
+   *   Outlook: applies a category (creating it if needed).
+   *   IMAP: out-of-band — see provider docs (likely a no-op or move).
+   */
+  addLabels?(ids: string[], labels: string[]): Promise<void>;
+  removeLabels?(ids: string[], labels: string[]): Promise<void>;
+
+  /** List the user's labels/categories/folders. */
+  listLabels?(): Promise<InboxLabel[]>;
+
+  /**
+   * Provider-native search. The query string is passed through verbatim,
+   * so agents that build queries MUST be aware of the active provider's
+   * syntax (Gmail: `from:foo is:unread`; Outlook: KQL; IMAP: SEARCH).
+   * Prefer structured fields on `opts` when possible.
+   */
+  search(query: string, opts?: SearchOpts): Promise<ListMessagesResult>;
+}
+
+export interface ListMessagesOpts {
+  /** Restrict to messages received on or after this instant. */
+  since?: Date;
+  /** Restrict to messages received on or before this instant. */
+  until?: Date;
+  /** Only unread. */
+  unreadOnly?: boolean;
+  /** Restrict to a specific label/category/folder. */
+  labelId?: string;
+  /** Max messages per page. Default 50, hard cap 200. */
+  pageSize?: number;
+  /** Opaque continuation token from a prior result. */
+  cursor?: string;
+}
+
+export interface ListMessagesResult {
+  messages: InboxMessageSummary[];
+  /** Opaque token to pass back as opts.cursor. Null when no more pages. */
+  nextCursor: string | null;
+}
+
+export interface SearchOpts {
+  pageSize?: number;
+  cursor?: string;
+}
+
+/**
+ * Light shape returned by list endpoints — keep small so bulk listing
+ * stays cheap. Call getMessage for the full body.
+ */
+export interface InboxMessageSummary {
+  id: string;
+  threadId: string;
+  from: string;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  /** First N chars of the body, plain text. Implementation-defined N. */
+  snippet: string;
+  receivedAt: Date;
+  unread: boolean;
+  labels: string[];
+}
+
+export interface InboxMessage extends InboxMessageSummary {
+  text: string;
+  html?: string;
+  headers?: Record<string, string>;
+}
+
+export interface InboxLabel {
+  id: string;
+  name: string;
+  /** Whether the user (vs system) created this label. */
+  isUserDefined: boolean;
 }
 
 export interface OutboundEmail {

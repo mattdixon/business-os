@@ -1,0 +1,32 @@
+{
+  "name": "@business-os/agent-inbox-cleanup",
+  "version": "0.0.1",
+  "description": "Triage an inbox backlog: cluster by sender, classify with an LLM, then archive or trash bulk noise in batches.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@business-os/agent-sdk": "workspace:^",
+    "@business-os/connector-sdk": "workspace:^",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

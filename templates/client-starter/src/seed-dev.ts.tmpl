@@ -15,6 +15,7 @@
  * The script aborts if NODE_ENV=production.
  */
 
+import 'dotenv/config';
 import { createDb, connectorInstances, settings as settingsTable, users } from '@business-os/db';
 import { hashPassword } from '@business-os/core/auth';
 import { eq, and } from 'drizzle-orm';

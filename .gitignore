@@ -9,3 +9,6 @@ coverage/
 
 # babysitter runtime state
 .a5c/
+
+# Scaffolded client shells — each is its own repo, not part of the framework monorepo
+clients/

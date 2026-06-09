@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import type { FastifyInstance, FastifyError } from 'fastify';
 
 /**
@@ -8,6 +7,10 @@ import type { FastifyInstance, FastifyError } from 'fastify';
  *
  * Behavior:
  *   - When SENTRY_DSN is empty/unset, this is a no-op. No SDK init, no overhead.
+ *     IMPORTANTLY: we do NOT import @sentry/node at module top-level. @sentry/node v8
+ *     installs OpenTelemetry instrumentation on import which can hang for tens of
+ *     seconds under WSL2 and adds startup latency everywhere. Lazy-import means
+ *     installs without a DSN pay nothing.
  *   - When set, captures Fastify unhandled errors and request-level exceptions
  *     with client_slug as a tag on every event. Agent slugs are attached per
  *     event via the Sentry scope inside runAgent on the runtime side
@@ -25,11 +28,19 @@ export interface SentryOpts {
   tracesSampleRate?: number;
 }
 
+// The Sentry namespace, loaded lazily when initSentry is called with a DSN.
+// Typed as `any` so the lazy-load doesn't pull @sentry/node's type graph into
+// every consumer. The shape we use is small + stable across v7/v8.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Sentry: any = null;
 let initialized = false;
 
-export function initSentry(opts: SentryOpts): boolean {
+export async function initSentry(opts: SentryOpts): Promise<boolean> {
   if (initialized) return true;
   if (!opts.dsn) return false;
+
+  Sentry = await import('@sentry/node');
+
   const env = opts.environment ?? process.env.NODE_ENV ?? 'development';
   Sentry.init({
     dsn: opts.dsn,
@@ -39,7 +50,8 @@ export function initSentry(opts: SentryOpts): boolean {
     initialScope: {
       tags: { client_slug: opts.clientSlug },
     },
-    beforeSend(event) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    beforeSend(event: any) {
       // Defense-in-depth: strip cookies + auth headers + obvious password fields.
       if (event.request?.headers) {
         const h = event.request.headers as Record<string, string | undefined>;
@@ -61,9 +73,10 @@ export function initSentry(opts: SentryOpts): boolean {
 }
 
 export function registerFastifySentry(app: FastifyInstance): void {
-  if (!initialized) return;
+  if (!initialized || !Sentry) return;
   app.addHook('onError', async (request, _reply, error: FastifyError) => {
-    Sentry.withScope((scope) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Sentry.withScope((scope: any) => {
       scope.setTag('request_id', request.requestId);
       if (request.user) scope.setUser({ id: request.user.id, email: request.user.email });
       scope.setExtras({
@@ -83,8 +96,9 @@ export function captureAgentError(
   err: unknown,
   ctx: { agentSlug: string; runId: string; clientSlug?: string },
 ): void {
-  if (!initialized) return;
-  Sentry.withScope((scope) => {
+  if (!initialized || !Sentry) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Sentry.withScope((scope: any) => {
     scope.setTag('agent_slug', ctx.agentSlug);
     scope.setTag('run_id', ctx.runId);
     if (ctx.clientSlug) scope.setTag('client_slug', ctx.clientSlug);
@@ -94,6 +108,6 @@ export function captureAgentError(
 
 /** Flush pending events on shutdown. */
 export async function flushSentry(timeoutMs = 2000): Promise<void> {
-  if (!initialized) return;
+  if (!initialized || !Sentry) return;
   await Sentry.flush(timeoutMs);
 }

@@ -6,7 +6,11 @@
  *   pnpm start:worker       -> background worker (scheduler running, no HTTP)
  *
  * `pnpm dev` is the development equivalent using tsx.
+ *
+ * The dotenv preload MUST stay at the top — it populates process.env from
+ * .env before anything else reads it (DATABASE_URL, SECRETS_KEY, etc.).
  */
+import 'dotenv/config';
 
 import { startServer, captureAgentError } from '@business-os/core';
 import { createSecretsStore, loadSecretsKey } from '@business-os/core/secrets';

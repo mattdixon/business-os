@@ -6,6 +6,7 @@
  * deploy-time step before the app comes up.
  */
 
+import 'dotenv/config';
 import { createDb, runMigrations, coreMigrations } from '@business-os/db';
 import { extraMigrations } from '../business-os.config.js';
 

@@ -80,4 +80,38 @@ describe('Registry', () => {
       UnknownConnectorProviderError,
     );
   });
+
+  // Regression: connectors built via defineConnector({ manifest, factory })
+  // never set a top-level `capability` field on the wrapper. The registry
+  // must read manifest.capability and bucket them correctly anyway, or every
+  // listConnectorProviders('llm'|'email'|...) call from the Connectors UI
+  // returns empty.
+  it('registers providers that only carry capability on the manifest', () => {
+    const r = new Registry();
+    const minimalProvider = {
+      manifest: {
+        slug: 'anthropic-like',
+        capability: 'llm' as const,
+        version: '0.0.1',
+        displayName: 'Anthropic-like',
+        authKind: 'api-key' as const,
+        settingsSchema: z.object({}),
+      },
+      factory: () =>
+        ({
+          complete: async () => ({
+            content: '',
+            stopReason: 'end' as const,
+            usage: { inputTokens: 0, outputTokens: 0 },
+          }),
+        }) as never,
+    };
+    // Cast through `as never` — TS otherwise wants a top-level `capability`,
+    // which the real defineConnector return shape does NOT carry. The whole
+    // point of this test is to exercise that runtime path.
+    r.registerConnectorProvider(minimalProvider as never);
+    expect(r.listConnectorProviders('llm').map((p) => p.manifest.slug)).toEqual([
+      'anthropic-like',
+    ]);
+  });
 });

@@ -123,9 +123,15 @@ function FieldRenderer(props: FieldProps): JSX.Element {
     case 'object': {
       const obj = (value && typeof value === 'object' ? (value as Record<string, unknown>) : {}) || {};
       return (
-        <div className={path === '' ? 'space-y-4' : 'space-y-3 rounded border border-ink-200 bg-ink-50 p-3 dark:border-ink-700 dark:bg-ink-900'}>
+        <div
+          className={
+            path === ''
+              ? 'space-y-5'
+              : 'space-y-4 border-l-2 border-ink-100 pl-4 dark:border-ink-800'
+          }
+        >
           {path !== '' && label && (
-            <div className="text-xs font-medium uppercase tracking-wide text-ink-500 dark:text-ink-400">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
               {label}
             </div>
           )}
@@ -207,20 +213,25 @@ function FieldRenderer(props: FieldProps): JSX.Element {
     case 'boolean': {
       const v = Boolean(value ?? schema.default ?? false);
       return (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2.5">
           <input
             id={path}
             type="checkbox"
             checked={v}
             onChange={(e) => onChange(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-ink-300 text-accent focus:ring-accent dark:border-ink-600"
+            className="mt-0.5 h-4 w-4 rounded border-ink-300 text-accent focus:ring-accent dark:border-ink-600 dark:bg-ink-900"
           />
           <div>
-            <label htmlFor={path} className="text-sm font-medium text-ink-900 dark:text-ink-100">
+            <label
+              htmlFor={path}
+              className="cursor-pointer text-sm font-medium text-ink-900 dark:text-ink-100"
+            >
               {label}
             </label>
             {schema.description && (
-              <div className="text-xs text-ink-500 dark:text-ink-400">{schema.description}</div>
+              <div className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
+                {schema.description}
+              </div>
             )}
           </div>
         </div>

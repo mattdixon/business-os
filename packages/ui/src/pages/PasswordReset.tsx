@@ -37,9 +37,9 @@ export function PasswordResetRequest(): JSX.Element {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 dark:bg-ink-950">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-5 p-8">
+      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-5 p-8 shadow">
         <header>
-          <h1 className="text-base font-semibold">Reset your password</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Reset your password</h1>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
             Enter your email; if we have it on file we'll send a reset link.
           </p>
@@ -131,9 +131,9 @@ export function PasswordResetComplete(): JSX.Element {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 dark:bg-ink-950">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-5 p-8">
+      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-5 p-8 shadow">
         <header>
-          <h1 className="text-base font-semibold">Set a new password</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Set a new password</h1>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
             Enter the token from your email and choose a new password (12+ characters).
           </p>
@@ -187,7 +187,7 @@ export function PasswordResetComplete(): JSX.Element {
         </div>
 
         {error && (
-          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
             {error}
           </div>
         )}

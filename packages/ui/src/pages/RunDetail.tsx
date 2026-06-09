@@ -27,13 +27,15 @@ export function RunDetail(): JSX.Element {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
       </div>
     );
   }
   if (!run) {
-    return <div className="p-8 text-ink-500 dark:text-ink-400">Loading…</div>;
+    return (
+      <div className="p-6 sm:p-8 text-sm text-ink-500 dark:text-ink-400">Loading…</div>
+    );
   }
 
   const durationMs = run.endedAt
@@ -55,12 +57,10 @@ export function RunDetail(): JSX.Element {
           </Link>
         }
       />
-      <div className="grid gap-6 p-8 lg:grid-cols-2">
-        <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-            Outcome
-          </h2>
-          <div className="space-y-2 text-sm">
+      <div className="mx-auto grid max-w-6xl gap-6 p-6 sm:p-8 lg:grid-cols-2">
+        <section className="card p-6">
+          <h2 className="section-heading mb-4">Outcome</h2>
+          <div className="divide-y divide-ink-100 text-sm dark:divide-ink-800">
             <Row label="Started">{new Date(run.startedAt).toLocaleString()}</Row>
             <Row label="Ended">
               {run.endedAt ? new Date(run.endedAt).toLocaleString() : '—'}
@@ -87,49 +87,47 @@ export function RunDetail(): JSX.Element {
           </div>
         </section>
 
-        <section className="card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-              Details
-            </h2>
+        <section className="card p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="section-heading">Details</h2>
             <ExportButtons run={run} />
           </div>
           {run.details ? (
-            <pre className="max-h-96 overflow-auto rounded bg-ink-50 p-3 font-mono text-xs text-ink-800 dark:bg-ink-900 dark:text-ink-200">
+            <pre className="max-h-96 overflow-auto rounded-md bg-ink-50 p-3 font-mono text-xs leading-relaxed text-ink-800 dark:bg-ink-950 dark:text-ink-200">
               {JSON.stringify(run.details, null, 2)}
             </pre>
           ) : (
-            <div className="text-sm text-ink-400 dark:text-ink-500">No details emitted.</div>
+            <div className="py-10 text-center text-sm text-ink-500 dark:text-ink-400">
+              No details emitted.
+            </div>
           )}
         </section>
 
-        <section className="card p-5 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-            Audit trail for this run
-          </h2>
+        <section className="card p-6 lg:col-span-2">
+          <h2 className="section-heading mb-4">Audit trail for this run</h2>
           {audits.length === 0 ? (
-            <div className="py-6 text-center text-sm text-ink-400 dark:text-ink-500">
+            <div className="py-10 text-center text-sm text-ink-500 dark:text-ink-400">
               No audit entries — this run didn't call ctx.audit().
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
+              <thead className="text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">When</th>
-                  <th className="px-3 py-2 text-left font-medium">Action</th>
-                  <th className="px-3 py-2 text-left font-medium">Meta</th>
+                  <th className="px-4 py-2.5 text-left font-medium">When</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Action</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Meta</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {audits.map((a) => (
                   <tr key={a.id}>
-                    <td className="px-3 py-2 align-top font-mono text-xs text-ink-500 dark:text-ink-400">
+                    <td className="px-4 py-2.5 align-top font-mono text-xs text-ink-500 dark:text-ink-400">
                       {new Date(a.at).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 align-top">
+                    <td className="px-4 py-2.5 align-top">
                       <span className="font-mono text-xs">{a.action}</span>
                     </td>
-                    <td className="px-3 py-2 align-top">
+                    <td className="px-4 py-2.5 align-top">
                       {a.meta ? (
                         <pre className="max-w-xl overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-ink-700 dark:text-ink-300">
                           {JSON.stringify(a.meta)}
@@ -151,8 +149,10 @@ export function RunDetail(): JSX.Element {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
   return (
-    <div className="flex gap-3 border-b border-ink-100 py-1 last:border-b-0 dark:border-ink-800">
-      <div className="w-32 shrink-0 text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">{label}</div>
+    <div className="flex gap-3 py-2 first:pt-0 last:pb-0">
+      <div className="w-32 shrink-0 text-[11px] font-medium uppercase tracking-wider text-ink-500 dark:text-ink-400">
+        {label}
+      </div>
       <div className="text-ink-800 dark:text-ink-200">{children}</div>
     </div>
   );

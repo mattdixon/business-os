@@ -128,13 +128,15 @@ export function AgentDetail(): JSX.Element {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
       </div>
     );
   }
   if (!agent) {
-    return <div className="p-8 text-ink-500 dark:text-ink-400">Loading…</div>;
+    return (
+      <div className="p-6 sm:p-8 text-sm text-ink-500 dark:text-ink-400">Loading…</div>
+    );
   }
 
   const schema = agent.settingsSchema as FieldSchema | undefined;
@@ -150,11 +152,9 @@ export function AgentDetail(): JSX.Element {
           </button>
         }
       />
-      <div className="grid gap-6 p-8 lg:grid-cols-2">
-        <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-            Settings
-          </h2>
+      <div className="mx-auto grid max-w-6xl gap-6 p-6 sm:p-8 lg:grid-cols-2">
+        <section className="card p-6">
+          <h2 className="section-heading mb-4">Settings</h2>
           {schema ? (
             <SchemaForm schema={schema} value={draftSettings} onChange={setDraftSettings} />
           ) : (
@@ -178,10 +178,8 @@ export function AgentDetail(): JSX.Element {
           </div>
         </section>
 
-        <section className="card p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-            Manual run input
-          </h2>
+        <section className="card p-6">
+          <h2 className="section-heading mb-4">Manual run input</h2>
           {agent.inputSchema ? (
             <SchemaForm
               schema={agent.inputSchema as FieldSchema}
@@ -204,20 +202,21 @@ export function AgentDetail(): JSX.Element {
         </section>
 
         {agent.requiredConnectors.length > 0 && (
-          <section className="card p-5 lg:col-span-2">
+          <section className="card p-6 lg:col-span-2">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
-                Connectors
-              </h2>
-              <Link to="/connectors" className="text-xs text-brand hover:underline">
+              <h2 className="section-heading">Connectors</h2>
+              <Link
+                to="/connectors"
+                className="text-xs font-medium text-accent transition-colors hover:text-accent-hover hover:underline"
+              >
                 Manage connector instances →
               </Link>
             </div>
-            <p className="mb-4 text-xs text-ink-500 dark:text-ink-400">
+            <p className="mb-4 text-sm text-ink-500 dark:text-ink-400">
               Pick which connector instance this agent uses for each capability it needs.
               Add new instances on the{' '}
-              <Link to="/connectors" className="underline">Connectors page</Link>; they'll
-              show up here once connected.
+              <Link to="/connectors" className="text-accent underline">Connectors page</Link>;
+              they'll show up here once connected.
             </p>
             <div className="space-y-3">
               {agent.requiredConnectors.map((cap) => {
@@ -230,7 +229,7 @@ export function AgentDetail(): JSX.Element {
                     {options.length === 0 ? (
                       <div className="text-xs text-ink-500 dark:text-ink-400">
                         No connected instances yet —{' '}
-                        <Link to="/connectors" className="text-brand underline">
+                        <Link to="/connectors" className="text-accent underline">
                           add one
                         </Link>
                         .
@@ -267,35 +266,35 @@ export function AgentDetail(): JSX.Element {
           </section>
         )}
 
-        <section className="card p-5 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
-            Recent runs
-          </h2>
+        <section className="card p-6 lg:col-span-2">
+          <h2 className="section-heading mb-4">Recent runs</h2>
           {runs.length === 0 ? (
-            <div className="py-6 text-center text-sm text-ink-400 dark:text-ink-500">No runs yet.</div>
+            <div className="py-10 text-center text-sm text-ink-500 dark:text-ink-400">
+              No runs yet.
+            </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
+              <thead className="text-[11px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">Started</th>
-                  <th className="px-3 py-2 text-left font-medium">Result</th>
-                  <th className="px-3 py-2 text-left font-medium">Trigger</th>
-                  <th className="px-3 py-2 text-left font-medium">Summary</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Started</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Result</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Trigger</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Summary</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
                 {runs.map((r) => (
                   <tr
                     key={r.id}
-                    className="cursor-pointer hover:bg-ink-50 dark:hover:bg-ink-800"
+                    className="cursor-pointer transition-colors hover:bg-ink-50 dark:hover:bg-ink-800/50"
                     onClick={() => {
                       window.location.href = `/runs/${r.id}`;
                     }}
                   >
-                    <td className="px-3 py-2 font-mono text-xs text-ink-500 dark:text-ink-400">
+                    <td className="px-4 py-2.5 font-mono text-xs text-ink-500 dark:text-ink-400">
                       {new Date(r.startedAt).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2.5">
                       {r.ok === true ? (
                         <span className="pill-ok">ok</span>
                       ) : r.ok === false ? (
@@ -304,8 +303,12 @@ export function AgentDetail(): JSX.Element {
                         <span className="pill-warn">running</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-ink-700 dark:text-ink-300">{r.trigger}</td>
-                    <td className="px-3 py-2 text-ink-700 dark:text-ink-300">{r.summary ?? '—'}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-ink-700 dark:text-ink-300">
+                      {r.trigger}
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-700 dark:text-ink-300">
+                      {r.summary ?? '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -45,11 +45,13 @@ export function Login(): JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 dark:bg-ink-950">
       <form
         onSubmit={onSubmit}
-        className="card w-full max-w-sm space-y-5 p-8"
+        className="card w-full max-w-sm space-y-5 p-8 shadow"
       >
         <header>
-          <h1 className="text-base font-semibold">Business OS</h1>
-          <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">Sign in to the operator console.</p>
+          <h1 className="text-lg font-semibold tracking-tight">Business OS</h1>
+          <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
+            Sign in to the operator console.
+          </p>
         </header>
 
         <div>

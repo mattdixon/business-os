@@ -293,17 +293,66 @@ function InstanceCard(props: {
               onConnected={props.onAfterConnect}
             />
           )}
+          {/*
+            Action layout — state-aware, surfaces ONE primary CTA at a time:
+              - external OAuth (Composio) → ConnectButton
+              - no creds yet              → "Set key" (primary)
+              - creds saved, not active   → "Test connection" (primary), Update key (ghost)
+              - active                    → Update key (ghost), Disconnect (secondary)
+            Settings + Delete are quieter, always present.
+          */}
           {!props.externalOAuth && props.authKind === 'api-key' && !editingKey && (
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                setEditingKey(true);
-                setCredsSaved(false);
-                setCredsError(null);
-              }}
-            >
-              {props.instance.isActive ? 'Update key' : 'Set key'}
-            </button>
+            <>
+              {!props.instance.hasCredentials && (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    setEditingKey(true);
+                    setCredsSaved(false);
+                    setCredsError(null);
+                  }}
+                >
+                  Set key
+                </button>
+              )}
+              {props.instance.hasCredentials && !props.instance.isActive && (
+                <button
+                  className="btn-primary"
+                  disabled={testState === 'testing'}
+                  onClick={async () => {
+                    setTestState('testing');
+                    setTestError(null);
+                    try {
+                      const res = await Api.testConnector(props.instance.id);
+                      if (res.ok) {
+                        setTestState('ok');
+                        await props.onActivate();
+                      } else {
+                        setTestState('err');
+                        setTestError(res.error);
+                      }
+                    } catch (e: unknown) {
+                      setTestState('err');
+                      setTestError(e instanceof Error ? e.message : 'test failed');
+                    }
+                  }}
+                >
+                  {testState === 'testing' ? 'Testing…' : 'Test connection'}
+                </button>
+              )}
+              {props.instance.hasCredentials && (
+                <button
+                  className="btn-ghost"
+                  onClick={() => {
+                    setEditingKey(true);
+                    setCredsSaved(false);
+                    setCredsError(null);
+                  }}
+                >
+                  Update key
+                </button>
+              )}
+            </>
           )}
           {!props.externalOAuth && props.authKind === 'api-key' && editingKey && (
             <div>
@@ -311,7 +360,18 @@ function InstanceCard(props: {
               <div className="flex items-center gap-2">
                 <input
                   className="input-mono w-72"
-                  type="password"
+                  // `text` (not `password`) — keeps Chrome / 1Password from
+                  // pestering with "save / update password" prompts that don't
+                  // apply to API tokens. Operators are pasting from a
+                  // password manager elsewhere; visible-while-pasting is fine.
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-form-type="other"
                   placeholder="paste here"
                   value={apiKey}
                   onChange={(e) => {
@@ -326,7 +386,7 @@ function InstanceCard(props: {
                   disabled={!apiKey}
                   onClick={async () => {
                     try {
-                      await props.onSetCreds({ key: apiKey });
+                      await props.onSetCreds({ kind: 'api-key', key: apiKey });
                       setApiKey('');
                       setCredsSaved(true);
                       setEditingKey(false);
@@ -354,7 +414,7 @@ function InstanceCard(props: {
           )}
           {hasSettingsSchema && (
             <button
-              className="btn-secondary"
+              className="btn-ghost"
               onClick={() => setShowSettings(!showSettings)}
             >
               {showSettings ? 'Hide settings' : 'Settings'}
@@ -363,34 +423,6 @@ function InstanceCard(props: {
           {props.instance.isActive ? (
             <button className="btn-secondary" onClick={props.onDeactivate}>
               Disconnect
-            </button>
-          ) : !props.externalOAuth ? (
-            // For manual-credentials connectors: hit the connector's verify()
-            // hook via the test endpoint. Cheap auth probe — no billable
-            // tokens. On success, the instance is flipped to active so the
-            // operator doesn't have to take a second action.
-            <button
-              className="btn-primary"
-              disabled={testState === 'testing'}
-              onClick={async () => {
-                setTestState('testing');
-                setTestError(null);
-                try {
-                  const res = await Api.testConnector(props.instance.id);
-                  if (res.ok) {
-                    setTestState('ok');
-                    await props.onActivate();
-                  } else {
-                    setTestState('err');
-                    setTestError(res.error);
-                  }
-                } catch (e: unknown) {
-                  setTestState('err');
-                  setTestError(e instanceof Error ? e.message : 'test failed');
-                }
-              }}
-            >
-              {testState === 'testing' ? 'Testing…' : 'Test connection'}
             </button>
           ) : null}
           <button className="btn-danger" onClick={props.onRemove}>

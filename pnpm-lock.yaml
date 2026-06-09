@@ -121,27 +121,12 @@ importers:
       '@business-os/agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-anthropic':
-        specifier: workspace:^
-        version: link:../../connectors/anthropic
-      '@business-os/connector-composio':
-        specifier: workspace:^
-        version: link:../../connectors/composio
-      '@business-os/connector-crm-stub':
-        specifier: workspace:^
-        version: link:../../connectors/crm-stub
-      '@business-os/connector-email-gmail-composio':
-        specifier: workspace:^
-        version: link:../../connectors/email-gmail-composio
-      '@business-os/connector-email-stub':
-        specifier: workspace:^
-        version: link:../../connectors/email-stub
-      '@business-os/connector-openai':
-        specifier: workspace:^
-        version: link:../../connectors/openai
       '@business-os/connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
+      '@business-os/connectors-all':
+        specifier: workspace:^
+        version: link:../../packages/connectors-all
       '@business-os/core':
         specifier: workspace:^
         version: link:../../packages/core
@@ -221,27 +206,12 @@ importers:
       '@business-os/agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-anthropic':
-        specifier: workspace:^
-        version: link:../../connectors/anthropic
-      '@business-os/connector-composio':
-        specifier: workspace:^
-        version: link:../../connectors/composio
-      '@business-os/connector-email-inbox-gmail-composio':
-        specifier: workspace:^
-        version: link:../../connectors/email-inbox-gmail-composio
-      '@business-os/connector-email-inbox-imap':
-        specifier: workspace:^
-        version: link:../../connectors/email-inbox-imap
-      '@business-os/connector-email-inbox-outlook-composio':
-        specifier: workspace:^
-        version: link:../../connectors/email-inbox-outlook-composio
-      '@business-os/connector-openai':
-        specifier: workspace:^
-        version: link:../../connectors/openai
       '@business-os/connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
+      '@business-os/connectors-all':
+        specifier: workspace:^
+        version: link:../../packages/connectors-all
       '@business-os/core':
         specifier: workspace:^
         version: link:../../packages/core
@@ -573,6 +543,46 @@ importers:
       zod:
         specifier: ^3.23.0
         version: 3.25.76
+
+  packages/connectors-all:
+    dependencies:
+      '@business-os/connector-anthropic':
+        specifier: workspace:^
+        version: link:../../connectors/anthropic
+      '@business-os/connector-crm-stub':
+        specifier: workspace:^
+        version: link:../../connectors/crm-stub
+      '@business-os/connector-email-gmail-composio':
+        specifier: workspace:^
+        version: link:../../connectors/email-gmail-composio
+      '@business-os/connector-email-inbox-gmail-composio':
+        specifier: workspace:^
+        version: link:../../connectors/email-inbox-gmail-composio
+      '@business-os/connector-email-inbox-imap':
+        specifier: workspace:^
+        version: link:../../connectors/email-inbox-imap
+      '@business-os/connector-email-inbox-outlook-composio':
+        specifier: workspace:^
+        version: link:../../connectors/email-inbox-outlook-composio
+      '@business-os/connector-email-stub':
+        specifier: workspace:^
+        version: link:../../connectors/email-stub
+      '@business-os/connector-openai':
+        specifier: workspace:^
+        version: link:../../connectors/openai
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../connector-sdk
+      '@business-os/db':
+        specifier: workspace:^
+        version: link:../db
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
 
   packages/core:
     dependencies:

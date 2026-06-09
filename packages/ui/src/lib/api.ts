@@ -241,6 +241,25 @@ export const Api = {
   },
 
   listConnectors: () => api<{ capabilities: ConnectorCapability[] }>('/api/connectors'),
+  listProviders: () =>
+    api<{
+      capabilities: Array<{
+        capability: string;
+        providers: Array<{
+          slug: string;
+          displayName: string;
+          authKind: 'oauth2' | 'api-key' | 'none';
+          externalOAuth?: { provider: 'composio'; toolkit: string };
+          version: string;
+          enabled: boolean;
+        }>;
+      }>;
+    }>('/api/providers'),
+  setProviderEnabled: (capability: string, slug: string, enabled: boolean) =>
+    api<{ ok: true; enabled: boolean }>(
+      `/api/providers/${encodeURIComponent(capability)}/${encodeURIComponent(slug)}`,
+      { method: 'PUT', body: { enabled } },
+    ),
   createConnector: (body: {
     capability: string;
     providerSlug: string;

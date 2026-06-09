@@ -13,6 +13,7 @@ import { AuditPage } from './pages/AuditPage';
 import { ModulePagePlaceholder } from './pages/ModulePagePlaceholder';
 import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
+import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './lib/toast';
 import type { ModuleUiPage } from '@business-os/module-sdk';
 
@@ -57,6 +58,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
         <StrictMode>
           <BrowserRouter>
             <ToastProvider>
+              <ThemeProvider>
               <AuthProvider>
                 <Routes>
                   <Route path="/login" element={<Login />} />
@@ -99,6 +101,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
                   </Route>
                 </Routes>
               </AuthProvider>
+              </ThemeProvider>
             </ToastProvider>
           </BrowserRouter>
         </StrictMode>,

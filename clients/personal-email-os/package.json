@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "dev:worker": "tsx src/index.ts --worker",
+    "dev": "tsx watch src/index.ts",
+    "dev:worker": "tsx watch src/index.ts --worker",
     "dev:ui": "vite --config vite.ui.config.ts",
     "dev:all": "node scripts/dev-up.mjs",
     "build": "tsc -p tsconfig.json && pnpm build:ui",

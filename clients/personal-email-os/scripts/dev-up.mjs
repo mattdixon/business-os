@@ -70,12 +70,15 @@ async function waitForPostgres({ timeoutMs = 30_000 } = {}) {
 
 /**
  * Spawn `pnpm <script>` with a colored line prefix so api + ui output
- * is distinguishable in a single terminal.
+ * is distinguishable in a single terminal. Pass `argv` as a string[] to
+ * run an arbitrary command instead of a pnpm script.
  */
-function spawnPrefixed(label, script) {
+function spawnPrefixed(label, scriptOrArgv) {
   const color = COLORS[label] ?? '';
   const prefix = `${color}[${label}]${COLORS.reset} `;
-  const child = spawn('pnpm', [script], { shell: process.platform === 'win32' });
+  const cmd = Array.isArray(scriptOrArgv) ? scriptOrArgv[0] : 'pnpm';
+  const args = Array.isArray(scriptOrArgv) ? scriptOrArgv.slice(1) : [scriptOrArgv];
+  const child = spawn(cmd, args, { shell: process.platform === 'win32' });
 
   const pipe = (stream, sink) => {
     let buf = '';
@@ -108,13 +111,14 @@ async function main() {
     run('pnpm', ['install']);
   }
 
-  // Build the framework workspace packages so this shell's `tsx src/index.ts`
-  // imports fresh dist/ from @business-os/runtime, @business-os/core, etc.
-  // The shell itself doesn't need to be built — `tsx` runs from source. We
-  // exclude clients/ from the build to avoid pulling unrelated pre-existing
-  // TS errors in other clients into the boot path. Turbo caches — a no-op
-  // rebuild is ~1s.
-  if (existsSync('../../pnpm-workspace.yaml') || existsSync('../../../pnpm-workspace.yaml')) {
+  // Build the framework workspace packages so this shell's `tsx watch
+  // src/index.ts` imports fresh dist/. The shell itself doesn't need to be
+  // built — tsx runs from source. We exclude clients/ from the build to
+  // avoid pulling unrelated pre-existing TS errors into the boot path.
+  // Turbo caches — a no-op rebuild is ~1s.
+  const isWorkspace =
+    existsSync('../../pnpm-workspace.yaml') || existsSync('../../../pnpm-workspace.yaml');
+  if (isWorkspace) {
     step('pnpm turbo build (framework only, excluding clients)');
     run(
       'pnpm',
@@ -138,6 +142,23 @@ async function main() {
   // second `pnpm dev:all` invocation just boots the servers.
   run('pnpm', ['seed:dev'], { allowFail: true });
 
+  // Background process: turbo watch keeps framework dist/ in sync with
+  // src/. Combined with `tsx watch` (in the `dev` script), this gives
+  // full hot-reload across the stack — edit @business-os/runtime, save,
+  // dist/ rebuilds, tsx restarts the API, browser reconnects.
+  let turboWatch = null;
+  if (isWorkspace) {
+    step('turbo watch (framework rebuild on save)');
+    turboWatch = spawnPrefixed('turbo', [
+      'pnpm',
+      '-w',
+      'turbo',
+      'watch',
+      'build',
+      '--filter=!./clients/*',
+    ]);
+  }
+
   step('starting api + ui (Ctrl+C to stop)');
   const api = spawnPrefixed('api', 'dev');
   const ui = spawnPrefixed('ui', 'dev:ui');
@@ -145,6 +166,7 @@ async function main() {
   const shutdown = () => {
     api.kill('SIGINT');
     ui.kill('SIGINT');
+    if (turboWatch) turboWatch.kill('SIGINT');
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

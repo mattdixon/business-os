@@ -99,7 +99,9 @@ describe('connector-email-inbox-gmail-composio', () => {
     await inbox.listMessages({ cursor: 'abc', pageSize: 5000 });
     const args = executeTool.mock.calls[0]![0].arguments;
     expect(args.page_token).toBe('abc');
-    expect(args.max_results).toBe(200);
+    // MAX_PAGE_SIZE is 50 — Composio's GMAIL_FETCH_EMAILS upstream chokes on
+    // bigger payloads. Clamps anything larger.
+    expect(args.max_results).toBe(50);
     expect(args.query).toBeUndefined();
   });
 
@@ -114,7 +116,8 @@ describe('connector-email-inbox-gmail-composio', () => {
     executeTool.mockResolvedValueOnce({
       successful: true,
       data: {
-        id: 'm3',
+        // Composio surfaces the Gmail id under `messageId`, not top-level `id`.
+        messageId: 'm3',
         threadId: 't3',
         subject: 'S',
         sender: 'a@b.com',

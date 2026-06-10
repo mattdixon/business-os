@@ -68,6 +68,15 @@ const AGENT_ENABLED_SCOPE = (slug: string): string => `agent-enabled:${slug}`;
  */
 const AGENT_SCHEDULE_SCOPE = (slug: string): string => `agent-schedule:${slug}`;
 
+/**
+ * Tracks an active Composio (or future broker) event subscription tied to
+ * (connectorInstanceId, topic). Storing the subscriptionId lets the framework
+ * unsubscribe later when an agent leaves event-mode or the binding changes.
+ * One row per (instanceId, topic) pair.
+ */
+const CONNECTOR_EVENT_SUB_SCOPE = (instanceId: string, topic: string): string =>
+  `connector-event-sub:${instanceId}:${topic}`;
+
 type ScheduleOverride =
   | { kind: 'manual' }
   | { kind: 'cron'; expr: string }
@@ -502,7 +511,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   // Returns the operator's schedule override (null when not set) and the
   // effective schedule that drives the runtime (override ?? manifest).
   // Also lists which trigger kinds the agent supports so the UI can render
-  // only the legal radio options.
+  // only the legal radio options, plus the event topics any bound connector
+  // can emit so the UI populates the event-mode dropdown from real options.
   app.get('/api/agents/:slug/schedule', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;
     const slug = (req.params as { slug: string }).slug;
@@ -522,11 +532,45 @@ export function registerAdminRoutes(app: FastifyInstance): void {
         // operators can always click "Run now" regardless.
         'manual' as const,
       ];
+    // Collect available event topics from each bound connector instance's
+    // provider manifest. Gives the UI a real dropdown for event-mode instead
+    // of a free-text field.
+    const bindings = await loadAgentBindings(req.deps.db, slug);
+    const availableEventTopics: Array<{ topic: string; displayName: string; via: string }> = [];
+    for (const [capability, instanceId] of Object.entries(bindings)) {
+      // Bindings can be stale (e.g. leftover from earlier curl-based testing)
+      // or hold non-uuid placeholders. Swallow lookup errors — schedule UI
+      // shouldn't 500 just because one binding is junk.
+      let row: { id: string; providerSlug: string } | undefined;
+      try {
+        const rows = await req.deps.db
+          .select({ id: connectorInstances.id, providerSlug: connectorInstances.providerSlug })
+          .from(connectorInstances)
+          .where(eq(connectorInstances.id, instanceId))
+          .limit(1);
+        row = rows[0];
+      } catch {
+        continue;
+      }
+      if (!row) continue;
+      let provider;
+      try {
+        provider = req.deps.inventory.getConnectorProvider(capability, row.providerSlug);
+      } catch {
+        continue;
+      }
+      const events = (provider.manifest as { events?: Record<string, { displayName: string }> }).events;
+      if (!events) continue;
+      for (const [topic, def] of Object.entries(events)) {
+        availableEventTopics.push({ topic, displayName: def.displayName, via: row.providerSlug });
+      }
+    }
     return {
       manifest: agent.manifest.schedule,
       override,
       effective,
       supportedTriggers: Array.from(new Set(supportedTriggers)),
+      availableEventTopics,
     };
   });
 

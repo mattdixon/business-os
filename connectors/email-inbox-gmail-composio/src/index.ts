@@ -36,7 +36,11 @@ const settingsSchema = z.object({
 type Settings = z.infer<typeof settingsSchema>;
 
 const TOOLKIT = 'gmail';
-const MAX_PAGE_SIZE = 200;
+// Composio's GMAIL_FETCH_EMAILS returns full message bodies in the response
+// payload, so requesting ~100+ messages can trip Composio's upstream
+// Upstream_PayloadTooLarge (413). 50 is the empirically-safe ceiling; agents
+// paginate when they need more.
+const MAX_PAGE_SIZE = 50;
 const SNIPPET_LEN = 200;
 
 function getUserId(ctx: ConnectorContext<Settings>): string {
@@ -67,16 +71,20 @@ function makeSubstrate(ctx: ConnectorContext<Settings>): ComposioSubstrate {
 // -----------------------------------------------------------------------------
 
 interface GmailMessage {
-  id?: string;
+  /** Composio's Gmail tools return the message id under `messageId`, NOT `id`. */
+  messageId?: string;
   threadId?: string;
   subject?: string;
   sender?: string;
   to?: string;
   cc?: string;
   snippet?: string;
+  preview?: { body?: string };
   messageText?: string;
   messageTimestamp?: string;
   labelIds?: string[];
+  /** Composio-provided deep link to the message in Gmail web UI. */
+  display_url?: string;
   payload?: {
     headers?: Array<{ name?: string; value?: string }>;
     body?: { data?: string };
@@ -143,8 +151,8 @@ function toSummary(msg: GmailMessage): InboxMessageSummary {
   const labels = msg.labelIds ?? [];
   const snippetSource = msg.snippet ?? bodyText(msg).slice(0, SNIPPET_LEN);
   return {
-    id: msg.id ?? '',
-    threadId: msg.threadId ?? msg.id ?? '',
+    id: msg.messageId ?? '',
+    threadId: msg.threadId ?? msg.messageId ?? '',
     from,
     to: splitAddrs(msg.to ?? header(msg, 'To')),
     cc: msg.cc !== undefined || header(msg, 'Cc') !== undefined

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Renders an operator-friendly settings form from a FieldSchema tree
@@ -72,6 +72,15 @@ interface FormProps {
   schema: FieldSchema;
   value: unknown;
   onChange: (next: unknown) => void;
+  /**
+   * Extends the no-autofill treatment to ALL string fields in this form,
+   * not just `secret` ones. Use for credentials forms where the username/
+   * identifier next to the password also shouldn't be browser-filled (e.g.
+   * IMAP `user`). Secret fields always get this treatment regardless —
+   * Login and PasswordReset are the only password forms in the app where
+   * autofill is wanted, and those don't go through SchemaForm.
+   */
+  noAutofill?: boolean;
 }
 
 function humanLabel(key: string): string {
@@ -81,7 +90,7 @@ function humanLabel(key: string): string {
     .replace(/^./, (c) => c.toUpperCase());
 }
 
-function defaultFor(schema: FieldSchema): unknown {
+export function defaultFor(schema: FieldSchema): unknown {
   switch (schema.type) {
     case 'string':
       return schema.default ?? '';
@@ -116,8 +125,21 @@ interface FieldProps extends FormProps {
   label?: string;
 }
 
+const NO_AUTOFILL_PROPS = {
+  autoComplete: 'off',
+  autoCorrect: 'off',
+  spellCheck: false,
+  // Vendor-specific opt-outs — browsers and password managers each pick a
+  // different signal. Setting all of them is the only way to reliably stop
+  // autofill on a non-login form.
+  'data-1p-ignore': true,
+  'data-lpignore': 'true',
+  'data-bwignore': true,
+  'data-form-type': 'other',
+} as const;
+
 function FieldRenderer(props: FieldProps): JSX.Element {
-  const { schema, value, onChange, path, label } = props;
+  const { schema, value, onChange, path, label, noAutofill } = props;
 
   switch (schema.type) {
     case 'object': {
@@ -152,6 +174,7 @@ function FieldRenderer(props: FieldProps): JSX.Element {
               }}
               path={path === '' ? key : `${path}.${key}`}
               label={humanLabel(key)}
+              noAutofill={noAutofill}
             />
           ))}
         </div>
@@ -170,14 +193,21 @@ function FieldRenderer(props: FieldProps): JSX.Element {
               value={v}
               onChange={(e) => onChange(e.target.value)}
               placeholder={schema.default}
+              {...(noAutofill ? NO_AUTOFILL_PROPS : {})}
             />
           ) : (
-            <input
-              type={schema.secret ? 'password' : 'text'}
-              className="input"
+            <NoAutofillInput
+              schema={schema}
               value={v}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={schema.default}
+              onChange={onChange}
+              path={path}
+              // Secret fields ALWAYS get the no-autofill treatment — Login
+              // and PasswordReset are the only password forms in the app
+              // where browser autofill is legitimate, and those don't go
+              // through SchemaForm. `noAutofill` on the form extends the
+              // same defense to the secret field's non-secret siblings
+              // (e.g. the IMAP `user` next to `password`).
+              disable={!!schema.secret || !!noAutofill}
             />
           )}
           {schema.description && <Help>{schema.description}</Help>}
@@ -291,6 +321,56 @@ function FieldRenderer(props: FieldProps): JSX.Element {
         />
       );
   }
+}
+
+/**
+ * String input that actively defends against browser autofill and password
+ * managers. Three layers, all needed because each tool ignores some signals:
+ *
+ *   1. `autocomplete="new-password"` for secret fields — the most reliable
+ *      Chrome opt-out (Chrome ignores `off` on login-shaped forms).
+ *   2. The full set of `data-*-ignore` attributes for 1Password, LastPass,
+ *      Bitwarden.
+ *   3. A mount-time ref that re-clears the DOM value if Chrome got there
+ *      first. React's controlled-value pass can lose the race to autofill;
+ *      forcing the DOM back to '' once on mount wins it back.
+ */
+function NoAutofillInput(props: {
+  schema: StringField;
+  value: string;
+  onChange: (v: unknown) => void;
+  path: string;
+  disable: boolean;
+}): JSX.Element {
+  const { schema, value, onChange, path, disable } = props;
+  const ref = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!disable) return;
+    const el = ref.current;
+    if (el && el.value && !value) {
+      // Chrome / password manager beat React to the DOM. Clear it.
+      el.value = '';
+    }
+  }, [disable, value]);
+  return (
+    <input
+      ref={ref}
+      type={schema.secret ? 'password' : 'text'}
+      className="input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={schema.default}
+      {...(disable
+        ? {
+            ...NO_AUTOFILL_PROPS,
+            // 'new-password' is the most reliable Chrome opt-out — `off` is
+            // ignored on login-shaped forms.
+            autoComplete: schema.secret ? 'new-password' : 'off',
+            name: `f-${path}`,
+          }
+        : {})}
+    />
+  );
 }
 
 function Help({ children }: { children: React.ReactNode }): JSX.Element {

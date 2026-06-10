@@ -32,7 +32,7 @@ export interface ConnectorManifestLike {
   capability: string;
   version: string;
   displayName: string;
-  authKind: 'oauth2' | 'api-key' | 'none';
+  authKind: 'oauth2' | 'api-key' | 'none' | 'custom';
   /**
    * Set when the connector uses an external OAuth broker (e.g. Composio).
    * Mirrors @business-os/connector-sdk's ConnectorManifest.externalOAuth.
@@ -42,6 +42,11 @@ export interface ConnectorManifestLike {
     toolkit: string;
   };
   settingsSchema: z.ZodTypeAny;
+  /**
+   * Optional credential-field schema. Present when authKind === 'custom'
+   * (e.g. IMAP, SMTP — anything needing more than a single API key).
+   */
+  credentialsSchema?: z.ZodTypeAny;
 }
 
 /**

@@ -15,9 +15,12 @@ import {
 /**
  * Direct IMAP provider for the `email-inbox` capability.
  *
- * Credentials shape:
- *   kind: 'api-key'
- *   key:  <imap password>   // the only secret. host/port/user are settings.
+ * Credentials shape (kind: 'custom'):
+ *   values.user:     <imap username, e.g. matt@example.com>
+ *   values.password: <imap password / app-specific password>
+ *
+ * Settings carry the connection target — host/port/folders — which the
+ * operator fills in alongside credentials in the Add form.
  *
  * We open a fresh connection per call rather than holding a long-lived one,
  * because long-lived sockets are fragile in serverless / restart contexts and
@@ -25,10 +28,9 @@ import {
  */
 
 const settingsSchema = z.object({
-  host: z.string(),
+  host: z.string().describe('IMAP server hostname, e.g. imap.fastmail.com'),
   port: z.number().int().default(993),
-  secure: z.boolean().default(true),
-  user: z.string(),
+  secure: z.boolean().default(true).describe('Use TLS (port 993). Disable only for plaintext IMAP on 143.'),
   /** Folder for archive moves. */
   archiveFolder: z.string().default('Archive'),
   /** Folder for trash moves. */
@@ -37,23 +39,29 @@ const settingsSchema = z.object({
   defaultPageSize: z.number().int().min(1).max(200).default(50),
 });
 
+const credentialsSchema = z.object({
+  user: z.string().describe('IMAP username (usually your email address)'),
+  password: z.string().describe('secret: IMAP password or app-specific password'),
+});
+
 type Settings = z.infer<typeof settingsSchema>;
+type Creds = z.infer<typeof credentialsSchema>;
 
 const MAX_PAGE_SIZE = 200;
 const SNIPPET_LEN = 200;
 
-function getPassword(ctx: ConnectorContext<Settings>): string {
-  if (ctx.credentials.kind !== 'api-key') {
+function readCreds(ctx: ConnectorContext<Settings>): Creds {
+  if (ctx.credentials.kind !== 'custom') {
     throw new Error(
-      `connector-email-inbox-imap requires api-key credentials, got "${ctx.credentials.kind}"`,
+      `connector-email-inbox-imap requires custom credentials, got "${ctx.credentials.kind}"`,
     );
   }
-  return ctx.credentials.key;
+  return credentialsSchema.parse(ctx.credentials.values);
 }
 
 function makeClient(ctx: ConnectorContext<Settings>): ImapFlow {
-  const password = getPassword(ctx);
-  const { host, port, secure, user } = ctx.settings;
+  const { user, password } = readCreds(ctx);
+  const { host, port, secure } = ctx.settings;
   return new ImapFlow({
     host,
     port,
@@ -362,11 +370,26 @@ export const manifest = {
   capability: 'email-inbox' as const,
   version: '0.0.1',
   displayName: 'IMAP Inbox',
-  authKind: 'api-key' as const,
+  authKind: 'custom' as const,
   settingsSchema,
+  credentialsSchema,
 };
 
 export default defineConnector({
   manifest,
   factory: (ctx) => makeInbox(ctx as ConnectorContext<Settings>),
+  /**
+   * Reachability check: connect, log out. Verifies credentials + host/port
+   * without listing any messages. Surfaces the IMAP server's error message
+   * (auth failure, DNS failure, TLS mismatch) directly to the operator.
+   */
+  async verify(ctx) {
+    const client = makeClient(ctx as ConnectorContext<Settings>);
+    await client.connect();
+    try {
+      await client.logout();
+    } catch {
+      // ignore — the auth+TLS handshake already proved reachability
+    }
+  },
 });

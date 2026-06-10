@@ -54,10 +54,12 @@ const noopLogger = {
 function ctx() {
   const parsed = manifest.settingsSchema.parse({
     host: 'imap.example.com',
-    user: 'matt@example.com',
   });
   return {
-    credentials: { kind: 'api-key' as const, key: 'hunter2' },
+    credentials: {
+      kind: 'custom' as const,
+      values: { user: 'matt@example.com', password: 'hunter2' },
+    },
     settings: parsed,
     logger: noopLogger,
   };
@@ -89,11 +91,19 @@ beforeEach(() => {
 });
 
 describe('connector-email-inbox-imap', () => {
-  it('manifest declares email-inbox capability + api-key auth + no externalOAuth', () => {
+  it('manifest declares email-inbox capability + custom auth + credentialsSchema + no externalOAuth', () => {
     expect(manifest.slug).toBe('email-inbox-imap');
     expect(manifest.capability).toBe('email-inbox');
-    expect(manifest.authKind).toBe('api-key');
+    expect(manifest.authKind).toBe('custom');
+    expect(manifest.credentialsSchema).toBeDefined();
     expect((manifest as { externalOAuth?: unknown }).externalOAuth).toBeUndefined();
+  });
+
+  it('rejects api-key credentials (custom kind required)', async () => {
+    const c = ctx();
+    (c as { credentials: unknown }).credentials = { kind: 'api-key', key: 'hunter2' };
+    const inbox = connector.factory(c as never);
+    await expect(inbox.listMessages({})).rejects.toThrow(/requires custom credentials/);
   });
 
   it('listMessages searches INBOX, maps envelope, returns nextCursor', async () => {
@@ -247,10 +257,10 @@ describe('connector-email-inbox-imap', () => {
     expect(out.nextCursor).toBeNull();
   });
 
-  it('rejects credentials that are not api-key when an operation is invoked', async () => {
+  it('rejects credentials that are not custom when an operation is invoked', async () => {
     const c = ctx();
     (c as { credentials: unknown }).credentials = { kind: 'oauth2', accessToken: 'x' };
     const inbox = connector.factory(c as never);
-    await expect(inbox.markRead(['1'])).rejects.toThrow(/api-key/);
+    await expect(inbox.markRead(['1'])).rejects.toThrow(/requires custom credentials/);
   });
 });

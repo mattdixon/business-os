@@ -123,11 +123,13 @@ export interface ConnectorCapability {
   providers: Array<{
     slug: string;
     displayName: string;
-    authKind: 'oauth2' | 'api-key' | 'none';
+    authKind: 'oauth2' | 'api-key' | 'none' | 'custom';
     /** Set when the provider uses an external OAuth broker (Composio etc.). */
     externalOAuth?: { provider: 'composio'; toolkit: string };
     version: string;
     settingsSchema?: unknown;
+    /** Present when authKind === 'custom'. Drives the Add form's credentials fields. */
+    credentialsSchema?: unknown;
   }>;
   instances: Array<{
     id: string;

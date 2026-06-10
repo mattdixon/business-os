@@ -15,9 +15,7 @@ import {
   allFrameworkConnectors,
   allFrameworkConnectorMigrations,
 } from '@business-os/connectors-all';
-
-import leadgen from '@business-os/agent-leadgen';
-import prospecting from '@business-os/agent-prospecting';
+import { allFrameworkAgents } from '@business-os/agents-all';
 
 // ---- Modules (uncomment + add deps to register one) ----
 // Modules own a slice of business state: their own tables, REST routes, and
@@ -37,8 +35,10 @@ export function buildRegistry(): Registry {
   registry.registerMany(allFrameworkConnectors);
 
   // ---- Agents ----
-  registry.registerAgent(leadgen);
-  registry.registerAgent(prospecting);
+  // Every framework agent is registered. The operator picks which to enable
+  // via the Add Agent flow in the UI; disabled agents stay registered but
+  // don't run.
+  registry.registerManyAgents(allFrameworkAgents);
 
   // ---- Modules ----
   // registry.registerModule(exampleModule);

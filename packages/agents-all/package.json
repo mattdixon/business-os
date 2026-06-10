@@ -1,0 +1,31 @@
+{
+  "name": "@business-os/agents-all",
+  "version": "0.0.1",
+  "description": "Aggregator package — re-exports every framework agent so client shells can registerManyAgents() instead of importing each one individually.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@business-os/agent-inbox-categorize": "workspace:^",
+    "@business-os/agent-inbox-cleanup": "workspace:^",
+    "@business-os/agent-inbox-surface": "workspace:^",
+    "@business-os/agent-leadgen": "workspace:^",
+    "@business-os/agent-prospecting": "workspace:^",
+    "@business-os/agent-sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}

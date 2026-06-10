@@ -87,6 +87,16 @@ export class Registry {
   }
 
   /**
+   * Batch-register every agent in `agents`. Used by client shells to wire
+   * `@business-os/agents-all` in one line instead of N individual calls.
+   * Fails fast on the first duplicate slug, leaving previously-registered
+   * agents in place.
+   */
+  registerManyAgents(agents: ReadonlyArray<RegisteredAgent>): void {
+    for (const a of agents) this.registerAgent(a);
+  }
+
+  /**
    * Batch-register every connector in `providers`. Used by client shells
    * to wire `@business-os/connectors-all` in one line instead of N
    * individual calls. Fails fast on the first duplicate, leaving previously-

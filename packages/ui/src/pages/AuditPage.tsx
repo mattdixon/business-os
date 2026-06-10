@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Api, ApiError, type AuditEntry } from '../lib/api';
+import { Api, ApiError, type AuditEntry, type AgentSummary } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { MetaCell } from '../components/MetaCell';
 
 export function AuditPage(): JSX.Element {
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
@@ -10,6 +11,16 @@ export function AuditPage(): JSX.Element {
   const [sinceHours, setSinceHours] = useState<string>('24');
   const [nextBefore, setNextBefore] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  // List of registered agents for the agent-filter datalist. Populated once.
+  const [knownAgents, setKnownAgents] = useState<AgentSummary[]>([]);
+
+  useEffect(() => {
+    Api.listAgents()
+      .then((r) => setKnownAgents(r.agents))
+      .catch(() => {
+        /* non-fatal — filter just won't auto-suggest */
+      });
+  }, []);
 
   const baseFilters = (): {
     action?: string;
@@ -69,16 +80,33 @@ export function AuditPage(): JSX.Element {
               placeholder="e.g. admin.connector.update"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
+              list="audit-action-suggestions"
             />
+            {/* Suggest actions seen in the currently-loaded window. Operator
+                gets autocomplete without us standing up a distinct-actions
+                endpoint. */}
+            <datalist id="audit-action-suggestions">
+              {Array.from(new Set((entries ?? []).map((e) => e.action)))
+                .sort()
+                .map((a) => (
+                  <option key={a} value={a} />
+                ))}
+            </datalist>
           </div>
           <div>
-            <label className="label">Agent slug</label>
-            <input
-              className="input w-40"
-              placeholder="e.g. leadgen"
+            <label className="label">Agent</label>
+            <select
+              className="input w-44"
               value={agentFilter}
               onChange={(e) => setAgentFilter(e.target.value)}
-            />
+            >
+              <option value="">— any agent —</option>
+              {knownAgents.map((a) => (
+                <option key={a.slug} value={a.slug}>
+                  {a.displayName}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="label">Since</label>
@@ -144,13 +172,7 @@ export function AuditPage(): JSX.Element {
                       )}
                     </td>
                     <td className="px-4 py-2.5 align-top">
-                      {e.meta ? (
-                        <pre className="max-w-md overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-ink-700 dark:text-ink-300">
-                          {JSON.stringify(e.meta, null, 0)}
-                        </pre>
-                      ) : (
-                        <span className="text-ink-400 dark:text-ink-500">—</span>
-                      )}
+                      <MetaCell meta={e.meta} />
                     </td>
                   </tr>
                 ))}

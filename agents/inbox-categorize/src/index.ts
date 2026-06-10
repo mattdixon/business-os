@@ -33,10 +33,27 @@ const DEFAULT_CATEGORIES = [
 
 const SettingsSchema = z.object({
   llm: LlmPickerSchema.default({}),
-  maxMessages: z.number().int().min(1).max(1000).default(200),
-  categories: z.array(z.string()).default(DEFAULT_CATEGORIES),
-  confidenceThreshold: z.number().min(0).max(1).default(0.6),
-  unreadOnly: z.boolean().default(true),
+  maxMessages: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .default(200)
+    .describe('How many recent messages to classify in one run.'),
+  categories: z
+    .array(z.string())
+    .default(DEFAULT_CATEGORIES)
+    .describe('Your label vocabulary. The model picks from these — one per message.'),
+  confidenceThreshold: z
+    .number()
+    .min(0)
+    .max(1)
+    .default(0.6)
+    .describe('Minimum model confidence (0-1) before a label is applied. Lower = more labels applied but more noise.'),
+  unreadOnly: z
+    .boolean()
+    .default(true)
+    .describe('Only categorize unread messages.'),
 });
 
 type Settings = z.infer<typeof SettingsSchema>;

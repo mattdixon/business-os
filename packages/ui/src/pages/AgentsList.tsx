@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import * as Dialog from '@radix-ui/react-dialog';
 import { Api, ApiError, type AgentSummary } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { SchemaForm, defaultFor, type FieldSchema } from '../components/SchemaForm';
+import { useToast } from '../lib/toast';
 
 function ScheduleLabel({ s }: { s: AgentSummary['schedule'] }): JSX.Element {
   if (s.kind === 'cron') return <span className="font-mono text-xs">{s.expr}</span>;
@@ -24,12 +27,47 @@ function LastRunCell({ run }: { run: AgentSummary['lastRun'] }): JSX.Element {
 export function AgentsList(): JSX.Element {
   const [agents, setAgents] = useState<AgentSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
+  const [inputModalFor, setInputModalFor] = useState<AgentSummary | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const load = (): void => {
     Api.listAgents()
       .then((r) => setAgents(r.agents))
       .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'load failed'));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
+
+  const fireRun = async (agent: AgentSummary, input: unknown): Promise<void> => {
+    setRunning(agent.slug);
+    try {
+      await Api.runAgent(agent.slug, input);
+      toast.success(`${agent.displayName} started`);
+      // Server enqueues; reload to pick up the new lastRun once it lands.
+      setTimeout(load, 800);
+    } catch (e: unknown) {
+      const msg = e instanceof ApiError ? e.message : 'run failed';
+      toast.error(`${agent.displayName}: ${msg}`);
+    } finally {
+      setRunning(null);
+    }
+  };
+
+  const onRunClick = (agent: AgentSummary): void => {
+    const schema = agent.inputSchema as FieldSchema | null | undefined;
+    const needsInput =
+      !!schema &&
+      schema.type === 'object' &&
+      Object.keys((schema as { fields: object }).fields).length > 0;
+    if (needsInput) {
+      setInputModalFor(agent);
+    } else {
+      void fireRun(agent, undefined);
+    }
+  };
 
   return (
     <div>
@@ -58,6 +96,7 @@ export function AgentsList(): JSX.Element {
                   <th className="px-4 py-2.5 text-left font-medium">Agent</th>
                   <th className="px-4 py-2.5 text-left font-medium">Schedule</th>
                   <th className="px-4 py-2.5 text-left font-medium">Last run</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
@@ -83,6 +122,15 @@ export function AgentsList(): JSX.Element {
                     <td className="px-4 py-3">
                       <LastRunCell run={a.lastRun} />
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="btn-secondary"
+                        disabled={running === a.slug}
+                        onClick={() => onRunClick(a)}
+                      >
+                        {running === a.slug ? 'Starting…' : 'Run'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -90,6 +138,65 @@ export function AgentsList(): JSX.Element {
           </div>
         )}
       </div>
+      {inputModalFor && (
+        <RunWithInputModal
+          agent={inputModalFor}
+          onCancel={() => setInputModalFor(null)}
+          onSubmit={async (input) => {
+            const a = inputModalFor;
+            setInputModalFor(null);
+            await fireRun(a, input);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function RunWithInputModal(props: {
+  agent: AgentSummary;
+  onCancel: () => void;
+  onSubmit: (input: unknown) => Promise<void>;
+}): JSX.Element {
+  const schema = props.agent.inputSchema as FieldSchema;
+  const [value, setValue] = useState<unknown>(() => defaultFor(schema));
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <Dialog.Root open onOpenChange={(o) => !o && props.onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-xl dark:bg-ink-900">
+          <Dialog.Title className="text-lg font-semibold tracking-tight">
+            Run {props.agent.displayName}
+          </Dialog.Title>
+          <Dialog.Description className="mt-1 text-sm text-ink-500 dark:text-ink-400">
+            Provide input for this run. It won't be saved as a default.
+          </Dialog.Description>
+          <div className="mt-5">
+            <SchemaForm schema={schema} value={value} onChange={setValue} />
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <button className="btn-ghost" onClick={props.onCancel} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await props.onSubmit(value);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? 'Starting…' : 'Run'}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

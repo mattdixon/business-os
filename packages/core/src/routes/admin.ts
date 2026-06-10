@@ -269,6 +269,14 @@ export function registerAdminRoutes(app: FastifyInstance): void {
           requiredConnectors: manifest.requiredConnectors,
           schedule: manifest.schedule,
           settings: settingsValue,
+          /**
+           * Surface the input schema (when present) so the Agents list can
+           * decide whether the Run-from-list button fires immediately ({} input)
+           * or opens an input modal. Null when the agent doesn't declare one.
+           */
+          inputSchema: manifest.inputSchema
+            ? zodToFieldSchema(manifest.inputSchema)
+            : null,
           lastRun: lastRunRows[0] ?? null,
         };
       }),
@@ -289,6 +297,18 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     }
     const settingsValue = await loadAgentSettings(req, slug);
     const bindings = await loadAgentBindings(req.deps.db, slug);
+    const lastRunRows = await req.deps.db
+      .select({
+        id: agentRuns.id,
+        startedAt: agentRuns.startedAt,
+        endedAt: agentRuns.endedAt,
+        ok: agentRuns.ok,
+        summary: agentRuns.summary,
+      })
+      .from(agentRuns)
+      .where(eq(agentRuns.agentSlug, slug))
+      .orderBy(desc(agentRuns.startedAt))
+      .limit(1);
     return {
       slug: agent.manifest.slug,
       version: agent.manifest.version,
@@ -302,6 +322,7 @@ export function registerAdminRoutes(app: FastifyInstance): void {
       inputSchema: agent.manifest.inputSchema
         ? zodToFieldSchema(agent.manifest.inputSchema)
         : null,
+      lastRun: lastRunRows[0] ?? null,
     };
   });
 

@@ -112,6 +112,15 @@ importers:
 
   clients/c-and-m-construction-os:
     dependencies:
+      '@business-os/agent-inbox-categorize':
+        specifier: workspace:^
+        version: link:../../agents/inbox-categorize
+      '@business-os/agent-inbox-cleanup':
+        specifier: workspace:^
+        version: link:../../agents/inbox-cleanup
+      '@business-os/agent-inbox-surface':
+        specifier: workspace:^
+        version: link:../../agents/inbox-surface
       '@business-os/agent-leadgen':
         specifier: workspace:^
         version: link:../../agents/leadgen

@@ -54,6 +54,11 @@
   .btn-danger {
     @apply btn bg-bad text-white hover:bg-red-700;
   }
+  /* Use for hero CTAs where the button should anchor a section, e.g.
+     the Run button on the AgentDetail hero card. */
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
 
   .input {
     @apply w-full rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-900

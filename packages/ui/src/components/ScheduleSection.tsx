@@ -29,6 +29,7 @@ interface ScheduleData {
   override: Schedule | null;
   effective: Schedule;
   supportedTriggers: Array<'cron' | 'manual' | 'event'>;
+  availableEventTopics: Array<{ topic: string; displayName: string; via: string }>;
 }
 
 const CRON_PRESETS: Array<{ label: string; expr: string }> = [
@@ -265,12 +266,25 @@ function EditDialog(props: {
             {kind === 'event' && (
               <div>
                 <label className="label">Event topic</label>
-                <input
-                  className="input font-mono"
-                  value={eventTopic}
-                  onChange={(e) => setEventTopic(e.target.value)}
-                  placeholder="email-inbox.message.received"
-                />
+                {props.data.availableEventTopics.length > 0 ? (
+                  <select
+                    className="input"
+                    value={eventTopic}
+                    onChange={(e) => setEventTopic(e.target.value)}
+                  >
+                    <option value="">— pick one —</option>
+                    {props.data.availableEventTopics.map((t) => (
+                      <option key={`${t.via}::${t.topic}`} value={t.topic}>
+                        {t.displayName} (via {t.via})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="rounded border border-dashed border-ink-200 px-3 py-3 text-xs text-ink-500 dark:border-ink-700 dark:text-ink-400">
+                    No bound connector exposes event topics. Bind a Gmail (or
+                    other event-capable) connector to this agent first.
+                  </div>
+                )}
               </div>
             )}
           </div>

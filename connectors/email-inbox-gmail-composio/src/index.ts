@@ -337,6 +337,18 @@ function makeInbox(ctx: ConnectorContext<Settings>): EmailInboxCapability {
   };
 }
 
+/**
+ * Maps framework-level event topics to the Composio trigger slugs that fire
+ * them. The framework speaks `'email-inbox.message.received'`; Composio
+ * speaks `'GMAIL_NEW_GMAIL_MESSAGE'`. The connector translates.
+ */
+const EVENT_TOPICS = {
+  'email-inbox.message.received': {
+    composioSlug: 'GMAIL_NEW_GMAIL_MESSAGE',
+    displayName: 'New Gmail message',
+  },
+} as const;
+
 export const manifest = {
   slug: 'email-inbox-gmail-composio',
   capability: 'email-inbox' as const,
@@ -348,11 +360,48 @@ export const manifest = {
     toolkit: TOOLKIT,
   },
   settingsSchema,
+  events: Object.fromEntries(
+    Object.entries(EVENT_TOPICS).map(([topic, def]) => [topic, { displayName: def.displayName }]),
+  ),
 };
 
 export default defineConnector({
   manifest,
   factory: (ctx) => makeInbox(ctx as ConnectorContext<Settings>),
+  /**
+   * Register Composio trigger subscriptions for each requested topic.
+   * Returns a single subscription handle that bundles every Composio trigger
+   * id created in this call — the framework hands it back to
+   * `unsubscribeFromEvents` later to tear them all down at once.
+   */
+  async subscribeToEvents(ctx, topics) {
+    const userId = getUserId(ctx as ConnectorContext<Settings>);
+    const substrate = makeSubstrate(ctx as ConnectorContext<Settings>);
+    const triggerIds: string[] = [];
+    for (const topic of topics) {
+      const def = EVENT_TOPICS[topic as keyof typeof EVENT_TOPICS];
+      if (!def) {
+        throw new Error(`gmail-composio: unknown event topic "${topic}"`);
+      }
+      const out = await substrate.createTrigger({ userId, slug: def.composioSlug });
+      triggerIds.push(out.id);
+    }
+    return { subscriptionId: triggerIds.join(',') };
+  },
+  async unsubscribeFromEvents(ctx, subscriptionId) {
+    const substrate = makeSubstrate(ctx as ConnectorContext<Settings>);
+    const ids = subscriptionId.split(',').filter(Boolean);
+    for (const id of ids) {
+      // Best-effort: if Composio's already cleaned this up (e.g. user
+      // disconnected the account), keep going instead of half-tearing-down.
+      try {
+        await substrate.deleteTrigger(id);
+      } catch {
+        // swallow — the framework re-attempts on rebind
+      }
+    }
+  },
 });
 
 export { ComposioSubstrate, ComposioSubstrateError };
+export { EVENT_TOPICS };

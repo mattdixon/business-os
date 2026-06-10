@@ -223,6 +223,7 @@ export const Api = {
         | { kind: 'event'; topic: string };
       effective: { kind: 'cron'; expr: string } | { kind: 'manual' } | { kind: 'event'; topic: string };
       supportedTriggers: Array<'cron' | 'manual' | 'event'>;
+      availableEventTopics: Array<{ topic: string; displayName: string; via: string }>;
     }>(`/api/agents/${slug}/schedule`),
   setAgentSchedule: (
     slug: string,

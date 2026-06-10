@@ -210,6 +210,50 @@ export class ComposioSubstrate implements ExternalOAuthBroker {
       throw wrapError(e, `execute-tool(${p.toolSlug})`);
     }
   }
+
+  /**
+   * Create a Composio trigger instance for `userId`. The trigger fires when
+   * the provider event named by `slug` occurs (e.g. GMAIL_NEW_GMAIL_MESSAGE).
+   * Composio POSTs the payload to whatever webhook URL is configured on the
+   * Composio account; the URL is global per Composio account, not per
+   * trigger, so it's set up once via the dashboard/SDK and reused.
+   *
+   * Returns the trigger id; the framework should persist it so it can later
+   * call `deleteTrigger(id)` to unsubscribe.
+   */
+  async createTrigger(p: {
+    userId: string;
+    slug: string;
+    triggerConfig?: Record<string, unknown>;
+  }): Promise<{ id: string }> {
+    try {
+      const out = await this.client.triggers.create(p.userId, p.slug, {
+        triggerConfig: p.triggerConfig,
+      } as never);
+      const id = (out as { id?: string; triggerId?: string }).id ?? (out as { triggerId?: string }).triggerId;
+      if (!id) {
+        throw new ComposioSubstrateError(
+          'unknown',
+          `composio.create-trigger(${p.slug}): SDK returned no trigger id`,
+        );
+      }
+      return { id };
+    } catch (e) {
+      throw wrapError(e, `create-trigger(${p.slug})`);
+    }
+  }
+
+  /**
+   * Delete a previously-created trigger instance. Called when the operator
+   * switches an agent off event-mode or disables the agent entirely.
+   */
+  async deleteTrigger(triggerId: string): Promise<void> {
+    try {
+      await this.client.triggers.delete(triggerId);
+    } catch (e) {
+      throw wrapError(e, `delete-trigger(${triggerId})`);
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

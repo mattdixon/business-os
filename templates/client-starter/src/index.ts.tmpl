@@ -60,9 +60,10 @@ const started = await startServer({
     return {
       triggerManual: (slug, input, userId) =>
         scheduler.triggerManual(slug, input, userId),
+      refreshAgent: (slug: string) => scheduler.refreshAgent(slug),
       start: () => {
         if (startScheduler) {
-          scheduler.start();
+          void scheduler.start();
           void jobs.start();
         }
       },

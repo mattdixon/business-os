@@ -21,6 +21,8 @@ export interface AgentManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAny
     | { kind: 'cron'; expr: string }
     | { kind: 'manual' }
     | { kind: 'event'; topic: string };
+  /** Which trigger kinds the operator can switch the agent to. See AgentManifest. */
+  supportedTriggers?: ReadonlyArray<'cron' | 'manual' | 'event'>;
 }
 
 export interface RegisteredAgentLike {
@@ -118,4 +120,12 @@ export interface AgentInventory {
 /** Implemented by @business-os/runtime's Scheduler. */
 export interface ManualTriggerer {
   triggerManual(slug: string, input: unknown, triggeredBy: string): Promise<void>;
+  /**
+   * Optional hook called by the API after the operator changes an agent's
+   * enable bit or schedule override. The scheduler re-reads state and
+   * adjusts its in-process timers / event subscriptions accordingly.
+   * Triggers that don't implement it require a process restart for changes
+   * to take effect.
+   */
+  refreshAgent?(slug: string): Promise<void>;
 }

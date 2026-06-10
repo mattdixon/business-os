@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../lib/api-errors';
 import { PageHeader } from '../components/PageHeader';
 import { capabilityLabel } from '../lib/capability-labels';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
+import { ScheduleSection } from '../components/ScheduleSection';
 import { useToast } from '../lib/toast';
 
 export function AgentDetail(): JSX.Element {
@@ -224,6 +225,9 @@ export function AgentDetail(): JSX.Element {
             {running ? 'Running…' : 'Run now'}
           </button>
         </section>
+
+        {/* Schedule — when this agent fires. */}
+        <ScheduleSection slug={agent.slug} />
 
         {/* Recent runs — the second-most-important thing. */}
         <section className="card p-6">

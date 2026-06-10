@@ -61,6 +61,36 @@ const PROVIDER_ENABLED_SCOPE = (cap: string, slug: string): string =>
  */
 const AGENT_ENABLED_SCOPE = (slug: string): string => `agent-enabled:${slug}`;
 
+/**
+ * Per-install operator override of the agent's manifest-declared schedule.
+ * Persisted in `settings`. Missing row OR `{ kind: 'manifest' }` = honor
+ * manifest. Otherwise the override wins. Effective = override ?? manifest.
+ */
+const AGENT_SCHEDULE_SCOPE = (slug: string): string => `agent-schedule:${slug}`;
+
+type ScheduleOverride =
+  | { kind: 'manual' }
+  | { kind: 'cron'; expr: string }
+  | { kind: 'event'; topic: string };
+
+const ScheduleOverrideSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('manual') }),
+  z.object({ kind: z.literal('cron'), expr: z.string().min(1) }),
+  z.object({ kind: z.literal('event'), topic: z.string().min(1) }),
+]);
+
+async function loadScheduleOverride(db: Db, slug: string): Promise<ScheduleOverride | null> {
+  const rows = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, AGENT_SCHEDULE_SCOPE(slug)))
+    .limit(1);
+  const v = rows[0]?.value;
+  if (!v) return null;
+  const parsed = ScheduleOverrideSchema.safeParse(v);
+  return parsed.success ? parsed.data : null;
+}
+
 async function isProviderEnabled(db: Db, cap: string, slug: string): Promise<boolean> {
   const rows = await db
     .select({ value: settingsTable.value })
@@ -402,6 +432,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     }
     await upsertSetting(req.deps.db, AGENT_ENABLED_SCOPE(slug), { enabled: true });
     await req.audit('admin.agent.enabled', { slug });
+    const trigger = req.deps.trigger as { refreshAgent?: (slug: string) => Promise<void> } | undefined;
+    if (trigger?.refreshAgent) await trigger.refreshAgent(slug).catch(() => {});
     return { ok: true };
   });
 
@@ -420,6 +452,8 @@ export function registerAdminRoutes(app: FastifyInstance): void {
     }
     await upsertSetting(req.deps.db, AGENT_ENABLED_SCOPE(slug), { enabled: false });
     await req.audit('admin.agent.disabled', { slug });
+    const trigger = req.deps.trigger as { refreshAgent?: (slug: string) => Promise<void> } | undefined;
+    if (trigger?.refreshAgent) await trigger.refreshAgent(slug).catch(() => {});
     return { ok: true };
   });
 
@@ -462,6 +496,93 @@ export function registerAdminRoutes(app: FastifyInstance): void {
         : null,
       lastRun: lastRunRows[0] ?? null,
     };
+  });
+
+  // ---------- GET /api/agents/:slug/schedule ----------
+  // Returns the operator's schedule override (null when not set) and the
+  // effective schedule that drives the runtime (override ?? manifest).
+  // Also lists which trigger kinds the agent supports so the UI can render
+  // only the legal radio options.
+  app.get('/api/agents/:slug/schedule', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const slug = (req.params as { slug: string }).slug;
+    let agent;
+    try {
+      agent = req.deps.inventory.getAgent(slug);
+    } catch {
+      reply.code(404).send({ error: 'agent_not_found' });
+      return;
+    }
+    const override = await loadScheduleOverride(req.deps.db, slug);
+    const effective = override ?? agent.manifest.schedule;
+    const supportedTriggers =
+      agent.manifest.supportedTriggers ?? [
+        agent.manifest.schedule.kind,
+        // Manual is always allowed even if the manifest didn't list it —
+        // operators can always click "Run now" regardless.
+        'manual' as const,
+      ];
+    return {
+      manifest: agent.manifest.schedule,
+      override,
+      effective,
+      supportedTriggers: Array.from(new Set(supportedTriggers)),
+    };
+  });
+
+  // ---------- PUT /api/agents/:slug/schedule ----------
+  // Set or clear the override. Body is a discriminated union: omit to
+  // clear (revert to manifest), or send a `{kind: ...}` object to override.
+  app.put('/api/agents/:slug/schedule', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const slug = (req.params as { slug: string }).slug;
+    let agent;
+    try {
+      agent = req.deps.inventory.getAgent(slug);
+    } catch {
+      reply.code(404).send({ error: 'agent_not_found' });
+      return;
+    }
+    const body = z
+      .object({
+        override: ScheduleOverrideSchema.nullable(),
+      })
+      .safeParse(req.body ?? {});
+    if (!body.success) {
+      reply.code(400).send({ error: 'invalid_input', issues: body.error.issues });
+      return;
+    }
+    const next = body.data.override;
+    if (next) {
+      // Gate against supportedTriggers — operator can't pick a kind the
+      // agent's author didn't list.
+      const supported =
+        agent.manifest.supportedTriggers ?? [agent.manifest.schedule.kind, 'manual' as const];
+      if (!supported.includes(next.kind)) {
+        reply.code(400).send({
+          error: 'unsupported_trigger',
+          message: `agent doesn't support trigger kind "${next.kind}"`,
+        });
+        return;
+      }
+      await upsertSetting(req.deps.db, AGENT_SCHEDULE_SCOPE(slug), next, req.user!.id);
+    } else {
+      // Clear the override row entirely.
+      await req.deps.db
+        .delete(settingsTable)
+        .where(eq(settingsTable.scope, AGENT_SCHEDULE_SCOPE(slug)));
+    }
+    await req.audit('admin.agent.schedule.update', { slug, override: next });
+    // Best-effort: tell the in-process scheduler to re-read the override.
+    // If the trigger backend doesn't expose `refreshAgent`, the change takes
+    // effect on next restart — still functional, just less immediate.
+    const trigger = req.deps.trigger as { refreshAgent?: (slug: string) => Promise<void> } | undefined;
+    if (trigger?.refreshAgent) {
+      await trigger.refreshAgent(slug).catch(() => {
+        /* refresh is best-effort; the override is persisted regardless */
+      });
+    }
+    return { ok: true as const, override: next };
   });
 
   // ---------- PUT /api/agents/:slug/bindings ----------

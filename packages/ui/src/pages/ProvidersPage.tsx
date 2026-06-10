@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Api, ApiError } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { capabilityLabel } from '../lib/capability-labels';
 import { useToast } from '../lib/toast';
 
 /**
@@ -95,8 +96,11 @@ export function ProvidersPage(): JSX.Element {
               <div className="text-[11px] font-medium uppercase tracking-wider text-ink-500 dark:text-ink-400">
                 Capability
               </div>
-              <h2 className="mt-0.5 font-mono text-lg font-semibold tracking-tight">
-                {cap.capability}
+              <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
+                {capabilityLabel(cap.capability)}
+                <span className="ml-2 font-mono text-xs font-normal text-ink-500 dark:text-ink-400">
+                  {cap.capability}
+                </span>
               </h2>
             </div>
             {cap.providers.length === 0 ? (

@@ -24,10 +24,27 @@ const InputSchema = z.object({}).optional();
 
 const SettingsSchema = z.object({
   llm: LlmPickerSchema.default({}),
-  maxMessages: z.number().int().min(1).max(2000).default(500),
-  cleanupAction: z.enum(['archive', 'trash', 'dry-run']).default('dry-run'),
-  neverTouchSenders: z.array(z.string()).default([]),
-  unreadOnly: z.boolean().default(true),
+  maxMessages: z
+    .number()
+    .int()
+    .min(1)
+    .max(2000)
+    .default(500)
+    .describe('How many recent messages to scan in one run. Larger = more thorough, slower, more LLM tokens.'),
+  cleanupAction: z
+    .enum(['archive', 'trash', 'dry-run'])
+    .default('dry-run')
+    .describe(
+      'Safety dial. dry-run = preview only, change nothing. archive = safer, anything the model recommends trashing is downgraded to archive. trash = honor the model, archive or trash as it sees fit.',
+    ),
+  neverTouchSenders: z
+    .array(z.string())
+    .default([])
+    .describe('Senders to always leave alone, regardless of the model. One email address per line.'),
+  unreadOnly: z
+    .boolean()
+    .default(true)
+    .describe('Only consider unread messages. Turn off to sweep already-read backlog too.'),
 });
 
 type Settings = z.infer<typeof SettingsSchema>;

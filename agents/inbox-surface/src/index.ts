@@ -23,10 +23,31 @@ const InputSchema = z.object({}).optional();
 
 const SettingsSchema = z.object({
   llm: LlmPickerSchema.default({}),
-  maxMessages: z.number().int().min(1).max(500).default(200),
-  windowDays: z.number().int().min(1).max(60).default(3),
-  vipSenders: z.array(z.string()).default([]),
-  digestSize: z.number().int().min(1).max(50).default(15),
+  maxMessages: z
+    .number()
+    .int()
+    .min(1)
+    .max(500)
+    .default(200)
+    .describe('How many recent unread messages to score. Larger = more comprehensive, slower, more tokens.'),
+  windowDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(60)
+    .default(3)
+    .describe('Only consider messages received in the last N days.'),
+  vipSenders: z
+    .array(z.string())
+    .default([])
+    .describe('Senders that always score 1.0 and pin to the top of the digest. One email or domain per line.'),
+  digestSize: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(15)
+    .describe('Top N messages to include in the final ranked digest.'),
 });
 
 type Settings = z.infer<typeof SettingsSchema>;

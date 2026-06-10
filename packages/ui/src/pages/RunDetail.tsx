@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Api, ApiError, type AgentRun, type AuditEntry } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { detailsToCsv, detailsToMarkdown, downloadText } from '../lib/export';
+import { RunDetailsRenderer } from '../components/RunDetailsRenderer';
 
 interface RunWithDetails extends AgentRun {
   agentSlug: string;
@@ -92,15 +93,7 @@ export function RunDetail(): JSX.Element {
             <h2 className="section-heading">Details</h2>
             <ExportButtons run={run} />
           </div>
-          {run.details ? (
-            <pre className="max-h-96 overflow-auto rounded-md bg-ink-50 p-3 font-mono text-xs leading-relaxed text-ink-800 dark:bg-ink-950 dark:text-ink-200">
-              {JSON.stringify(run.details, null, 2)}
-            </pre>
-          ) : (
-            <div className="py-10 text-center text-sm text-ink-500 dark:text-ink-400">
-              No details emitted.
-            </div>
-          )}
+          <RunDetailsRenderer details={run.details} />
         </section>
 
         <section className="card p-6 lg:col-span-2">

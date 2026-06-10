@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Api, ApiError, type AgentRun } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { capabilityLabel } from '../lib/capability-labels';
 
 interface DashboardData {
   agentCount: number;
@@ -119,7 +120,12 @@ export function Dashboard(): JSX.Element {
                   className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-mono text-sm">{c.capability}</div>
+                    <div className="truncate text-sm">
+                      {capabilityLabel(c.capability)}
+                      <span className="ml-1.5 font-mono text-xs text-ink-500 dark:text-ink-400">
+                        {c.capability}
+                      </span>
+                    </div>
                     <div className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
                       {c.registered} provider{c.registered === 1 ? '' : 's'} · {c.configured} instance
                       {c.configured === 1 ? '' : 's'}

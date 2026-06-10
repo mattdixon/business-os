@@ -1,9 +1,12 @@
 import {
+  agentRuns,
   createDb,
   runMigrations,
   coreMigrations,
+  settings as settingsTable,
   type MigrationOwner,
 } from '@business-os/db';
+import { sql as sqlOp } from 'drizzle-orm';
 import { buildApp, type AppDeps } from '../app.js';
 import { createSecretsStore, loadSecretsKey } from '../secrets/index.js';
 import { parseEnv, type FrameworkEnv } from './env.js';
@@ -133,6 +136,15 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
   const encryptionKey = loadSecretsKey({ SECRETS_KEY: env.SECRETS_KEY });
   const secrets = createSecretsStore(db, encryptionKey);
 
+  // Brownfield-safe seed: if this install has prior agent runs but no
+  // `agent-enabled:*` rows, it predates the Add Agent flow — enable every
+  // currently-registered agent so the upgrade doesn't silently disable
+  // everything. Fresh installs (no runs, no enable rows) skip this and the
+  // operator picks via Add Agent. Idempotent via a meta sentinel.
+  if (opts.inventory) {
+    await seedAgentEnabledIfNeeded(db, opts.inventory);
+  }
+
   const trigger = opts.triggerFactory?.({
     startScheduler: mode === 'worker' || mode === 'both',
   });
@@ -177,4 +189,58 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
   };
 
   return { env, url, shutdown };
+}
+
+const AGENT_SEED_MARKER_SCOPE = 'meta:agent-enabled-seeded';
+
+/**
+ * One-time bootstrap: if the install has prior agent runs but no
+ * `agent-enabled:*` rows AND we haven't already seeded, enable every
+ * currently-registered agent. Preserves behavior for installs that predate
+ * the Add Agent flow. Fresh installs (no runs) skip the seed and start
+ * with everything disabled — operator picks via the UI.
+ */
+async function seedAgentEnabledIfNeeded(
+  db: ReturnType<typeof createDb>['db'],
+  inventory: AgentInventory,
+): Promise<void> {
+  // Idempotent: once we set the marker, never seed again, even if an operator
+  // disables everything and the system ends up looking like a fresh install.
+  const marker = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(sqlOp`${settingsTable.scope} = ${AGENT_SEED_MARKER_SCOPE}`)
+    .limit(1);
+  if (marker.length > 0) return;
+
+  // Fresh install = no agent_runs rows. Skip the seed entirely; operator picks.
+  const runsCheck = await db
+    .select({ id: agentRuns.id })
+    .from(agentRuns)
+    .limit(1);
+  if (runsCheck.length === 0) {
+    await db
+      .insert(settingsTable)
+      .values({ scope: AGENT_SEED_MARKER_SCOPE, value: { at: new Date().toISOString(), seeded: 0 } })
+      .onConflictDoNothing();
+    return;
+  }
+
+  // Brownfield: enable every registered agent + mark as seeded.
+  const slugs = inventory.listAgents().map((a) => a.manifest.slug);
+  for (const slug of slugs) {
+    await db
+      .insert(settingsTable)
+      .values({ scope: `agent-enabled:${slug}`, value: { enabled: true } })
+      .onConflictDoNothing();
+  }
+  await db
+    .insert(settingsTable)
+    .values({
+      scope: AGENT_SEED_MARKER_SCOPE,
+      value: { at: new Date().toISOString(), seeded: slugs.length },
+    })
+    .onConflictDoNothing();
+  // eslint-disable-next-line no-console
+  console.log(`[startServer] auto-enabled ${slugs.length} agent(s) on brownfield boot`);
 }

@@ -190,6 +190,29 @@ export const Api = {
     }>('/api/dashboard'),
 
   listAgents: () => api<{ agents: AgentSummary[] }>('/api/agents'),
+  /** Agents the install knows about but the operator hasn't enabled yet. */
+  listAvailableAgents: () =>
+    api<{
+      agents: Array<{
+        slug: string;
+        version: string;
+        displayName: string;
+        description: string;
+        requiredConnectors: ReadonlyArray<string>;
+        schedule: { kind: 'cron'; expr: string } | { kind: 'manual' } | { kind: 'event'; topic: string };
+        settingsSchema?: unknown;
+      }>;
+    }>('/api/agents/available'),
+  enableAgent: (
+    slug: string,
+    body: { settings?: unknown; bindings?: Record<string, string> },
+  ) =>
+    api<{ ok: true }>(`/api/agents/${slug}/enable`, {
+      method: 'POST',
+      body,
+    }),
+  disableAgent: (slug: string) =>
+    api<{ ok: true }>(`/api/agents/${slug}/disable`, { method: 'POST' }),
   getAgent: (slug: string) => api<AgentSummary>(`/api/agents/${slug}`),
   updateAgentSettings: (slug: string, value: unknown) =>
     api<{ ok: true; settings: unknown }>(`/api/agents/${slug}/settings`, {

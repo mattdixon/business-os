@@ -202,15 +202,30 @@ async function runVerify(args: {
   proposedCredentials: Record<string, unknown>;
   proposedSettings?: unknown;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!args.provider.verify) return { ok: true };
   const creds: Record<string, unknown> = { ...args.proposedCredentials };
   if (typeof creds.kind !== 'string') creds.kind = args.provider.manifest.authKind;
+  // Always validate custom credentials against credentialsSchema, even when
+  // the connector has no verify() hook — a typo'd field name should fail at
+  // save time, not at first agent run.
+  if (creds.kind === 'custom' && args.provider.manifest.credentialsSchema) {
+    const parsed = args.provider.manifest.credentialsSchema.safeParse(creds.values ?? {});
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+      };
+    }
+    creds.values = parsed.data;
+  }
+  // Settings always validated against the connector's schema. A connector
+  // with no verify() hook still benefits from schema-checked settings.
   let settings: unknown;
   try {
     settings = args.provider.manifest.settingsSchema.parse(args.proposedSettings ?? {});
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'invalid settings' };
   }
+  if (!args.provider.verify) return { ok: true };
   try {
     await args.provider.verify({
       credentials: creds,
@@ -532,6 +547,9 @@ export function registerAdminRoutes(app: FastifyInstance): void {
               externalOAuth: p.manifest.externalOAuth,
               version: p.manifest.version,
               settingsSchema: zodToFieldSchema(p.manifest.settingsSchema),
+              ...(p.manifest.credentialsSchema
+                ? { credentialsSchema: zodToFieldSchema(p.manifest.credentialsSchema) }
+                : {}),
               enabled,
             };
           }),

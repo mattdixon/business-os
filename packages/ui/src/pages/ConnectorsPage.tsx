@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
-import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
+import { SchemaForm, defaultFor, type FieldSchema } from '../components/SchemaForm';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../lib/toast';
 
@@ -252,8 +252,37 @@ function AddForm(props: {
   const selectedProvider = props.providers.find((p) => p.slug === providerSlug);
   const isLlm = props.capability === 'llm';
   const isApiKey = selectedProvider?.authKind === 'api-key' && !selectedProvider?.externalOAuth;
+  const isCustom = selectedProvider?.authKind === 'custom';
   const isExternalOAuth = !!selectedProvider?.externalOAuth;
   const availableModels = isLlm ? KNOWN_LLM_MODELS[providerSlug] ?? [] : [];
+
+  // Schemas the framework auto-renders. For 'custom' auth we render BOTH the
+  // credentials form (user/password/whatever) and the settings form (host/port/
+  // folders) up front, because verify-on-save needs both to succeed.
+  const credSchema = (selectedProvider?.credentialsSchema as FieldSchema | undefined) ?? undefined;
+  const settingsSchema = (selectedProvider?.settingsSchema as FieldSchema | undefined) ?? undefined;
+  const hasCustomCredFields =
+    isCustom &&
+    credSchema?.type === 'object' &&
+    Object.keys(credSchema.fields).length > 0;
+  const hasSettingsFields =
+    isCustom &&
+    settingsSchema?.type === 'object' &&
+    Object.keys(settingsSchema.fields).length > 0;
+
+  const [customCreds, setCustomCreds] = useState<Record<string, unknown>>(() =>
+    credSchema ? (defaultFor(credSchema) as Record<string, unknown>) : {},
+  );
+  const [draftSettings, setDraftSettings] = useState<Record<string, unknown>>(() =>
+    settingsSchema ? (defaultFor(settingsSchema) as Record<string, unknown>) : {},
+  );
+
+  // Reset custom-credential + settings drafts when the operator switches providers.
+  useEffect(() => {
+    setCustomCreds(credSchema ? (defaultFor(credSchema) as Record<string, unknown>) : {});
+    setDraftSettings(settingsSchema ? (defaultFor(settingsSchema) as Record<string, unknown>) : {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerSlug]);
 
   // Reset model + auto-name when provider switches.
   function pickProvider(slug: string) {
@@ -277,11 +306,24 @@ function AddForm(props: {
     }
   }
 
+  // For 'custom' auth, require every non-optional credential field to be
+  // filled in before enabling Save & test. Optional fields can stay blank.
+  const customCredsFilled =
+    !isCustom ||
+    !hasCustomCredFields ||
+    (credSchema?.type === 'object' &&
+      Object.entries(credSchema.fields).every(([k, f]) => {
+        const isOptional = (f as { optional?: boolean }).optional;
+        const v = customCreds[k];
+        return isOptional || (typeof v === 'string' ? v.length > 0 : v != null);
+      }));
+
   const canSave =
     !busy &&
     !!providerSlug &&
     !!displayName &&
     (isExternalOAuth || !isApiKey || !!apiKey) &&
+    customCredsFilled &&
     (!isLlm || !availableModels.length || !!model);
 
   const submit = async () => {
@@ -291,6 +333,12 @@ function AddForm(props: {
       const extras: { credentials?: Record<string, unknown>; settings?: unknown } = {};
       if (isApiKey && apiKey) {
         extras.credentials = { kind: 'api-key', key: apiKey };
+      }
+      if (isCustom && hasCustomCredFields) {
+        extras.credentials = { kind: 'custom', values: customCreds };
+      }
+      if (isCustom && hasSettingsFields) {
+        extras.settings = draftSettings;
       }
       if (isLlm && model) {
         // Stamp the chosen model as the connector instance's default. Per-agent
@@ -383,6 +431,34 @@ function AddForm(props: {
           </div>
         )}
       </div>
+      {isCustom && hasCustomCredFields && credSchema && (
+        <div className="mt-4 border-t border-ink-200 pt-4 dark:border-ink-700">
+          <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Credentials
+          </h4>
+          <SchemaForm
+            schema={credSchema}
+            value={customCreds}
+            onChange={(v) => {
+              setCustomCreds((v ?? {}) as Record<string, unknown>);
+              setError(null);
+            }}
+            noAutofill
+          />
+        </div>
+      )}
+      {isCustom && hasSettingsFields && settingsSchema && (
+        <div className="mt-4 border-t border-ink-200 pt-4 dark:border-ink-700">
+          <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Connection settings
+          </h4>
+          <SchemaForm
+            schema={settingsSchema}
+            value={draftSettings}
+            onChange={(v) => setDraftSettings((v ?? {}) as Record<string, unknown>)}
+          />
+        </div>
+      )}
       {error && (
         <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
           {error}
@@ -390,10 +466,12 @@ function AddForm(props: {
       )}
       <div className="mt-3 flex items-center gap-2">
         <button className="btn-primary" disabled={!canSave} onClick={submit}>
-          {busy ? 'Testing…' : isApiKey ? 'Save & test' : 'Save'}
+          {busy ? 'Testing…' : isApiKey || isCustom ? 'Save & test' : 'Save'}
         </button>
         <span className="text-xs text-ink-500 dark:text-ink-400">
-          {isApiKey ? 'We test the key before saving — nothing persists if it fails.' : null}
+          {isApiKey || isCustom
+            ? 'We test the connection before saving — nothing persists if it fails.'
+            : null}
         </span>
       </div>
     </div>
@@ -403,7 +481,7 @@ function AddForm(props: {
 function InstanceCard(props: {
   capability: string;
   instance: ConnectorCapability['instances'][number];
-  authKind: 'oauth2' | 'api-key' | 'none';
+  authKind: 'oauth2' | 'api-key' | 'none' | 'custom';
   externalOAuth?: { provider: 'composio'; toolkit: string };
   settingsSchema?: FieldSchema;
   onActivate: () => Promise<void>;

@@ -245,7 +245,7 @@ export interface FileStorageCapability {
 // Connector package shape
 // -----------------------------------------------------------------------------
 
-export type ConnectorAuthKind = 'oauth2' | 'api-key' | 'none';
+export type ConnectorAuthKind = 'oauth2' | 'api-key' | 'none' | 'custom';
 
 export interface ConnectorManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
   slug: string;
@@ -273,6 +273,16 @@ export interface ConnectorManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny
   };
   /** Zod schema for connector-instance settings (non-secret config) */
   settingsSchema: TSettings;
+  /**
+   * Optional Zod schema describing custom credential fields. Set when
+   * `authKind === 'custom'` (e.g. IMAP needs user + password, not a single
+   * API key). The framework auto-renders these fields in the Add form and
+   * stores values as `{ kind: 'custom', values: {...} }`.
+   *
+   * Mark a field as a masked secret by prefixing its description with
+   * `secret: ` — `z.string().describe('secret: IMAP password')`.
+   */
+  credentialsSchema?: z.ZodTypeAny;
 }
 
 /**
@@ -296,6 +306,7 @@ export interface ConnectorContext<TSettings = unknown> {
 export type ConnectorCredentials =
   | { kind: 'oauth2'; accessToken: string; refreshToken?: string; expiresAt?: Date }
   | { kind: 'api-key'; key: string; extra?: Record<string, string> }
+  | { kind: 'custom'; values: Record<string, string> }
   | { kind: 'none' };
 
 /**

@@ -121,6 +121,9 @@ importers:
       '@business-os/agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
+      '@business-os/connector-composio':
+        specifier: workspace:^
+        version: link:../../connectors/composio
       '@business-os/connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk

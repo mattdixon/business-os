@@ -109,12 +109,17 @@ export function zodToFieldSchema(schema: z.ZodTypeAny): FieldSchema {
     const checks = s._def.checks ?? [];
     const max = checks.find((c: { kind: string }) => c.kind === 'max') as { value: number } | undefined;
     const multiline = !!max && max.value > 200;
+    // Convention: a description starting with `secret:` marks the field as
+    // masked. Strip the prefix so the visible label stays clean.
+    const isSecret = !!description && /^secret:\s*/i.test(description);
+    const visibleDescription = isSecret ? description!.replace(/^secret:\s*/i, '').trim() : description;
     return {
       type: 'string',
       ...(optional ? { optional: true } : {}),
       ...(defaultValue !== undefined ? { default: String(defaultValue) } : {}),
-      ...(description ? { description } : {}),
+      ...(visibleDescription ? { description: visibleDescription } : {}),
       ...(multiline ? { multiline: true } : {}),
+      ...(isSecret ? { secret: true } : {}),
     };
   }
 

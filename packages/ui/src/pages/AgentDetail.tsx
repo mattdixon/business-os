@@ -3,22 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Api, ApiError, type AgentRun, type AgentSummary, type ConnectorCapability } from '../lib/api';
+import { apiErrorMessage } from '../lib/api-errors';
 import { PageHeader } from '../components/PageHeader';
 import { capabilityLabel } from '../lib/capability-labels';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
 import { useToast } from '../lib/toast';
-
-/** Pull a friendly message out of an ApiError that may carry Zod issues. */
-function apiErrorMessage(e: unknown, fallback: string): string {
-  if (!(e instanceof ApiError)) return fallback;
-  const body = e.body as { error?: string; issues?: Array<{ path?: string[]; message?: string }> } | null;
-  if (body?.issues && body.issues.length > 0) {
-    return body.issues
-      .map((i) => `${i.path?.join('.') ?? 'value'}: ${i.message ?? 'invalid'}`)
-      .join('; ');
-  }
-  return e.message || fallback;
-}
 
 export function AgentDetail(): JSX.Element {
   const { slug } = useParams<{ slug: string }>();

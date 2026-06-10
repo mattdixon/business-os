@@ -12,6 +12,7 @@ import { ConnectorsPage } from './pages/ConnectorsPage';
 import { ProvidersPage } from './pages/ProvidersPage';
 import { AuditPage } from './pages/AuditPage';
 import { ModulePagePlaceholder } from './pages/ModulePagePlaceholder';
+import { NotFound } from './pages/NotFound';
 import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
@@ -100,6 +101,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
                         module is registered server-side but didn't ship UI
                         pages in this build) renders the placeholder. */}
                     <Route path="modules/:slug/*" element={<ModulePagePlaceholder />} />
+                    <Route path="*" element={<NotFound />} />
                   </Route>
                 </Routes>
               </AuthProvider>

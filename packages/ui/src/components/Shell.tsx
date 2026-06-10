@@ -66,7 +66,7 @@ export function Shell(): JSX.Element {
           )}
           <SidebarLabel>Operator</SidebarLabel>
           <NavItem to="/audit">Audit log</NavItem>
-          <NavItem to="/settings">Settings</NavItem>
+          <NavItem to="/settings">Account</NavItem>
         </nav>
         <div className="border-t border-ink-200 px-5 py-4 text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
           <div className="truncate font-mono">{user?.email ?? '—'}</div>

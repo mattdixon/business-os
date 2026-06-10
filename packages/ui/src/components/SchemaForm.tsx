@@ -83,11 +83,47 @@ interface FormProps {
   noAutofill?: boolean;
 }
 
+/**
+ * Acronyms that should stay all-uppercase after `humanLabel` title-cases.
+ * Add new ones as agents introduce them. Case-insensitive match.
+ */
+const KNOWN_ACRONYMS = new Set([
+  'VIP',
+  'URL',
+  'URI',
+  'API',
+  'ID',
+  'IMAP',
+  'SMTP',
+  'SSL',
+  'TLS',
+  'OAUTH',
+  'OAUTH2',
+  'HTTP',
+  'HTTPS',
+  'JSON',
+  'CSV',
+  'CRM',
+  'LLM',
+  'PDF',
+  'UUID',
+  'AI',
+  'UI',
+  'UX',
+]);
+
 function humanLabel(key: string): string {
   return key
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[_-]+/g, ' ')
-    .replace(/^./, (c) => c.toUpperCase());
+    .split(' ')
+    .map((w) => {
+      if (!w) return w;
+      const upper = w.toUpperCase();
+      if (KNOWN_ACRONYMS.has(upper)) return upper;
+      return w[0]!.toUpperCase() + w.slice(1);
+    })
+    .join(' ');
 }
 
 export function defaultFor(schema: FieldSchema): unknown {
@@ -270,6 +306,42 @@ function FieldRenderer(props: FieldProps): JSX.Element {
 
     case 'enum': {
       const v = (value as string | undefined) ?? schema.default ?? '';
+      // Render small enums as a radio group — discoverable at a glance.
+      // Larger sets fall back to a select.
+      if (schema.values.length <= 4) {
+        return (
+          <fieldset>
+            <legend className="label">{label}</legend>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {schema.values.map((opt) => {
+                const selected = opt === v;
+                return (
+                  <label
+                    key={opt}
+                    className={
+                      'cursor-pointer rounded-md border px-3 py-1.5 text-sm transition-colors ' +
+                      (selected
+                        ? 'border-accent bg-accent/10 text-accent dark:border-accent dark:bg-accent/20'
+                        : 'border-ink-200 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800')
+                    }
+                  >
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name={`enum-${path}`}
+                      value={opt}
+                      checked={selected}
+                      onChange={() => onChange(opt)}
+                    />
+                    {humanLabel(opt)}
+                  </label>
+                );
+              })}
+            </div>
+            {schema.description && <Help>{schema.description}</Help>}
+          </fieldset>
+        );
+      }
       return (
         <div>
           <label className="label">{label}</label>

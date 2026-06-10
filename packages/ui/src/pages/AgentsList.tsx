@@ -84,9 +84,13 @@ export function AgentsList(): JSX.Element {
         {!agents ? (
           <div className="text-sm text-ink-500 dark:text-ink-400">Loading…</div>
         ) : agents.length === 0 ? (
-          <div className="card p-10 text-center text-sm text-ink-500 dark:text-ink-400">
-            No agents registered. Add one in{' '}
-            <code className="font-mono text-ink-700 dark:text-ink-300">business-os.config.ts</code>.
+          <div className="card p-10 text-center">
+            <h3 className="text-base font-semibold tracking-tight">No agents installed yet</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-ink-500 dark:text-ink-400">
+              Agents are registered in your client shell's{' '}
+              <code className="font-mono text-xs text-ink-700 dark:text-ink-300">business-os.config.ts</code>.
+              Add a package, import it, and call <code className="font-mono text-xs">registry.registerAgent(...)</code>.
+            </p>
           </div>
         ) : (
           <div className="card overflow-hidden">

@@ -3,28 +3,9 @@ import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, defaultFor, type FieldSchema } from '../components/SchemaForm';
 import { capabilityLabel } from '../lib/capability-labels';
+import { apiErrorMessage } from '../lib/api-errors';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../lib/toast';
-
-function apiErrorMessage(e: unknown, fallback: string): string {
-  if (!(e instanceof ApiError)) return fallback;
-  const body = e.body as {
-    issues?: Array<{ path?: string[]; message?: string }>;
-    message?: string;
-  } | null;
-  if (body?.issues?.length) {
-    return body.issues
-      .map((i) => `${i.path?.join('.') ?? 'value'}: ${i.message ?? 'invalid'}`)
-      .join('; ');
-  }
-  // Routes that fail validation (e.g. verify_failed from the connector
-  // setup flow) put the human-readable detail on `body.message` while
-  // `body.error` is the machine code that becomes `e.message`. Prefer
-  // body.message so the operator sees "401 Invalid API key" instead of
-  // the bare "verify_failed".
-  if (body?.message) return body.message;
-  return e.message || fallback;
-}
 
 export function ConnectorsPage(): JSX.Element {
   const { toast } = useToast();

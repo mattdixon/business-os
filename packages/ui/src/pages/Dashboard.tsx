@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Api, ApiError, type AgentRun } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { capabilityLabel } from '../lib/capability-labels';
@@ -18,6 +18,7 @@ interface DashboardData {
 export function Dashboard(): JSX.Element {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Api.getDashboard()
@@ -78,9 +79,7 @@ export function Dashboard(): JSX.Element {
                     <tr
                       key={r.id}
                       className="cursor-pointer transition-colors hover:bg-ink-50 dark:hover:bg-ink-800/50"
-                      onClick={() => {
-                        window.location.href = `/runs/${r.id}`;
-                      }}
+                      onClick={() => navigate(`/runs/${r.id}`)}
                     >
                       <td className="px-4 py-2.5 font-mono text-xs text-ink-500 dark:text-ink-400">
                         {new Date(r.startedAt).toLocaleString()}

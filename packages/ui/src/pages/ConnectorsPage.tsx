@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Api, ApiError, type ConnectorCapability } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, defaultFor, type FieldSchema } from '../components/SchemaForm';
 import { capabilityLabel } from '../lib/capability-labels';
 import { apiErrorMessage } from '../lib/api-errors';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProvidersTab } from '../components/ProvidersTab';
 import { useToast } from '../lib/toast';
 
 export function ConnectorsPage(): JSX.Element {
@@ -12,6 +14,10 @@ export function ConnectorsPage(): JSX.Element {
   const [caps, setCaps] = useState<ConnectorCapability[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null); // capability being added to
+  // ?tab=available switches to the providers marketplace.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: 'configured' | 'available' =
+    searchParams.get('tab') === 'available' ? 'available' : 'configured';
 
   const reload = async (): Promise<void> => {
     try {
@@ -106,13 +112,54 @@ export function ConnectorsPage(): JSX.Element {
     }
   };
 
+  const setTab = (next: 'configured' | 'available'): void => {
+    if (next === 'configured') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', 'available');
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
+
   return (
     <div>
       <PageHeader
         title="Connectors"
-        description="What this install can talk to. Operator picks the active provider per capability."
+        description={
+          tab === 'configured'
+            ? 'What this install can talk to. Operator picks the active provider per capability.'
+            : 'Every provider this install knows about. Toggle on to make it pickable when adding a new instance.'
+        }
       />
       <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+        {/* Tab toggle. Configured = current instances; Available = the
+            marketplace formerly at /providers. */}
+        <div className="inline-flex rounded-md border border-ink-200 p-0.5 text-sm dark:border-ink-700">
+          <button
+            className={`rounded-sm px-3 py-1 font-medium transition-colors ${
+              tab === 'configured'
+                ? 'bg-accent text-white'
+                : 'text-ink-600 hover:text-ink-900 dark:text-ink-300 dark:hover:text-ink-100'
+            }`}
+            onClick={() => setTab('configured')}
+          >
+            Configured
+          </button>
+          <button
+            className={`rounded-sm px-3 py-1 font-medium transition-colors ${
+              tab === 'available'
+                ? 'bg-accent text-white'
+                : 'text-ink-600 hover:text-ink-900 dark:text-ink-300 dark:hover:text-ink-100'
+            }`}
+            onClick={() => setTab('available')}
+          >
+            Available
+          </button>
+        </div>
+        {tab === 'available' ? (
+          <ProvidersTab />
+        ) : (
+          <>
         {error && (
           <div className="card border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>
         )}
@@ -145,7 +192,14 @@ export function ConnectorsPage(): JSX.Element {
 
             {cap.providers.length === 0 && (
               <div className="text-sm text-ink-500 dark:text-ink-400">
-                No providers registered for this capability.
+                No providers enabled for this capability.{' '}
+                <button
+                  className="text-accent underline hover:text-accent-hover"
+                  onClick={() => setTab('available')}
+                >
+                  Enable one
+                </button>
+                .
               </div>
             )}
 
@@ -182,6 +236,8 @@ export function ConnectorsPage(): JSX.Element {
             )}
           </section>
         ))}
+          </>
+        )}
       </div>
     </div>
   );

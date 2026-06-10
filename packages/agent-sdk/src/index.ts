@@ -35,6 +35,17 @@ export interface AgentManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
   inputSchema?: z.ZodTypeAny;
   /** When the runtime should invoke the agent */
   schedule: AgentSchedule;
+  /**
+   * Which trigger kinds the operator is allowed to switch the agent to.
+   * Defaults to `[<schedule.kind>, 'manual']` — i.e. the manifest's
+   * declared trigger plus always-allowed manual. Set explicitly to widen
+   * (e.g. `['cron', 'manual', 'event']` for an agent that can poll OR
+   * subscribe to a webhook).
+   *
+   * The UI's Schedule subsection only shows radio options that appear here.
+   * The runtime checks this list when applying an override.
+   */
+  supportedTriggers?: ReadonlyArray<'cron' | 'manual' | 'event'>;
 }
 
 /**

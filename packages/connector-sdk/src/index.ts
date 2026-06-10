@@ -283,6 +283,26 @@ export interface ConnectorManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny
    * `secret: ` — `z.string().describe('secret: IMAP password')`.
    */
   credentialsSchema?: z.ZodTypeAny;
+  /**
+   * Topics this connector can emit events on. When set, the framework can
+   * register webhook subscriptions via the package's `subscribeToEvents`
+   * and dispatch fired events to agents whose schedule is `{ kind: 'event',
+   * topic }`. Set to undefined or {} for connectors that don't push (IMAP,
+   * file storage, anything operating in pull-only mode).
+   *
+   * The keys are operator-facing topic identifiers, namespaced by capability
+   * convention: `email-inbox.message.received`, `crm.contact.created`, etc.
+   * UI surfaces these on the Schedule edit form when the operator picks
+   * event-mode and a bound connector supports them.
+   */
+  events?: Record<
+    string,
+    {
+      displayName: string;
+      /** Optional Zod schema for the event payload — handed to the agent's `run()` as `input`. */
+      payloadSchema?: z.ZodTypeAny;
+    }
+  >;
 }
 
 /**
@@ -329,6 +349,23 @@ export interface ConnectorPackage<
    * readable message; the framework surfaces it in the UI.
    */
   verify?(ctx: ConnectorContext<z.infer<TSettings>>): Promise<void>;
+  /**
+   * Optional webhook subscription hook. Called by the framework when an
+   * event-triggered agent binds to this instance. The connector registers
+   * the subscription with the upstream provider (Composio Triggers, Microsoft
+   * Graph subscriptions, Gmail Pub/Sub watch, etc.) and returns a handle
+   * the framework can later pass to unsubscribeFromEvents.
+   *
+   * Connectors that don't push events leave this undefined.
+   */
+  subscribeToEvents?(
+    ctx: ConnectorContext<z.infer<TSettings>>,
+    topics: ReadonlyArray<string>,
+  ): Promise<{ subscriptionId: string }>;
+  unsubscribeFromEvents?(
+    ctx: ConnectorContext<z.infer<TSettings>>,
+    subscriptionId: string,
+  ): Promise<void>;
 }
 
 export function defineConnector<

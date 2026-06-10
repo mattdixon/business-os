@@ -213,6 +213,29 @@ export const Api = {
     }),
   disableAgent: (slug: string) =>
     api<{ ok: true }>(`/api/agents/${slug}/disable`, { method: 'POST' }),
+  getAgentSchedule: (slug: string) =>
+    api<{
+      manifest: { kind: 'cron'; expr: string } | { kind: 'manual' } | { kind: 'event'; topic: string };
+      override:
+        | null
+        | { kind: 'manual' }
+        | { kind: 'cron'; expr: string }
+        | { kind: 'event'; topic: string };
+      effective: { kind: 'cron'; expr: string } | { kind: 'manual' } | { kind: 'event'; topic: string };
+      supportedTriggers: Array<'cron' | 'manual' | 'event'>;
+    }>(`/api/agents/${slug}/schedule`),
+  setAgentSchedule: (
+    slug: string,
+    override:
+      | null
+      | { kind: 'manual' }
+      | { kind: 'cron'; expr: string }
+      | { kind: 'event'; topic: string },
+  ) =>
+    api<{ ok: true; override: typeof override }>(`/api/agents/${slug}/schedule`, {
+      method: 'PUT',
+      body: { override },
+    }),
   getAgent: (slug: string) => api<AgentSummary>(`/api/agents/${slug}`),
   updateAgentSettings: (slug: string, value: unknown) =>
     api<{ ok: true; settings: unknown }>(`/api/agents/${slug}/settings`, {

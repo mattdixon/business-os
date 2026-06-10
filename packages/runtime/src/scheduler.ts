@@ -1,9 +1,42 @@
 import { Cron } from 'croner';
+import { eq } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import type { Db } from '@business-os/db';
+import { settings as settingsTable, type Db } from '@business-os/db';
 import type { Registry } from './registry.js';
 import type { ConnectorResolver } from './active-connectors.js';
 import { runAgent, type RunTrigger } from './run.js';
+
+type AgentScheduleOverride =
+  | { kind: 'manual' }
+  | { kind: 'cron'; expr: string }
+  | { kind: 'event'; topic: string };
+
+/**
+ * Read both the operator-set override (`agent-schedule:<slug>`) and the
+ * enable bit (`agent-enabled:<slug>`) from the DB. Disabled agents return
+ * `null` — caller skips scheduling them entirely.
+ */
+async function readScheduleState(
+  db: Db,
+  slug: string,
+): Promise<{ enabled: boolean; override: AgentScheduleOverride | null }> {
+  const rows = await db
+    .select({ scope: settingsTable.scope, value: settingsTable.value })
+    .from(settingsTable);
+  const byScope = new Map<string, unknown>();
+  for (const r of rows) byScope.set(r.scope, r.value);
+  const enabledRow = byScope.get(`agent-enabled:${slug}`) as { enabled?: boolean } | undefined;
+  const enabled = enabledRow?.enabled === true;
+  const overrideRow = byScope.get(`agent-schedule:${slug}`);
+  let override: AgentScheduleOverride | null = null;
+  if (overrideRow && typeof overrideRow === 'object') {
+    const o = overrideRow as { kind?: string; expr?: string; topic?: string };
+    if (o.kind === 'manual') override = { kind: 'manual' };
+    else if (o.kind === 'cron' && typeof o.expr === 'string') override = { kind: 'cron', expr: o.expr };
+    else if (o.kind === 'event' && typeof o.topic === 'string') override = { kind: 'event', topic: o.topic };
+  }
+  return { enabled, override };
+}
 
 /**
  * In-process scheduler.
@@ -46,31 +79,66 @@ export class Scheduler {
   constructor(private deps: SchedulerDeps) {}
 
   /**
-   * Walk the registry, start cron jobs for cron-scheduled agents, build the
-   * event subscription map for event-scheduled agents.
-   * Manual agents do nothing on start.
+   * Walk the registry. For each agent: if it's DB-enabled, start a cron job
+   * (or wire an event subscription) per the effective schedule = override
+   * ?? manifest. Disabled agents are skipped entirely.
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.started) throw new Error('Scheduler already started');
     for (const agent of this.deps.registry.listAgents()) {
-      const s = agent.manifest.schedule;
-      const slug = agent.manifest.slug;
-      if (s.kind === 'cron') {
-        const cron = new Cron(s.expr, { timezone: 'UTC', protect: true }, async () => {
-          await this.fireRun(slug, undefined, { kind: 'cron', detail: s.expr });
-        });
-        this.crons.set(slug, cron);
-      } else if (s.kind === 'event') {
-        const list = this.eventSubs.get(s.topic) ?? [];
-        list.push(slug);
-        this.eventSubs.set(s.topic, list);
-      }
+      await this.scheduleAgent(agent.manifest.slug);
     }
     this.started = true;
     this.deps.logger.info(
       { cronCount: this.crons.size, eventTopics: this.eventSubs.size },
       'scheduler.started',
     );
+  }
+
+  /**
+   * Re-read enable + override for a single agent and adjust crons/event
+   * subscriptions. Called by the API when the operator changes the schedule
+   * or enables/disables an agent, so changes take effect without a restart.
+   */
+  async refreshAgent(slug: string): Promise<void> {
+    this.unscheduleAgent(slug);
+    await this.scheduleAgent(slug);
+  }
+
+  private unscheduleAgent(slug: string): void {
+    const existing = this.crons.get(slug);
+    if (existing) {
+      existing.stop();
+      this.crons.delete(slug);
+    }
+    for (const [topic, subs] of this.eventSubs) {
+      const next = subs.filter((s) => s !== slug);
+      if (next.length === 0) this.eventSubs.delete(topic);
+      else this.eventSubs.set(topic, next);
+    }
+  }
+
+  private async scheduleAgent(slug: string): Promise<void> {
+    let agent;
+    try {
+      agent = this.deps.registry.getAgent(slug);
+    } catch {
+      return; // not registered — nothing to schedule
+    }
+    const state = await readScheduleState(this.deps.db, slug);
+    if (!state.enabled) return; // disabled agents stay idle
+    const s = state.override ?? agent.manifest.schedule;
+    if (s.kind === 'cron') {
+      const cron = new Cron(s.expr, { timezone: 'UTC', protect: true }, async () => {
+        await this.fireRun(slug, undefined, { kind: 'cron', detail: s.expr });
+      });
+      this.crons.set(slug, cron);
+    } else if (s.kind === 'event') {
+      const list = this.eventSubs.get(s.topic) ?? [];
+      list.push(slug);
+      this.eventSubs.set(s.topic, list);
+    }
+    // manual — nothing to do; operator drives via /run.
   }
 
   async stop(): Promise<void> {

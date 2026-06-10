@@ -145,6 +145,7 @@ export default defineAgent({
     settingsSchema: SettingsSchema,
     inputSchema: InputSchema,
     schedule: { kind: 'manual' },
+    supportedTriggers: ['manual', 'cron', 'event'] as const,
   },
   run: async (ctx): Promise<AgentResult> => {
     const settings = ctx.settings;

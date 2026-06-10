@@ -9,7 +9,6 @@ import { AgentsList } from './pages/AgentsList';
 import { AgentDetail } from './pages/AgentDetail';
 import { RunDetail } from './pages/RunDetail';
 import { ConnectorsPage } from './pages/ConnectorsPage';
-import { ProvidersPage } from './pages/ProvidersPage';
 import { AuditPage } from './pages/AuditPage';
 import { ModulePagePlaceholder } from './pages/ModulePagePlaceholder';
 import { NotFound } from './pages/NotFound';
@@ -80,7 +79,9 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
                     <Route path="agents/:slug" element={<AgentDetail />} />
                     <Route path="runs/:id" element={<RunDetail />} />
                     <Route path="connectors" element={<ConnectorsPage />} />
-                    <Route path="providers" element={<ProvidersPage />} />
+                    {/* /providers used to be its own page; it's now a tab on
+                        /connectors. Redirect to preserve any saved bookmarks. */}
+                    <Route path="providers" element={<Navigate to="/connectors?tab=available" replace />} />
                     <Route path="audit" element={<AuditPage />} />
                     <Route path="settings" element={<Settings />} />
 

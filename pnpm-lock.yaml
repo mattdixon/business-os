@@ -112,24 +112,12 @@ importers:
 
   clients/c-and-m-construction-os:
     dependencies:
-      '@business-os/agent-inbox-categorize':
-        specifier: workspace:^
-        version: link:../../agents/inbox-categorize
-      '@business-os/agent-inbox-cleanup':
-        specifier: workspace:^
-        version: link:../../agents/inbox-cleanup
-      '@business-os/agent-inbox-surface':
-        specifier: workspace:^
-        version: link:../../agents/inbox-surface
-      '@business-os/agent-leadgen':
-        specifier: workspace:^
-        version: link:../../agents/leadgen
-      '@business-os/agent-prospecting':
-        specifier: workspace:^
-        version: link:../../agents/prospecting
       '@business-os/agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
+      '@business-os/agents-all':
+        specifier: workspace:^
+        version: link:../../packages/agents-all
       '@business-os/connector-composio':
         specifier: workspace:^
         version: link:../../connectors/composio
@@ -539,6 +527,34 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
+
+  packages/agents-all:
+    dependencies:
+      '@business-os/agent-inbox-categorize':
+        specifier: workspace:^
+        version: link:../../agents/inbox-categorize
+      '@business-os/agent-inbox-cleanup':
+        specifier: workspace:^
+        version: link:../../agents/inbox-cleanup
+      '@business-os/agent-inbox-surface':
+        specifier: workspace:^
+        version: link:../../agents/inbox-surface
+      '@business-os/agent-leadgen':
+        specifier: workspace:^
+        version: link:../../agents/leadgen
+      '@business-os/agent-prospecting':
+        specifier: workspace:^
+        version: link:../../agents/prospecting
+      '@business-os/agent-sdk':
+        specifier: workspace:^
+        version: link:../agent-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
 
   packages/api-contract:
     dependencies:

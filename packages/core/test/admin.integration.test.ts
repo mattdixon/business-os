@@ -10,6 +10,7 @@ import type {
   ExternalOAuthBrokerLike,
 } from '../src/inventory.js';
 import { freshDb, pgReachable, TEST_DATABASE_URL } from './_db.js';
+import { settings } from '@business-os/db';
 
 const reachable = await pgReachable(TEST_DATABASE_URL);
 const d = reachable ? describe : describe.skip;
@@ -171,6 +172,13 @@ d('admin/operator API (real Postgres)', () => {
     const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
     const m = (header ?? '').match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
     cookie = `${SESSION_COOKIE}=${m?.[1]}`;
+    // Add Agent flow now gates /api/agents — operator has to install before
+    // it shows up. Seed leadgen as enabled so tests written against the
+    // pre-flow shape still see it.
+    await env.db
+      .insert(settings)
+      .values({ scope: 'agent-enabled:leadgen', value: { enabled: true } })
+      .onConflictDoNothing();
   });
 
   afterAll(async () => {

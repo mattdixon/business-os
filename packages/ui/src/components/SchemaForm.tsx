@@ -127,17 +127,28 @@ function humanLabel(key: string): string {
 }
 
 export function defaultFor(schema: FieldSchema): unknown {
+  // For optional fields with no default, return undefined so the parent
+  // object-builder can omit the key entirely. Otherwise the server sees
+  // `''` for an optional `z.string().min(1).optional()` and rejects it as
+  // an empty string — the operator gets a "must contain at least..."
+  // toast despite never having touched the field.
+  const isOptional = schema.type !== 'unknown' && (schema as { optional?: boolean }).optional;
   switch (schema.type) {
     case 'string':
-      return schema.default ?? '';
+      if (schema.default !== undefined) return schema.default;
+      return isOptional ? undefined : '';
     case 'number':
-      return schema.default ?? '';
+      if (schema.default !== undefined) return schema.default;
+      return isOptional ? undefined : '';
     case 'boolean':
-      return schema.default ?? false;
+      if (schema.default !== undefined) return schema.default;
+      return isOptional ? undefined : false;
     case 'enum':
-      return schema.default ?? schema.values[0] ?? '';
+      if (schema.default !== undefined) return schema.default;
+      return isOptional ? undefined : (schema.values[0] ?? '');
     case 'stringArray':
-      return schema.default ?? [];
+      if (schema.default !== undefined) return schema.default;
+      return isOptional ? undefined : [];
     case 'object': {
       const obj: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(schema.fields)) {

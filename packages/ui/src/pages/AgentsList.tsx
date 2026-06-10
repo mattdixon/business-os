@@ -4,6 +4,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Api, ApiError, type AgentSummary } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SchemaForm, defaultFor, type FieldSchema } from '../components/SchemaForm';
+import { AddAgentDialog } from '../components/AddAgentDialog';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../lib/toast';
 
 function ScheduleLabel({ s }: { s: AgentSummary['schedule'] }): JSX.Element {
@@ -29,7 +31,19 @@ export function AgentsList(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState<string | null>(null);
   const [inputModalFor, setInputModalFor] = useState<AgentSummary | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const { toast } = useToast();
+
+  const disableAgent = async (slug: string, displayName: string): Promise<void> => {
+    try {
+      await Api.disableAgent(slug);
+      toast.success(`${displayName} disabled.`);
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof ApiError ? e.message : 'disable failed');
+      throw e;
+    }
+  };
 
   const load = (): void => {
     Api.listAgents()
@@ -74,6 +88,11 @@ export function AgentsList(): JSX.Element {
       <PageHeader
         title="Agents"
         description="Everything running on this install. Click an agent to configure or run it."
+        right={
+          <button className="btn-primary" onClick={() => setAddOpen(true)}>
+            Add agent
+          </button>
+        }
       />
       <div className="p-6 sm:p-8">
         {error && (
@@ -87,10 +106,12 @@ export function AgentsList(): JSX.Element {
           <div className="card p-10 text-center">
             <h3 className="text-base font-semibold tracking-tight">No agents installed yet</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm text-ink-500 dark:text-ink-400">
-              Agents are registered in your client shell's{' '}
-              <code className="font-mono text-xs text-ink-700 dark:text-ink-300">business-os.config.ts</code>.
-              Add a package, import it, and call <code className="font-mono text-xs">registry.registerAgent(...)</code>.
+              Click <strong>Add agent</strong> to install one. The catalog is everything this install
+              knows how to run — pick what you want, configure connectors and defaults, done.
             </p>
+            <button className="btn-primary mt-5" onClick={() => setAddOpen(true)}>
+              Add agent
+            </button>
           </div>
         ) : (
           <div className="card overflow-hidden">
@@ -127,13 +148,45 @@ export function AgentsList(): JSX.Element {
                       <LastRunCell run={a.lastRun} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        className="btn-secondary"
-                        disabled={running === a.slug}
-                        onClick={() => onRunClick(a)}
-                      >
-                        {running === a.slug ? 'Starting…' : 'Run'}
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          className="btn-secondary"
+                          disabled={running === a.slug}
+                          onClick={() => onRunClick(a)}
+                        >
+                          {running === a.slug ? 'Starting…' : 'Run'}
+                        </button>
+                        <ConfirmDialog
+                          title={`Disable ${a.displayName}?`}
+                          description="Settings, bindings, and run history stay so you can re-enable later. The agent stops firing on any schedule until then."
+                          confirmLabel="Disable"
+                          variant="danger"
+                          onConfirm={() => disableAgent(a.slug, a.displayName)}
+                        >
+                          <button
+                            className="btn-ghost text-ink-500 hover:text-bad"
+                            aria-label={`Disable ${a.displayName}`}
+                            title="Disable agent"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </ConfirmDialog>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -153,6 +206,7 @@ export function AgentsList(): JSX.Element {
           }}
         />
       )}
+      <AddAgentDialog open={addOpen} onOpenChange={setAddOpen} onEnabled={load} />
     </div>
   );
 }

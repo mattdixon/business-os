@@ -48,6 +48,19 @@ const CREDENTIAL_KEY = 'credentials';
 const PROVIDER_ENABLED_SCOPE = (cap: string, slug: string): string =>
   `provider:${cap}:${slug}`;
 
+/**
+ * Per-install enable/disable flag for an agent. Persisted in `settings`.
+ * Differs from providers in default behavior: missing row = DISABLED.
+ * Operators add agents explicitly via the Add Agent flow; uninstalled
+ * agents stay registered but don't appear on /agents and don't fire on
+ * any schedule. Disabling preserves runs, settings, bindings, schedule
+ * so re-enabling later doesn't lose history.
+ *
+ * Brownfield-safe: a one-time boot seed enables every currently-registered
+ * agent on first run after this PR. See `seedAgentEnabledIfNeeded`.
+ */
+const AGENT_ENABLED_SCOPE = (slug: string): string => `agent-enabled:${slug}`;
+
 async function isProviderEnabled(db: Db, cap: string, slug: string): Promise<boolean> {
   const rows = await db
     .select({ value: settingsTable.value })
@@ -56,6 +69,16 @@ async function isProviderEnabled(db: Db, cap: string, slug: string): Promise<boo
     .limit(1);
   const v = rows[0]?.value as { enabled?: boolean } | undefined;
   return v?.enabled !== false; // missing row OR { enabled: true } -> enabled
+}
+
+async function isAgentEnabled(db: Db, slug: string): Promise<boolean> {
+  const rows = await db
+    .select({ value: settingsTable.value })
+    .from(settingsTable)
+    .where(eq(settingsTable.scope, AGENT_ENABLED_SCOPE(slug)))
+    .limit(1);
+  const v = rows[0]?.value as { enabled?: boolean } | undefined;
+  return v?.enabled === true; // missing row OR { enabled: false } -> disabled
 }
 
 // -----------------------------------------------------------------------------
@@ -176,6 +199,28 @@ async function loadAgentBindings(
   return {};
 }
 
+/**
+ * Insert-or-update a single settings row. Used by routes that need to
+ * persist a per-scope blob (agent settings, bindings, the enable bit).
+ * Callers that want fine-grained audit semantics still inline the insert
+ * with their own audit message; this helper is the catch-all for system
+ * state (enable/disable) where the audit hook fires separately.
+ */
+async function upsertSetting(
+  db: Db,
+  scope: string,
+  value: unknown,
+  updatedBy?: string,
+): Promise<void> {
+  await db
+    .insert(settingsTable)
+    .values({ scope, value, updatedBy })
+    .onConflictDoUpdate({
+      target: settingsTable.scope,
+      set: { value, updatedAt: new Date(), updatedBy },
+    });
+}
+
 async function loadConnectorSettings(
   db: Db,
   capability: string,
@@ -246,8 +291,17 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   // ---------- GET /api/agents ----------
   app.get('/api/agents', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const allAgents = req.deps.inventory.listAgents();
+    // Only show installed (DB-enabled) agents on the operator's main list.
+    // The Add Agent flow consumes /api/agents/available for the rest.
+    const enabledSlugs = new Set<string>();
+    for (const a of allAgents) {
+      if (await isAgentEnabled(req.deps.db, a.manifest.slug)) enabledSlugs.add(a.manifest.slug);
+    }
     const items = await Promise.all(
-      req.deps.inventory.listAgents().map(async ({ manifest }) => {
+      allAgents
+        .filter((a) => enabledSlugs.has(a.manifest.slug))
+        .map(async ({ manifest }) => {
         const settingsValue = await loadAgentSettings(req, manifest.slug);
         const lastRunRows = await req.deps.db
           .select({
@@ -285,6 +339,90 @@ export function registerAdminRoutes(app: FastifyInstance): void {
   });
 
   // ---------- GET /api/agents/:slug ----------
+  // ---------- GET /api/agents/available ----------
+  // Returns every registered agent that ISN'T installed (no DB enable row).
+  // Drives the Add Agent picker — operator sees the catalog of agents this
+  // install knows how to run, minus the ones they've already enabled.
+  app.get('/api/agents/available', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const available = [];
+    for (const { manifest } of req.deps.inventory.listAgents()) {
+      if (await isAgentEnabled(req.deps.db, manifest.slug)) continue;
+      available.push({
+        slug: manifest.slug,
+        version: manifest.version,
+        displayName: manifest.displayName,
+        description: manifest.description,
+        requiredConnectors: manifest.requiredConnectors,
+        schedule: manifest.schedule,
+        settingsSchema: zodToFieldSchema(manifest.settingsSchema),
+      });
+    }
+    return { agents: available };
+  });
+
+  // ---------- POST /api/agents/:slug/enable ----------
+  // Install an agent. Optional body lets the operator seed settings + bindings
+  // in the same round-trip so they don't end up with a freshly-enabled agent
+  // that's missing connector bindings and can't run.
+  app.post('/api/agents/:slug/enable', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const slug = (req.params as { slug: string }).slug;
+    let agent;
+    try {
+      agent = req.deps.inventory.getAgent(slug);
+    } catch {
+      reply.code(404).send({ error: 'agent_not_found' });
+      return;
+    }
+    const body = z
+      .object({ settings: z.unknown().optional(), bindings: z.record(z.string()).optional() })
+      .safeParse(req.body ?? {});
+    if (!body.success) {
+      reply.code(400).send({ error: 'invalid_input', issues: body.error.issues });
+      return;
+    }
+    // Settings: validate against the agent's schema. Operator may have skipped
+    // optional fields — Zod fills defaults. Persist what comes out.
+    if (body.data.settings !== undefined) {
+      const parsed = agent.manifest.settingsSchema.safeParse(body.data.settings);
+      if (!parsed.success) {
+        reply.code(400).send({ error: 'invalid_settings', issues: parsed.error.issues });
+        return;
+      }
+      await upsertSetting(req.deps.db, SETTINGS_AGENT_SCOPE(slug), parsed.data);
+    }
+    if (body.data.bindings) {
+      // Strip empty strings — operator left a capability unset; we don't want
+      // to send "" through and trip the uuid validator on the bindings route.
+      const clean = Object.fromEntries(
+        Object.entries(body.data.bindings).filter(([, v]) => v && v.length > 0),
+      );
+      await upsertSetting(req.deps.db, SETTINGS_AGENT_BINDINGS_SCOPE(slug), clean);
+    }
+    await upsertSetting(req.deps.db, AGENT_ENABLED_SCOPE(slug), { enabled: true });
+    await req.audit('admin.agent.enabled', { slug });
+    return { ok: true };
+  });
+
+  // ---------- POST /api/agents/:slug/disable ----------
+  // Uninstall an agent. Preserves runs, settings, bindings, schedule — so
+  // re-enabling later doesn't lose history. A scheduler watching this scope
+  // should stop firing the agent on cron / event triggers.
+  app.post('/api/agents/:slug/disable', { preHandler: requireUser }, async (req, reply) => {
+    if (!require503(req.deps.inventory, reply, 'inventory')) return;
+    const slug = (req.params as { slug: string }).slug;
+    try {
+      req.deps.inventory.getAgent(slug);
+    } catch {
+      reply.code(404).send({ error: 'agent_not_found' });
+      return;
+    }
+    await upsertSetting(req.deps.db, AGENT_ENABLED_SCOPE(slug), { enabled: false });
+    await req.audit('admin.agent.disabled', { slug });
+    return { ok: true };
+  });
+
   app.get('/api/agents/:slug', { preHandler: requireUser }, async (req, reply) => {
     if (!require503(req.deps.inventory, reply, 'inventory')) return;
     const slug = (req.params as { slug: string }).slug;

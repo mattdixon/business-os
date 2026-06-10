@@ -4,6 +4,7 @@ import { Api, ApiError, type AgentRun, type AuditEntry } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { detailsToCsv, detailsToMarkdown, downloadText } from '../lib/export';
 import { RunDetailsRenderer } from '../components/RunDetailsRenderer';
+import { MetaCell } from '../components/MetaCell';
 
 interface RunWithDetails extends AgentRun {
   agentSlug: string;
@@ -121,13 +122,7 @@ export function RunDetail(): JSX.Element {
                       <span className="font-mono text-xs">{a.action}</span>
                     </td>
                     <td className="px-4 py-2.5 align-top">
-                      {a.meta ? (
-                        <pre className="max-w-xl overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-ink-700 dark:text-ink-300">
-                          {JSON.stringify(a.meta)}
-                        </pre>
-                      ) : (
-                        <span className="text-ink-400 dark:text-ink-500">—</span>
-                      )}
+                      <MetaCell meta={a.meta} />
                     </td>
                   </tr>
                 ))}

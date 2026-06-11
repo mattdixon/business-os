@@ -82,6 +82,44 @@ export interface AgentContext<TSettings = unknown> {
   };
   /** Identifier of this run, useful for log correlation */
   runId: string;
+  /**
+   * Read-only view of the modules registered in this install. Used by
+   * framework agents that coordinate across modules — primarily the
+   * digest agent calling each module's `digestContribution`. Most agents
+   * never touch this.
+   */
+  modules: ReadonlyArray<AgentVisibleModule>;
+}
+
+/**
+ * The slice of a module's package an agent is allowed to see. We surface
+ * digestContribution explicitly because that's the only cross-module hook
+ * an agent needs; routes + uiPages are framework-internal.
+ */
+export interface AgentVisibleModule {
+  slug: string;
+  displayName: string;
+  digestContribution?: (
+    ctx: AgentVisibleDigestContext,
+  ) => Promise<AgentVisibleDigestContribution | null>;
+}
+
+export interface AgentVisibleDigestContext {
+  user: { id: string; email: string };
+  since: Date;
+  logger: Logger;
+  settings: unknown;
+}
+
+export interface AgentVisibleDigestContribution {
+  sectionTitle: string;
+  summary?: string;
+  items: Array<{
+    title: string;
+    subtitle?: string;
+    href: string;
+    isUrgent?: boolean;
+  }>;
 }
 
 export interface EnqueueOpts {

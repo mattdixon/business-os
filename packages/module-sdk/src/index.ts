@@ -131,6 +131,40 @@ export interface ModuleUiPage {
   audience?: AudienceTag;
 }
 
+/**
+ * One section of the daily digest, contributed by a module. The digest
+ * agent (`@business-os/agent-digest`) calls each module's
+ * digestContribution per user, drops empty contributions, and composes
+ * one email per user from what's left.
+ *
+ * Return `null` (or `items: []`) to skip this user's digest for this run.
+ */
+export interface DigestContribution {
+  /** Heading shown above this module's items. */
+  sectionTitle: string;
+  /** Optional one-line lead under the title. */
+  summary?: string;
+  items: Array<{
+    title: string;
+    subtitle?: string;
+    /** Deep link to the dashboard or a detail page for this item. */
+    href: string;
+    /** When true, raises an [URGENT] email separate from the morning send. */
+    isUrgent?: boolean;
+  }>;
+}
+
+export interface DigestContext<TSettings = unknown> {
+  /** The user the digest is being built for. */
+  user: { id: string; email: string };
+  /** When this user last received a digest. First-time = installDate-ish. */
+  since: Date;
+  /** Module-scoped logger pre-tagged with module_slug + user_id. */
+  logger: ModuleLogger;
+  /** Decrypted, parsed module settings. */
+  settings: TSettings;
+}
+
 export interface ModulePackage<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
   manifest: ModuleManifest<TSettings>;
   /**
@@ -143,6 +177,11 @@ export interface ModulePackage<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
    * server-only.
    */
   uiPages?: ModuleUiPage[];
+  /**
+   * Contribute a section to the daily digest. Called once per user per
+   * digest run. Optional — modules without digest content can omit.
+   */
+  digestContribution?: (ctx: DigestContext<z.infer<TSettings>>) => Promise<DigestContribution | null>;
 }
 
 /**

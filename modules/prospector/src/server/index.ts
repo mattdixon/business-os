@@ -54,18 +54,34 @@ export default defineModule({
 
     /**
      * GET /modules/prospector/bids
-     * Returns scored bids sorted high → low. Joins each row with the
-     * caller's own thumbs rating if any.
+     *
+     * Query params (all optional):
+     *   ?status=<bidwatcher status>     filter to a specific status column value
+     *   ?filter=worth-bidding            only bids the caller rated +1
+     *   ?filter=not-a-fit                only bids the caller rated -1
+     *   ?filter=not-reviewed             only bids the caller hasn't rated yet
+     *   ?filter=all (default)            no rating filter
+     *   ?limit=<n>                       cap rows (default newSectionSize, max 100)
      */
     app.get(
       '/bids',
       { preHandler: requireUser },
-      async (req: FastifyRequest, reply: FastifyReply) => {
+      async (req: FastifyRequest) => {
         const userId = req.user!.id;
-        const limit = Number((req.query as { limit?: string }).limit ?? ctx.settings.newSectionSize);
-        const status = (req.query as { status?: string }).status ?? null;
+        const q = req.query as { limit?: string; status?: string; filter?: string };
+        const limit = Number(q.limit ?? ctx.settings.newSectionSize);
+        const status = q.status ?? null;
+        const filter = q.filter ?? 'all';
 
-        // Read bids + left-join the caller's feedback in one query.
+        const ratingClause =
+          filter === 'worth-bidding'
+            ? sql`${prospectorBidFeedback.rating} = 1`
+            : filter === 'not-a-fit'
+              ? sql`${prospectorBidFeedback.rating} = -1`
+              : filter === 'not-reviewed'
+                ? sql`${prospectorBidFeedback.rating} IS NULL`
+                : sql`TRUE`;
+
         const rows = await db
           .select({
             source: bidWatcherSeen.source,
@@ -92,7 +108,10 @@ export default defineModule({
               eq(prospectorBidFeedback.userId, userId),
             ),
           )
-          .where(status ? eq(bidWatcherSeen.status, status) : sql`TRUE`)
+          .where(and(
+            status ? eq(bidWatcherSeen.status, status) : sql`TRUE`,
+            ratingClause,
+          ))
           .orderBy(desc(bidWatcherSeen.score), desc(bidWatcherSeen.firstSeenAt))
           .limit(Math.min(limit, 100));
 
@@ -108,7 +127,9 @@ export default defineModule({
     /**
      * GET /modules/prospector/home
      * Dashboard payload — sectioned for direct rendering by /home.
-     * v1: one section "New bids" filtered by minDashboardScore.
+     * Two sections:
+     *   - New bids worth a look (status='new', score ≥ minDashboardScore)
+     *   - Recently reviewed (cards the caller has thumbed, most recent first)
      */
     app.get(
       '/home',
@@ -117,8 +138,9 @@ export default defineModule({
         const userId = req.user!.id;
         const min = ctx.settings.minDashboardScore;
         const size = ctx.settings.newSectionSize;
+        const reviewedLimit = 10;
 
-        const rows = await db
+        const newRows = await db
           .select({
             source: bidWatcherSeen.source,
             externalId: bidWatcherSeen.externalId,
@@ -145,33 +167,69 @@ export default defineModule({
           .where(and(
             eq(bidWatcherSeen.status, 'new'),
             sql`${bidWatcherSeen.score} >= ${min}`,
+            sql`${prospectorBidFeedback.rating} IS NULL`,
           ))
           .orderBy(desc(bidWatcherSeen.score), desc(bidWatcherSeen.firstSeenAt))
           .limit(size);
+
+        // "Recently reviewed" — driven from feedback table (most recent first).
+        const reviewedRows = await db
+          .select({
+            source: bidWatcherSeen.source,
+            externalId: bidWatcherSeen.externalId,
+            title: bidWatcherSeen.title,
+            url: bidWatcherSeen.url,
+            location: bidWatcherSeen.location,
+            estimatedValue: bidWatcherSeen.estimatedValue,
+            bidsDueAt: bidWatcherSeen.bidsDueAt,
+            score: bidWatcherSeen.score,
+            scoreReason: bidWatcherSeen.scoreReason,
+            myRating: prospectorBidFeedback.rating,
+            reviewedAt: prospectorBidFeedback.updatedAt,
+          })
+          .from(prospectorBidFeedback)
+          .innerJoin(
+            bidWatcherSeen,
+            and(
+              eq(bidWatcherSeen.source, prospectorBidFeedback.source),
+              eq(bidWatcherSeen.externalId, prospectorBidFeedback.externalId),
+            ),
+          )
+          .where(eq(prospectorBidFeedback.userId, userId))
+          .orderBy(desc(prospectorBidFeedback.updatedAt))
+          .limit(reviewedLimit);
+
+        const cardFromRow = (r: typeof newRows[number]): Record<string, unknown> => ({
+          id: `${r.source}::${r.externalId}`,
+          source: r.source,
+          externalId: r.externalId,
+          title: r.title ?? 'Untitled',
+          subtitle: [
+            r.location,
+            r.estimatedValue !== null ? `$${Number(r.estimatedValue).toLocaleString()}` : null,
+            r.bidsDueAt ? `Due ${new Date(r.bidsDueAt as unknown as string).toLocaleDateString()}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          score: r.score,
+          scoreReason: r.scoreReason,
+          href: r.url ?? null,
+          myRating: r.myRating ?? null,
+        });
 
         return {
           sections: [
             {
               id: 'new-bids',
               title: 'New bids worth a look',
-              subtitle: `Score ≥ ${min}, not yet triaged`,
-              cards: rows.map((r) => ({
-                id: `${r.source}::${r.externalId}`,
-                source: r.source,
-                externalId: r.externalId,
-                title: r.title ?? 'Untitled',
-                subtitle: [
-                  r.location,
-                  r.estimatedValue !== null ? `$${Number(r.estimatedValue).toLocaleString()}` : null,
-                  r.bidsDueAt ? `Due ${new Date(r.bidsDueAt as unknown as string).toLocaleDateString()}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · '),
-                score: r.score,
-                scoreReason: r.scoreReason,
-                href: r.url ?? null,
-                myRating: r.myRating ?? null,
-              })),
+              subtitle: `Score ≥ ${min}, not yet reviewed`,
+              cards: newRows.map(cardFromRow),
+            },
+            {
+              id: 'recently-reviewed',
+              title: 'Recently reviewed',
+              subtitle: 'Your last calls — tap a thumb to change your mind',
+              cards: reviewedRows.map((r) => cardFromRow(r as unknown as typeof newRows[number])),
             },
           ],
         };

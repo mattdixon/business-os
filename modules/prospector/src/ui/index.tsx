@@ -240,20 +240,37 @@ export function ProspectorHomePage(): JSX.Element {
   );
 }
 
+type BidFilter = 'all' | 'worth-bidding' | 'not-a-fit' | 'not-reviewed';
+
+const FILTER_OPTIONS: Array<{ id: BidFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'worth-bidding', label: '👍 Worth bidding' },
+  { id: 'not-a-fit', label: '👎 Not a fit' },
+  { id: 'not-reviewed', label: 'Not reviewed' },
+];
+
 export function ProspectorBidsPage(): JSX.Element {
   const [bids, setBids] = useState<BidRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<BidFilter>('all');
 
   useEffect(() => {
+    let cancelled = false;
+    setBids(null);
     void (async () => {
       try {
-        const r = await fetchJson<{ bids: BidRow[] }>('/modules/prospector/bids?limit=100');
-        setBids(r.bids);
+        const r = await fetchJson<{ bids: BidRow[] }>(
+          `/modules/prospector/bids?limit=100&filter=${filter}`,
+        );
+        if (!cancelled) setBids(r.bids);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'load failed');
+        if (!cancelled) setError(e instanceof Error ? e.message : 'load failed');
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [filter]);
 
   return (
     <div className="p-8">
@@ -264,6 +281,23 @@ export function ProspectorBidsPage(): JSX.Element {
         </p>
       </header>
 
+      <div className="mb-4 flex gap-2">
+        {FILTER_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setFilter(opt.id)}
+            className={`rounded-full border px-3 py-1 text-sm transition ${
+              filter === opt.id
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-ink-200 text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-900/30 dark:text-red-200">
           {error}
@@ -273,7 +307,15 @@ export function ProspectorBidsPage(): JSX.Element {
       {!bids ? (
         <div className="text-ink-500">Loading…</div>
       ) : bids.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-ink-500">No bids yet.</div>
+        <div className="card p-8 text-center text-sm text-ink-500">
+          {filter === 'all'
+            ? 'No bids yet.'
+            : filter === 'worth-bidding'
+              ? "You haven't marked any bids as worth bidding."
+              : filter === 'not-a-fit'
+                ? "You haven't passed on any bids."
+                : 'Nothing left to review.'}
+        </div>
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">

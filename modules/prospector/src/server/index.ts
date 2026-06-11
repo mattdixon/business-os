@@ -1,11 +1,16 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { defineModule, type ModuleServerContext } from '@business-os/module-sdk';
+import {
+  defineModule,
+  type ModuleServerContext,
+  type DigestContext,
+  type DigestContribution,
+} from '@business-os/module-sdk';
 import { requireUser } from '@business-os/core';
 import { prospectorBidFeedback, bidWatcherSeen } from './schema.js';
 
@@ -287,6 +292,81 @@ export default defineModule({
       { minDashboardScore: ctx.settings.minDashboardScore, newSectionSize: ctx.settings.newSectionSize },
       'module-prospector routes ready',
     );
+  },
+  digestContribution: async (
+    ctx: DigestContext<Settings>,
+  ): Promise<DigestContribution | null> => {
+    const db = buildDb();
+    // Defensive: digest runtime passes whatever's in the settings table
+    // (often `{}` if the operator hasn't touched anything yet). Parse
+    // through the schema to apply defaults — Zod's parse() handles this.
+    const settings = SettingsSchema.parse(ctx.settings ?? {});
+    const min = settings.minDashboardScore;
+    const userId = ctx.user.id;
+
+    // High-scoring bids seen since this user's last digest that they
+    // haven't reviewed yet. Cap at 5 — digest is a teaser, not a dump.
+    const rows = await db
+      .select({
+        source: bidWatcherSeen.source,
+        externalId: bidWatcherSeen.externalId,
+        title: bidWatcherSeen.title,
+        location: bidWatcherSeen.location,
+        estimatedValue: bidWatcherSeen.estimatedValue,
+        bidsDueAt: bidWatcherSeen.bidsDueAt,
+        score: bidWatcherSeen.score,
+        myRating: prospectorBidFeedback.rating,
+      })
+      .from(bidWatcherSeen)
+      .leftJoin(
+        prospectorBidFeedback,
+        and(
+          eq(prospectorBidFeedback.source, bidWatcherSeen.source),
+          eq(prospectorBidFeedback.externalId, bidWatcherSeen.externalId),
+          eq(prospectorBidFeedback.userId, userId),
+        ),
+      )
+      .where(and(
+        eq(bidWatcherSeen.status, 'new'),
+        gte(bidWatcherSeen.score, min),
+        gt(bidWatcherSeen.firstSeenAt, ctx.since),
+        isNull(prospectorBidFeedback.rating),
+      ))
+      .orderBy(desc(bidWatcherSeen.score), desc(bidWatcherSeen.firstSeenAt))
+      .limit(5);
+
+    if (rows.length === 0) return null;
+
+    const items = rows.map((r) => {
+      const dueAt = r.bidsDueAt ? new Date(r.bidsDueAt as unknown as string) : null;
+      const hoursUntilDue = dueAt ? (dueAt.getTime() - Date.now()) / 36e5 : null;
+      const subtitle = [
+        r.score ? `Score ${r.score}/100` : null,
+        r.location,
+        r.estimatedValue !== null ? `$${Number(r.estimatedValue).toLocaleString()}` : null,
+        dueAt ? `Due ${dueAt.toLocaleDateString()}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      return {
+        title: r.title ?? 'Untitled',
+        subtitle,
+        href: `/modules/prospector`,
+        // Urgent if due in < 48h AND score is at/above the dashboard threshold.
+        isUrgent: !!(
+          hoursUntilDue !== null &&
+          hoursUntilDue < 48 &&
+          hoursUntilDue > 0 &&
+          (r.score ?? 0) >= min
+        ),
+      };
+    });
+
+    return {
+      sectionTitle: 'New bids worth a look',
+      summary: `${items.length} new ${items.length === 1 ? 'bid' : 'bids'} since your last digest.`,
+      items,
+    };
   },
 });
 

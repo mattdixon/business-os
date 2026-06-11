@@ -128,6 +128,21 @@ export async function runAgent(
           },
     },
     runId,
+    // Read-only view of registered modules — used by framework agents that
+    // coordinate across modules (currently just the digest agent). Routes
+    // and uiPages are filtered out; only slug + displayName + digestContribution
+    // are exposed.
+    modules: deps.registry.listModules().map((m) => ({
+      slug: m.manifest.slug,
+      displayName: m.manifest.displayName,
+      digestContribution: m.digestContribution as
+        | ((ctx: { user: { id: string; email: string }; since: Date; logger: AgentLogger; settings: unknown }) => Promise<{
+            sectionTitle: string;
+            summary?: string;
+            items: Array<{ title: string; subtitle?: string; href: string; isUrgent?: boolean }>;
+          } | null>)
+        | undefined,
+    })),
   };
 
   try {

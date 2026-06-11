@@ -17,6 +17,7 @@ import inboxCleanup from '@business-os/agent-inbox-cleanup';
 import inboxSurface from '@business-os/agent-inbox-surface';
 import leadgen from '@business-os/agent-leadgen';
 import prospecting from '@business-os/agent-prospecting';
+import digest from '@business-os/agent-digest';
 
 import type { AgentManifest, AgentRun } from '@business-os/agent-sdk';
 
@@ -42,6 +43,7 @@ export const allFrameworkAgents: FrameworkAgent[] = [
   inboxCleanup as unknown as FrameworkAgent,
   leadgen as unknown as FrameworkAgent,
   prospecting as unknown as FrameworkAgent,
+  digest as unknown as FrameworkAgent,
 ];
 
 // Re-export the named agents so a shell that needs one specifically
@@ -52,4 +54,5 @@ export {
   inboxCleanup,
   leadgen,
   prospecting,
+  digest,
 };

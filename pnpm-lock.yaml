@@ -481,6 +481,25 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
 
+  connectors/resend:
+    dependencies:
+      '@business-os/connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
   modules/example:
     dependencies:
       '@business-os/db':
@@ -638,6 +657,9 @@ importers:
       '@business-os/connector-openai':
         specifier: workspace:^
         version: link:../../connectors/openai
+      '@business-os/connector-resend':
+        specifier: workspace:^
+        version: link:../../connectors/resend
       '@business-os/connector-sdk':
         specifier: workspace:^
         version: link:../connector-sdk

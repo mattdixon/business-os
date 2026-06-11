@@ -5,6 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Api, ApiError, type AgentRun, type AgentSummary, type ConnectorCapability } from '../lib/api';
 import { apiErrorMessage } from '../lib/api-errors';
 import { PageHeader } from '../components/PageHeader';
+import { MissingCapabilityBanner } from '../components/MissingCapabilityBanner';
 import { capabilityLabel } from '../lib/capability-labels';
 import { SchemaForm, type FieldSchema } from '../components/SchemaForm';
 import { ScheduleSection } from '../components/ScheduleSection';
@@ -189,6 +190,7 @@ export function AgentDetail(): JSX.Element {
         }
       />
       <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
+        <MissingCapabilityBanner forCapabilities={agent.requiredConnectors} />
 
         {/* Hero: Run button + last-run summary. The single most important card
             on the page — anchors what the operator does here. */}

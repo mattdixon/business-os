@@ -7,3 +7,4 @@ export * from './boot/env.js';
 export * from './inventory.js';
 export * from './zod-form.js';
 export * from './sentry.js';
+export { requireUser } from './routes/_require-user.js';

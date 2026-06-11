@@ -133,6 +133,9 @@ importers:
       '@business-os/db':
         specifier: workspace:^
         version: link:../../packages/db
+      '@business-os/module-prospector':
+        specifier: workspace:^
+        version: link:../../modules/prospector
       '@business-os/module-sdk':
         specifier: workspace:^
         version: link:../../packages/module-sdk
@@ -160,6 +163,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^20.14.0
@@ -511,6 +517,40 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
+
+  modules/prospector:
+    dependencies:
+      '@business-os/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@business-os/module-sdk':
+        specifier: workspace:^
+        version: link:../../packages/module-sdk
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(@types/react@18.3.31)(pg@8.21.0)(postgres@3.4.9)(react@18.3.1)
+      postgres:
+        specifier: ^3.4.4
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.31
+      fastify:
+        specifier: ^4.28.0
+        version: 4.29.1
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
 
   packages/agent-sdk:
     dependencies:

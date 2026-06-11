@@ -1,0 +1,328 @@
+import { useEffect, useState } from 'react';
+import type { ModuleUiPage } from '@business-os/module-sdk';
+
+/**
+ * UI half of @business-os/module-prospector.
+ *
+ * Two pages:
+ *   - Home (path: ''): dashboard with "New bids worth a look" cards + thumbs feedback.
+ *   - Bids (path: 'bids'): full table including triaged / pursuing / won / lost.
+ */
+
+interface HomeCard {
+  id: string;
+  source: string;
+  externalId: string;
+  title: string;
+  subtitle: string;
+  score: number | null;
+  scoreReason: string | null;
+  href: string | null;
+  myRating: -1 | 1 | null;
+}
+
+interface HomeSection {
+  id: string;
+  title: string;
+  subtitle?: string;
+  cards: HomeCard[];
+}
+
+interface BidRow {
+  source: string;
+  externalId: string;
+  title: string | null;
+  url: string | null;
+  location: string | null;
+  estimatedValue: number | null;
+  bidsDueAt: string | null;
+  score: number | null;
+  scoreReason: string | null;
+  status: string;
+  firstSeenAt: string;
+  myRating: -1 | 1 | null;
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(path, {
+    credentials: 'include',
+    ...init,
+    headers: {
+      ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(text || `HTTP ${r.status}`);
+  }
+  return r.json() as Promise<T>;
+}
+
+async function postFeedback(
+  source: string,
+  externalId: string,
+  rating: 1 | -1,
+): Promise<void> {
+  await fetchJson(
+    `/modules/prospector/bids/${encodeURIComponent(source)}/${encodeURIComponent(externalId)}/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    },
+  );
+}
+
+function ScoreBadge({ value }: { value: number | null }): JSX.Element | null {
+  if (value === null) return null;
+  const tone =
+    value >= 80
+      ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100'
+      : value >= 60
+        ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100'
+        : 'bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300';
+  return (
+    <span className={`inline-flex h-7 min-w-[2.5rem] items-center justify-center rounded px-2 text-sm font-semibold ${tone}`}>
+      {value}
+    </span>
+  );
+}
+
+function Thumbs({
+  source,
+  externalId,
+  current,
+  onChange,
+}: {
+  source: string;
+  externalId: string;
+  current: -1 | 1 | null;
+  onChange: (next: -1 | 1) => void;
+}): JSX.Element {
+  const [busy, setBusy] = useState(false);
+  const click = async (rating: 1 | -1): Promise<void> => {
+    setBusy(true);
+    try {
+      await postFeedback(source, externalId, rating);
+      onChange(rating);
+    } catch {
+      // surfaced by reload; keep UI optimistic
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void click(1)}
+        className={`rounded border px-2 py-1 text-sm ${current === 1 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/40' : 'border-ink-200 dark:border-ink-700'}`}
+        aria-label="Worth bidding on"
+      >
+        👍
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void click(-1)}
+        className={`rounded border px-2 py-1 text-sm ${current === -1 ? 'border-red-500 bg-red-50 dark:bg-red-900/40' : 'border-ink-200 dark:border-ink-700'}`}
+        aria-label="Not a fit"
+      >
+        👎
+      </button>
+    </div>
+  );
+}
+
+export function ProspectorHomePage(): JSX.Element {
+  const [sections, setSections] = useState<HomeSection[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = async (): Promise<void> => {
+    try {
+      const r = await fetchJson<{ sections: HomeSection[] }>('/modules/prospector/home');
+      setSections(r.sections);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'load failed');
+    }
+  };
+
+  useEffect(() => {
+    void reload();
+  }, []);
+
+  const updateRating = (cardId: string, rating: 1 | -1): void => {
+    if (!sections) return;
+    setSections(
+      sections.map((s) => ({
+        ...s,
+        cards: s.cards.map((c) => (c.id === cardId ? { ...c, myRating: rating } : c)),
+      })),
+    );
+  };
+
+  return (
+    <div className="p-8">
+      <header className="mb-6">
+        <h1 className="text-lg font-semibold">Home</h1>
+        <p className="text-sm text-ink-500">
+          Today's actionable items, ranked by fit.
+        </p>
+      </header>
+
+      {error && (
+        <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-900/30 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
+      {!sections ? (
+        <div className="text-ink-500">Loading…</div>
+      ) : (
+        sections.map((section) => (
+          <section key={section.id} className="mb-8">
+            <div className="mb-3 flex items-baseline gap-3">
+              <h2 className="text-base font-semibold">{section.title}</h2>
+              {section.subtitle && (
+                <p className="text-xs text-ink-500">{section.subtitle}</p>
+              )}
+            </div>
+            {section.cards.length === 0 ? (
+              <p className="text-sm text-ink-500">Nothing new.</p>
+            ) : (
+              <div className="space-y-3">
+                {section.cards.map((card) => (
+                  <article key={card.id} className="card p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3">
+                          <ScoreBadge value={card.score} />
+                          {card.href ? (
+                            <a
+                              href={card.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-medium text-accent hover:underline"
+                            >
+                              {card.title}
+                            </a>
+                          ) : (
+                            <span className="font-medium">{card.title}</span>
+                          )}
+                        </div>
+                        {card.subtitle && (
+                          <div className="ml-[3.25rem] mt-1 text-sm text-ink-600 dark:text-ink-400">
+                            {card.subtitle}
+                          </div>
+                        )}
+                        {card.scoreReason && (
+                          <div className="ml-[3.25rem] mt-2 text-sm text-ink-700 dark:text-ink-300">
+                            {card.scoreReason}
+                          </div>
+                        )}
+                      </div>
+                      <Thumbs
+                        source={card.source}
+                        externalId={card.externalId}
+                        current={card.myRating}
+                        onChange={(rating) => updateRating(card.id, rating)}
+                      />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ))
+      )}
+    </div>
+  );
+}
+
+export function ProspectorBidsPage(): JSX.Element {
+  const [bids, setBids] = useState<BidRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetchJson<{ bids: BidRow[] }>('/modules/prospector/bids?limit=100');
+        setBids(r.bids);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'load failed');
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="p-8">
+      <header className="mb-6">
+        <h1 className="text-lg font-semibold">All bids</h1>
+        <p className="text-sm text-ink-500">
+          Everything the bid-watcher has surfaced, ranked by score.
+        </p>
+      </header>
+
+      {error && (
+        <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-900/30 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
+      {!bids ? (
+        <div className="text-ink-500">Loading…</div>
+      ) : bids.length === 0 ? (
+        <div className="card p-8 text-center text-sm text-ink-500">No bids yet.</div>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500 dark:bg-ink-900">
+              <tr>
+                <th className="px-3 py-2">Score</th>
+                <th className="px-3 py-2">Title</th>
+                <th className="px-3 py-2">Location</th>
+                <th className="px-3 py-2">Value</th>
+                <th className="px-3 py-2">Due</th>
+                <th className="px-3 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bids.map((b) => (
+                <tr key={`${b.source}::${b.externalId}`} className="border-t border-ink-100 dark:border-ink-800">
+                  <td className="px-3 py-2">
+                    <ScoreBadge value={b.score} />
+                  </td>
+                  <td className="px-3 py-2">
+                    {b.url ? (
+                      <a href={b.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                        {b.title ?? 'Untitled'}
+                      </a>
+                    ) : (
+                      b.title ?? 'Untitled'
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-ink-600 dark:text-ink-400">{b.location ?? '—'}</td>
+                  <td className="px-3 py-2 text-ink-600 dark:text-ink-400">
+                    {b.estimatedValue !== null ? `$${b.estimatedValue.toLocaleString()}` : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-ink-600 dark:text-ink-400">
+                    {b.bidsDueAt ? new Date(b.bidsDueAt).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="rounded bg-ink-100 px-2 py-0.5 text-xs dark:bg-ink-800">{b.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export const uiPages: ModuleUiPage[] = [
+  { path: '', navLabel: 'Home', Component: ProspectorHomePage },
+  { path: 'bids', navLabel: 'All bids', Component: ProspectorBidsPage },
+];

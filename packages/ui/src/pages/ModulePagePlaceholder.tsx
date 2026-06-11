@@ -27,7 +27,7 @@ export function ModulePagePlaceholder(): JSX.Element {
         <div className="card max-w-2xl p-6 text-sm text-ink-700 dark:text-ink-300">
           <p className="mb-3">
             The module's <strong>server</strong> side is wired up — its REST routes
-            are mounted under <code className="font-mono">/modules/{slug}/*</code>{' '}
+            are mounted under <code className="font-mono">/api/modules/{slug}/*</code>{' '}
             and its tables are migrated. You can talk to it with curl.
           </p>
           <p className="mb-3">

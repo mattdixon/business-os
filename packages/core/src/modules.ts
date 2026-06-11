@@ -13,8 +13,13 @@ import type { ModulePackageLike } from './inventory.js';
  *      use defaults if no row exists.
  *   2. Build a module-scoped logger (pino child tagged with module_slug).
  *   3. Register the module's routes under a Fastify prefix
- *      `/modules/<slug>` so a `app.get('/items')` in the module renders at
- *      `/modules/inventory/items`.
+ *      `/api/modules/<slug>` so a `app.get('/items')` in the module renders at
+ *      `/api/modules/inventory/items`.
+ *
+ * The /api/ prefix exists to keep API routes from colliding with SPA routes.
+ * Without it, hard navigation to `/modules/inventory/items` (a typed URL,
+ * a refresh, a bookmark) would hit the Fastify JSON route instead of falling
+ * through to the SPA router that renders the UI page.
  *
  * Cross-module isolation is by convention: modules may read/write only their
  * own tables. We don't enforce it at the DB layer.
@@ -45,7 +50,7 @@ export async function registerModuleRoutes(
           }),
         );
       },
-      { prefix: `/modules/${mod.manifest.slug}` },
+      { prefix: `/api/modules/${mod.manifest.slug}` },
     );
     app.log.info(
       { module: mod.manifest.slug },

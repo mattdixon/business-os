@@ -14,7 +14,7 @@ import { exampleNotes } from './schema.js';
  * The minimum shape of a real module. Demonstrates:
  *   - a settings schema (auto-rendered in the operator UI)
  *   - a migration directory the framework runs at boot
- *   - REST routes mounted under /modules/example/* by core
+ *   - REST routes mounted under /api/modules/example/* by core
  *   - a UI page (defined in ../ui)
  *
  * Modules are standalone — they declare their own schema, own their tables,

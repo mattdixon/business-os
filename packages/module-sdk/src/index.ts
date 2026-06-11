@@ -69,8 +69,9 @@ export interface ModuleManifest<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
 /**
  * Context handed to the module's server-side registerRoutes.
  *
- * Routes are mounted under `/modules/<slug>` by core (e.g. a route defined as
- * `app.get('/items')` resolves at `/modules/inventory/items`). Auth is shared
+ * Routes are mounted under `/api/modules/<slug>` by core (e.g. a route defined as
+ * `app.get('/items')` resolves at `/api/modules/inventory/items`). The /api/
+ * prefix keeps API routes from colliding with SPA routes. Auth is shared
  * with the rest of the framework; req.user is populated.
  *
  * `db` is the same Drizzle handle the framework uses — modules can read their

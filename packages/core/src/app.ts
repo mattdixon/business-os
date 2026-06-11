@@ -148,7 +148,7 @@ export function buildApp(deps: AppDeps): FastifyInstance & { deps: AppDeps } {
   registerAuthRoutes(app);
   registerAdminRoutes(app);
 
-  // Modules go under /modules/<slug>. Registration is async (loads settings
+  // Modules go under /api/modules/<slug>. Registration is async (loads settings
   // from the DB) and must happen BEFORE Fastify's ready phase — startServer
   // awaits registerModuleRoutes(app, deps) after buildApp returns. Doing it
   // here in an onReady hook would fail with AVV_ERR_ROOT_PLG_BOOTED because

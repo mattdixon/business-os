@@ -53,7 +53,7 @@ export default defineModule({
     const db = buildDb();
 
     /**
-     * GET /modules/prospector/bids
+     * GET /api/modules/prospector/bids
      *
      * Query params (all optional):
      *   ?status=<bidwatcher status>     filter to a specific status column value
@@ -125,7 +125,7 @@ export default defineModule({
     );
 
     /**
-     * GET /modules/prospector/home
+     * GET /api/modules/prospector/home
      * Dashboard payload — sectioned for direct rendering by /home.
      * Two sections:
      *   - New bids worth a look (status='new', score ≥ minDashboardScore)
@@ -237,7 +237,7 @@ export default defineModule({
     );
 
     /**
-     * POST /modules/prospector/bids/:source/:externalId/feedback
+     * POST /api/modules/prospector/bids/:source/:externalId/feedback
      * Upsert a thumbs rating for the current user.
      */
     app.post(

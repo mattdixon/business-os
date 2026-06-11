@@ -65,7 +65,7 @@ async function postFeedback(
   rating: 1 | -1,
 ): Promise<void> {
   await fetchJson(
-    `/modules/prospector/bids/${encodeURIComponent(source)}/${encodeURIComponent(externalId)}/feedback`,
+    `/api/modules/prospector/bids/${encodeURIComponent(source)}/${encodeURIComponent(externalId)}/feedback`,
     {
       method: 'POST',
       body: JSON.stringify({ rating }),
@@ -141,7 +141,7 @@ export function ProspectorHomePage(): JSX.Element {
 
   const reload = async (): Promise<void> => {
     try {
-      const r = await fetchJson<{ sections: HomeSection[] }>('/modules/prospector/home');
+      const r = await fetchJson<{ sections: HomeSection[] }>('/api/modules/prospector/home');
       setSections(r.sections);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'load failed');
@@ -260,7 +260,7 @@ export function ProspectorBidsPage(): JSX.Element {
     void (async () => {
       try {
         const r = await fetchJson<{ bids: BidRow[] }>(
-          `/modules/prospector/bids?limit=100&filter=${filter}`,
+          `/api/modules/prospector/bids?limit=100&filter=${filter}`,
         );
         if (!cancelled) setBids(r.bids);
       } catch (e) {

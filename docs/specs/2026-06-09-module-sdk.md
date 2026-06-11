@@ -35,7 +35,7 @@ This is the **module** primitive. The implementation already ships under `@busin
 **Modules are the third framework primitive, alongside agents and connectors.** Every module:
 
 1. Declares a `ModuleManifest` (slug, version, displayName, settingsSchema, optional migrationsDir, optional defaultAudience).
-2. Optionally implements `registerRoutes(app, ctx)` — Fastify routes mounted under `/modules/<slug>`.
+2. Optionally implements `registerRoutes(app, ctx)` — Fastify routes mounted under `/api/modules/<slug>`. (Originally `/modules/<slug>`; namespaced under `/api/` after 2026-06-11 to keep API routes from colliding with SPA routes — see "URL namespacing" below.)
 3. Optionally provides `uiPages[]` — React components mounted under `/modules/<slug>/<path>` in the operator UI, optionally surfaced in the sidebar.
 
 Modules **own state**. Agents and connectors do not.
@@ -73,7 +73,7 @@ export interface ModuleManifest<TSettings extends z.ZodTypeAny> {
 ### Slug rules
 - kebab-case, ASCII only, no leading digit. Pattern: `/^[a-z][a-z0-9-]*$/`.
 - Unique within the install. The framework refuses to boot on collision.
-- Used as: settings scope (`module:<slug>`), URL prefix (`/modules/<slug>`), audit log fields, logger tag (`module_slug`).
+- Used as: settings scope (`module:<slug>`), API URL prefix (`/api/modules/<slug>`), SPA URL prefix (`/modules/<slug>`), audit log fields, logger tag (`module_slug`).
 
 ### Versioning
 - Module packages follow semver. Breaking schema or REST contract changes require a major bump.
@@ -94,9 +94,16 @@ export interface ModuleServerContext<TSettings = unknown> {
 ```
 
 ### Mount path
-- Routes are registered under a Fastify prefix of `/modules/<slug>` at boot.
-- A route defined as `app.get('/items')` inside the module resolves at `/modules/inventory/items`.
+- Routes are registered under a Fastify prefix of `/api/modules/<slug>` at boot.
+- A route defined as `app.get('/items')` inside the module resolves at `/api/modules/inventory/items`.
 - The framework does not strip or rewrite the prefix elsewhere.
+
+### URL namespacing
+The `/api/` prefix separates module API routes from SPA UI routes:
+- API: `/api/modules/<slug>/<route>` — handled by Fastify, returns JSON.
+- UI: `/modules/<slug>/<path>` — handled by react-router in the SPA, renders the module's React component.
+
+Without the `/api/` prefix, both share the same path and a hard navigation to `/modules/inventory/items` (a typed URL, refresh, or bookmark) would hit the Fastify handler instead of falling through to the SPA. The original spec used `/modules/<slug>` for API; that turned out to be a bug and was fixed 2026-06-11.
 
 ### Auth
 - Auth is shared with the rest of the framework. `requireUser` is available; `req.user` is populated. Modules opt in per-route, same as agents and connectors do today on their own routes.
@@ -173,7 +180,7 @@ manifest.migrationsDir?: string  // absolute path to a dir of .sql files
 The framework boots modules in this order:
 
 1. **Migrations** — apply core + each agent + each connector + each module's pending migrations, owner-tagged.
-2. **Routes** — register core auth routes → admin routes → agent routes → connector routes → **module routes** under `/modules/<slug>`.
+2. **Routes** — register core auth routes → admin routes → agent routes → connector routes → **module routes** under `/api/modules/<slug>`.
 3. **UI inventory** — `/api/modules` exposes the inventory to the operator UI shell (`{slug, version, displayName, description, uiPages[], settings, settingsSchema}`); the UI shell discovers nav entries from this.
 4. **Scheduler** — agent schedules registered. Modules do not participate.
 

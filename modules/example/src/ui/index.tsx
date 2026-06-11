@@ -6,7 +6,7 @@ import type { ModuleUiPage } from '@business-os/module-sdk';
  *
  * Operator UI imports this and renders ExampleNotesPage at
  * /modules/example. The page talks to the module's own REST routes
- * (mounted at /modules/example/notes by core).
+ * (mounted at /api/modules/example/notes by core).
  *
  * Modules ship their UI as a normal React component — no special API
  * surface beyond what's already in the framework. They share core's auth
@@ -44,7 +44,7 @@ export function ExampleNotesPage(): JSX.Element {
 
   const reload = async (): Promise<void> => {
     try {
-      const r = await fetchJson<{ notes: Note[] }>('/modules/example/notes');
+      const r = await fetchJson<{ notes: Note[] }>('/api/modules/example/notes');
       setNotes(r.notes);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'load failed');
@@ -59,7 +59,7 @@ export function ExampleNotesPage(): JSX.Element {
     e.preventDefault();
     setError(null);
     try {
-      await fetchJson('/modules/example/notes', {
+      await fetchJson('/api/modules/example/notes', {
         method: 'POST',
         body: JSON.stringify({ title, body }),
       });
@@ -74,7 +74,7 @@ export function ExampleNotesPage(): JSX.Element {
   const remove = async (id: string): Promise<void> => {
     if (!confirm('Delete this note?')) return;
     try {
-      await fetchJson(`/modules/example/notes/${id}`, { method: 'DELETE' });
+      await fetchJson(`/api/modules/example/notes/${id}`, { method: 'DELETE' });
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'delete failed');

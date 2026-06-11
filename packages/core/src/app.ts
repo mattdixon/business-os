@@ -95,7 +95,7 @@ function defaultLoggerOpts(clientSlug: string): Record<string, unknown> {
   };
 }
 
-export function buildApp(deps: AppDeps): FastifyInstance {
+export function buildApp(deps: AppDeps): FastifyInstance & { deps: AppDeps } {
   const loggerOpt =
     deps.logger === false
       ? false
@@ -148,20 +148,18 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   registerAuthRoutes(app);
   registerAdminRoutes(app);
 
-  // Modules go under /modules/<slug>. Register after core routes; the await
-  // happens during boot via the onReady hook so plugin registration order
-  // doesn't conflict with Fastify's "already started" rule.
-  app.addHook('onReady', async () => {
-    try {
-      await registerModuleRoutes(app, deps);
-    } catch (err) {
-      app.log.warn({ err }, 'module route registration failed');
-    }
-  });
+  // Modules go under /modules/<slug>. Registration is async (loads settings
+  // from the DB) and must happen BEFORE Fastify's ready phase — startServer
+  // awaits registerModuleRoutes(app, deps) after buildApp returns. Doing it
+  // here in an onReady hook would fail with AVV_ERR_ROOT_PLG_BOOTED because
+  // ready has already fired by then.
 
   if (deps.serveUi !== false) {
     registerUiServe(app);
   }
 
-  return app;
+  // Expose deps on the app instance so callers (startServer) can re-use it
+  // for late wiring like registerModuleRoutes(app, deps) before app.listen.
+  (app as unknown as { deps: AppDeps }).deps = deps;
+  return app as unknown as FastifyInstance & { deps: AppDeps };
 }

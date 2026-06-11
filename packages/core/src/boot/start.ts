@@ -8,6 +8,7 @@ import {
 } from '@business-os/db';
 import { sql as sqlOp } from 'drizzle-orm';
 import { buildApp, type AppDeps } from '../app.js';
+import { registerModuleRoutes } from '../modules.js';
 import { createSecretsStore, loadSecretsKey } from '../secrets/index.js';
 import { parseEnv, type FrameworkEnv } from './env.js';
 import type {
@@ -171,6 +172,18 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
           ...opts.overrideAppDeps,
         });
   if (app) {
+    // Module routes must register before app.listen — Fastify's ready phase
+    // bakes the route table at listen time. The deps closed over the app are
+    // the same object we passed to buildApp; reuse it here so module-sdk's
+    // registerRoutes sees fully-wired db + logger.
+    const appDeps = (app as unknown as { deps?: AppDeps }).deps ?? null;
+    if (appDeps) {
+      try {
+        await registerModuleRoutes(app, appDeps);
+      } catch (err) {
+        app.log.warn({ err }, 'module route registration failed');
+      }
+    }
     await app.listen({ host: '0.0.0.0', port: env.API_PORT });
     url = `http://0.0.0.0:${env.API_PORT}`;
     app.log.info({ mode, port: env.API_PORT }, 'business-os: api listening');

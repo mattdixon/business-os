@@ -17,6 +17,7 @@ import openai from '@business-os/connector-openai';
 import emailStub from '@business-os/connector-email-stub';
 import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
 import emailGmailComposio from '@business-os/connector-email-gmail-composio';
+import emailResend from '@business-os/connector-resend';
 import emailInboxGmailComposio from '@business-os/connector-email-inbox-gmail-composio';
 import emailInboxOutlookComposio from '@business-os/connector-email-inbox-outlook-composio';
 import emailInboxImap from '@business-os/connector-email-inbox-imap';
@@ -40,6 +41,7 @@ export const allFrameworkConnectors: ConnectorPackage<keyof ConnectorCapabilityM
   // Email (send)
   emailStub as ConnectorPackage<keyof ConnectorCapabilityMap>,
   emailGmailComposio as ConnectorPackage<keyof ConnectorCapabilityMap>,
+  emailResend as ConnectorPackage<keyof ConnectorCapabilityMap>,
   // Email (inbox)
   emailInboxGmailComposio as ConnectorPackage<keyof ConnectorCapabilityMap>,
   emailInboxOutlookComposio as ConnectorPackage<keyof ConnectorCapabilityMap>,
@@ -66,6 +68,7 @@ export {
   emailStub,
   crmStub,
   emailGmailComposio,
+  emailResend,
   emailInboxGmailComposio,
   emailInboxOutlookComposio,
   emailInboxImap,

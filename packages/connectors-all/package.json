@@ -25,6 +25,7 @@
     "@business-os/connector-email-inbox-outlook-composio": "workspace:^",
     "@business-os/connector-email-stub": "workspace:^",
     "@business-os/connector-openai": "workspace:^",
+    "@business-os/connector-resend": "workspace:^",
     "@business-os/connector-sdk": "workspace:^",
     "@business-os/db": "workspace:^"
   },

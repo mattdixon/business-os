@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Api, ApiError, type AgentRun } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { MissingCapabilityBanner } from '../components/MissingCapabilityBanner';
 import { capabilityLabel } from '../lib/capability-labels';
 
 interface DashboardData {
@@ -46,6 +47,7 @@ export function Dashboard(): JSX.Element {
     <div>
       <PageHeader title="Dashboard" description="Quick status across this install." />
       <div className="mx-auto max-w-6xl p-6 sm:p-8">
+        <MissingCapabilityBanner />
         <div className="grid gap-6 lg:grid-cols-3">
           <Tile label="Agents" value={data.agentCount.toString()} href="/agents" />
           <Tile

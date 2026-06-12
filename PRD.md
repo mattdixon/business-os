@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-06
 **Status:** Active
-**Supersedes:** [docs/archive/2026-05-multi-tenant-original/prd/](../archive/2026-05-multi-tenant-original/prd/)
+**Supersedes:** [docs/archive/2026-05-multi-tenant-original/prd/](docs/archive/2026-05-multi-tenant-original/prd/)
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "@frontrangesystems/business-os-connector-anthropic",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Anthropic provider for the @business-os llm capability.",
   "type": "module",
   "main": "./dist/index.js",

@@ -22,6 +22,16 @@ export interface Branding {
    * any framework changes.
    */
   logoUrl?: string;
+  /**
+   * Force the sidebar header section (logo + name + subtitle) to a fixed
+   * background regardless of the user's theme. Useful when the logo is
+   * single-color (e.g. a white logo on transparent) and only reads against
+   * one background. When omitted, the header inherits the theme background.
+   *
+   * - `'dark'` — dark background + light text in both light and dark mode.
+   * - `'light'` — light background + dark text in both modes.
+   */
+  headerBackground?: 'dark' | 'light';
 }
 
 const Ctx = createContext<Branding | null>(null);

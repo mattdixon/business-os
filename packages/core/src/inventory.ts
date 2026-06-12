@@ -76,12 +76,16 @@ export interface RegisteredConnectorProviderLike {
    * Optional "test reachability" hook the connector implements. Core's
    * POST /api/connectors/:id/test calls this with the saved credentials +
    * parsed settings. Throwing surfaces as the test error in the UI.
+   *
+   * Method shorthand (not function-typed property) so concrete providers
+   * with narrower `ctx` types — e.g. `ConnectorContext<MySettings>` —
+   * remain assignable. See ModulePackageLike.registerRoutes for rationale.
    */
-  verify?: (ctx: {
+  verify?(ctx: {
     credentials: unknown;
     settings: unknown;
     logger: { info: (o: object | string, m?: string) => void; warn: (o: object | string, m?: string) => void; error: (o: object | string, m?: string) => void };
-  }) => Promise<void>;
+  }): Promise<void>;
 }
 
 export interface ModuleManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAny> {
@@ -96,7 +100,11 @@ export interface ModuleManifestLike<TSettings extends z.ZodTypeAny = z.ZodTypeAn
 
 export interface ModulePackageLike {
   manifest: ModuleManifestLike;
-  registerRoutes?: (app: unknown, ctx: unknown) => void | Promise<void>;
+  // Method shorthand (not function-typed property) so concrete modules with
+  // narrower ctx types — e.g. `RegisterRoutes<ZodObject<{...}>>` — remain
+  // assignable. Function-typed properties are strictly variant under
+  // `strictFunctionTypes`; methods are bivariant.
+  registerRoutes?(app: unknown, ctx: unknown): void | Promise<void>;
   uiPages?: Array<{ path: string; navLabel?: string }>;
 }
 

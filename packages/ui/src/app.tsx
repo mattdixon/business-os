@@ -16,6 +16,7 @@ import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './lib/toast';
+import { BrandingProvider, type Branding } from './lib/branding';
 import type { ModuleUiPage } from '@frontrangesystems/business-os-module-sdk';
 
 /**
@@ -36,6 +37,11 @@ export interface CreateOperatorAppOptions {
    * to a placeholder that explains how to wire it up.
    */
   modules?: ModuleUiBundle[];
+  /**
+   * Per-install branding (business name + logo). When omitted the shell
+   * falls back to a generic "Business OS" header. See `./lib/branding`.
+   */
+  branding?: Branding;
 }
 
 /**
@@ -51,6 +57,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
   mount: (el: HTMLElement) => Root;
 } {
   const modules = options.modules ?? [];
+  const branding = options.branding ?? null;
 
   return {
     mount(el): Root {
@@ -60,6 +67,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
           <BrowserRouter>
             <ToastProvider>
               <ThemeProvider>
+              <BrandingProvider value={branding}>
               <AuthProvider>
                 <Routes>
                   <Route path="/login" element={<Login />} />
@@ -106,6 +114,7 @@ export function createOperatorApp(options: CreateOperatorAppOptions = {}): {
                   </Route>
                 </Routes>
               </AuthProvider>
+              </BrandingProvider>
               </ThemeProvider>
             </ToastProvider>
           </BrowserRouter>

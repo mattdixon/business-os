@@ -341,7 +341,7 @@ export default defineModule({
       const dueAt = r.bidsDueAt ? new Date(r.bidsDueAt as unknown as string) : null;
       const hoursUntilDue = dueAt ? (dueAt.getTime() - Date.now()) / 36e5 : null;
       const subtitle = [
-        r.score ? `Score ${r.score}/100` : null,
+        r.score ? `Score ${r.score}%` : null,
         r.location,
         r.estimatedValue !== null ? `$${Number(r.estimatedValue).toLocaleString()}` : null,
         dueAt ? `Due ${dueAt.toLocaleDateString()}` : null,

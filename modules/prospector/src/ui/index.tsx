@@ -83,7 +83,7 @@ function ScoreBadge({ value }: { value: number | null }): JSX.Element | null {
         : 'bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300';
   return (
     <span className={`inline-flex h-7 min-w-[2.5rem] items-center justify-center rounded px-2 text-sm font-semibold ${tone}`}>
-      {value}
+      {value}%
     </span>
   );
 }

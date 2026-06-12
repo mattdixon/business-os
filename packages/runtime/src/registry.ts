@@ -1,12 +1,14 @@
 import type { z } from 'zod';
 import type {
+  AgentContext,
   AgentManifest,
-  AgentRun,
+  AgentResult,
 } from '@frontrangesystems/business-os-agent-sdk';
 import type {
   ConnectorCapabilityMap,
-  ConnectorManifest,
   ConnectorContext,
+  ConnectorManifest,
+  ConnectorPackage,
 } from '@frontrangesystems/business-os-connector-sdk';
 import type { ModulePackage } from '@frontrangesystems/business-os-module-sdk';
 
@@ -22,19 +24,25 @@ import type { ModulePackage } from '@frontrangesystems/business-os-module-sdk';
  * typed lookup that the rest of the runtime consults.
  */
 
+// `run` is declared as a method shorthand (not `run: AgentRun`) so that
+// agents typed with narrower settings (e.g. `AgentRun<{...settings...}, unknown>`)
+// remain assignable. Function-typed properties are strictly variant under
+// `strictFunctionTypes`; method shorthands are bivariant in parameters.
 export interface RegisteredAgent {
   manifest: AgentManifest<z.ZodTypeAny>;
-  run: AgentRun;
+  run(ctx: AgentContext<unknown>, input: unknown): Promise<AgentResult>;
 }
 
+// Stored shape for a connector provider. Built from a `ConnectorPackage`
+// at registration time; `capability` is hoisted off the manifest so
+// downstream consumers (admin routes, scheduler) can read it directly.
 export interface RegisteredConnectorProvider<
   C extends keyof ConnectorCapabilityMap = keyof ConnectorCapabilityMap,
 > {
   manifest: ConnectorManifest<z.ZodTypeAny>;
   capability: C;
-  factory: (
-    ctx: ConnectorContext<unknown>,
-  ) => ConnectorCapabilityMap[C];
+  factory(ctx: ConnectorContext<unknown>): ConnectorCapabilityMap[C];
+  verify?(ctx: ConnectorContext<unknown>): Promise<void>;
 }
 
 export class DuplicateAgentSlugError extends Error {
@@ -97,34 +105,43 @@ export class Registry {
   }
 
   /**
-   * Batch-register every connector in `providers`. Used by client shells
+   * Batch-register every connector in `packages`. Used by client shells
    * to wire `@frontrangesystems/business-os-connectors-all` in one line instead of N
    * individual calls. Fails fast on the first duplicate, leaving previously-
    * registered providers in place.
    */
   registerMany<C extends keyof ConnectorCapabilityMap>(
-    providers: ReadonlyArray<RegisteredConnectorProvider<C>>,
+    packages: ReadonlyArray<ConnectorPackage<C>>,
   ): void {
-    for (const p of providers) this.registerConnectorProvider(p);
+    for (const p of packages) this.registerConnectorProvider(p);
   }
 
   registerConnectorProvider<C extends keyof ConnectorCapabilityMap>(
-    provider: RegisteredConnectorProvider<C>,
+    pkg: ConnectorPackage<C>,
   ): void {
-    // The capability is the source of truth on the connector's manifest, not
-    // on the wrapper. Connectors built via defineConnector({ manifest, factory })
-    // never set a top-level `capability` field, so reading it from the wrapper
-    // produced `undefined` — every provider ended up under one bucket and
-    // listConnectorProviders(<any cap>) returned empty.
-    const cap = (provider.capability ?? provider.manifest.capability) as string;
-    const slug = provider.manifest.slug;
-    let byCap = this.providers.get(cap);
+    // The capability is the source of truth on the connector's manifest.
+    // We hoist it onto the stored RegisteredConnectorProvider so downstream
+    // consumers (admin routes, scheduler) can read provider.capability
+    // without re-reading the manifest each time.
+    // ConnectorManifest.capability is typed as `keyof ConnectorCapabilityMap`
+    // (not the narrow `C` of the package's generic), so we narrow here.
+    // Safe because callers parameterize registerConnectorProvider<C> against
+    // a connector whose manifest matches.
+    const cap = pkg.manifest.capability as C;
+    const slug = pkg.manifest.slug;
+    let byCap = this.providers.get(cap as string);
     if (!byCap) {
       byCap = new Map();
-      this.providers.set(cap, byCap);
+      this.providers.set(cap as string, byCap);
     }
-    if (byCap.has(slug)) throw new DuplicateConnectorProviderError(cap, slug);
-    byCap.set(slug, provider as RegisteredConnectorProvider);
+    if (byCap.has(slug)) throw new DuplicateConnectorProviderError(cap as string, slug);
+    const stored: RegisteredConnectorProvider<C> = {
+      manifest: pkg.manifest,
+      capability: cap,
+      factory: pkg.factory as RegisteredConnectorProvider<C>['factory'],
+      ...(pkg.verify ? { verify: pkg.verify as RegisteredConnectorProvider<C>['verify'] } : {}),
+    };
+    byCap.set(slug, stored as RegisteredConnectorProvider);
   }
 
   getAgent(slug: string): RegisteredAgent {
@@ -156,10 +173,15 @@ export class Registry {
 
   // ---- Modules ----
 
-  registerModule(mod: ModulePackage): void {
+  registerModule<TSettings extends z.ZodTypeAny>(
+    mod: ModulePackage<TSettings>,
+  ): void {
     const slug = mod.manifest.slug;
     if (this.modules.has(slug)) throw new DuplicateModuleSlugError(slug);
-    this.modules.set(slug, mod);
+    // Stored as ModulePackage<ZodTypeAny>. Generic invariance means
+    // ModulePackage<ZodObject<...>> isn't directly assignable, so the cast
+    // is necessary; runtime treats all modules uniformly so this is safe.
+    this.modules.set(slug, mod as unknown as ModulePackage);
   }
 
   getModule(slug: string): ModulePackage {

@@ -47,6 +47,12 @@
     "vite": "^5.4.0"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frontrangesystems/business-os.git",
+    "directory": "packages/ui"
   }
 }

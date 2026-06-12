@@ -1,0 +1,70 @@
+name: Publish to GitHub Packages
+
+# Publishes every @frontrangesystems/business-os-* package whose version
+# isn't already on the registry. We don't try to be clever about which
+# packages changed — npm rejects duplicate-version pushes with a 409,
+# which we treat as "already published, skip" and continue.
+#
+# To release a new version of any package: bump its package.json version
+# in the PR you'd be merging. Merging to main triggers this workflow,
+# which picks up the bumped versions and publishes them. Untouched
+# packages stay at their current version and silently skip.
+
+on:
+  push:
+    branches: [main]
+  # Allow re-running on demand (e.g. if a publish step flaked).
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@frontrangesystems'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r --filter "@frontrangesystems/business-os-*" build
+
+      - name: Publish every package (skip if version already on registry)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          mapfile -t pkg_dirs < <(find packages connectors agents modules tools -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*' -print)
+          for f in "${pkg_dirs[@]}"; do
+            dir=$(dirname "$f")
+            name=$(node -p "require('./$f').name")
+            version=$(node -p "require('./$f').version")
+            case "$name" in
+              @frontrangesystems/business-os-*) : ;;
+              *) echo "skip non-org package $name"; continue ;;
+            esac
+            echo "publishing $name@$version from $dir"
+            (cd "$dir" && pnpm publish --access restricted --no-git-checks) && echo "  OK $name@$version" || {
+              code=$?
+              # npm exits with 1 (or 409 inside) on duplicate version. Use the
+              # `npm view` check so we distinguish duplicate from real failure.
+              if pnpm exec npm view "$name@$version" version 2>/dev/null | grep -qx "$version"; then
+                echo "  already published: $name@$version (skipping)"
+              else
+                echo "  ERROR: publish failed for $name@$version (exit $code)"
+                exit $code
+              fi
+            }
+          done

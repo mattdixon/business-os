@@ -8,7 +8,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "../../templates/client-starter"],
+  "files": [
+    "dist",
+    "../../templates/client-starter"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -23,6 +26,12 @@
     "vitest": "^2.0.0"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frontrangesystems/business-os.git",
+    "directory": "tools/create-client"
   }
 }

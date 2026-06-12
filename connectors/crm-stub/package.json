@@ -15,7 +15,10 @@
       "import": "./dist/migrations.js"
     }
   },
-  "files": ["dist", "migrations"],
+  "files": [
+    "dist",
+    "migrations"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -34,6 +37,12 @@
     "vitest": "^2.0.0"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frontrangesystems/business-os.git",
+    "directory": "connectors/crm-stub"
   }
 }

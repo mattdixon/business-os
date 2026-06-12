@@ -38,7 +38,15 @@ export function Shell(): JSX.Element {
   return (
     <div className="flex h-full min-h-screen bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100">
       <aside className="flex w-60 shrink-0 flex-col border-r border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900">
-        <div className="border-b border-ink-200 px-5 py-4 dark:border-ink-800">
+        <div
+          className={
+            branding?.headerBackground === 'dark'
+              ? 'border-b border-ink-800 bg-ink-900 px-5 py-4 text-ink-50'
+              : branding?.headerBackground === 'light'
+                ? 'border-b border-ink-200 bg-white px-5 py-4 text-ink-900'
+                : 'border-b border-ink-200 px-5 py-4 dark:border-ink-800'
+          }
+        >
           {branding?.logoUrl && (
             <img
               src={branding.logoUrl}
@@ -49,7 +57,13 @@ export function Shell(): JSX.Element {
           <div className="text-sm font-semibold tracking-tight">
             {branding?.businessName ?? 'Business OS'}
           </div>
-          <div className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
+          <div
+            className={
+              branding?.headerBackground === 'dark'
+                ? 'mt-0.5 text-xs text-ink-400'
+                : 'mt-0.5 text-xs text-ink-500 dark:text-ink-400'
+            }
+          >
             {branding?.businessName ? 'Business OS' : 'Operator console'}
           </div>
         </div>

@@ -308,8 +308,13 @@ function AddForm(props: {
     isCustom &&
     credSchema?.type === 'object' &&
     Object.keys(credSchema.fields).length > 0;
+  // Render the settings form inline for both 'custom' AND 'api-key' providers
+  // whenever the manifest declares fields. Previously this gated on isCustom
+  // only, which meant api-key connectors with required settings (e.g.
+  // Resend's defaultFrom) couldn't be created — the server-side Zod parse
+  // would reject and dump the raw issues array into the UI.
   const hasSettingsFields =
-    isCustom &&
+    (isCustom || isApiKey) &&
     settingsSchema?.type === 'object' &&
     Object.keys(settingsSchema.fields).length > 0;
 
@@ -380,7 +385,7 @@ function AddForm(props: {
       if (isCustom && hasCustomCredFields) {
         extras.credentials = { kind: 'custom', values: customCreds };
       }
-      if (isCustom && hasSettingsFields) {
+      if (hasSettingsFields) {
         extras.settings = draftSettings;
       }
       if (isLlm && model) {
@@ -490,7 +495,7 @@ function AddForm(props: {
           />
         </div>
       )}
-      {isCustom && hasSettingsFields && settingsSchema && (
+      {hasSettingsFields && settingsSchema && (
         <div className="mt-4 border-t border-ink-200 pt-4 dark:border-ink-700">
           <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
             Connection settings

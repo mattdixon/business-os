@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useBranding } from '../lib/branding';
 import { Api } from '../lib/api';
 
 interface ModuleNav {
@@ -11,6 +12,7 @@ interface ModuleNav {
 
 export function Shell(): JSX.Element {
   const { state, logout } = useAuth();
+  const branding = useBranding();
   const navigate = useNavigate();
   const user = state.kind === 'authenticated' ? state.user : null;
   const [modules, setModules] = useState<ModuleNav[]>([]);
@@ -37,8 +39,19 @@ export function Shell(): JSX.Element {
     <div className="flex h-full min-h-screen bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100">
       <aside className="flex w-60 shrink-0 flex-col border-r border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900">
         <div className="border-b border-ink-200 px-5 py-4 dark:border-ink-800">
-          <div className="text-sm font-semibold tracking-tight">Business OS</div>
-          <div className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">Operator console</div>
+          {branding?.logoUrl && (
+            <img
+              src={branding.logoUrl}
+              alt={branding.businessName}
+              className="mb-2 h-8 w-auto"
+            />
+          )}
+          <div className="text-sm font-semibold tracking-tight">
+            {branding?.businessName ?? 'Business OS'}
+          </div>
+          <div className="mt-0.5 text-xs text-ink-500 dark:text-ink-400">
+            {branding?.businessName ? 'Business OS' : 'Operator console'}
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-3 text-sm">
           <NavItem to="/dashboard">Dashboard</NavItem>

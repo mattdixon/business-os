@@ -304,10 +304,19 @@ async function runVerify(args: {
   // Settings always validated against the connector's schema. A connector
   // with no verify() hook still benefits from schema-checked settings.
   let settings: unknown;
-  try {
-    settings = args.provider.manifest.settingsSchema.parse(args.proposedSettings ?? {});
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'invalid settings' };
+  {
+    const parsed = args.provider.manifest.settingsSchema.safeParse(args.proposedSettings ?? {});
+    if (!parsed.success) {
+      // Format Zod issues into a human string instead of letting the raw
+      // JSON-stringified issues array hit the UI banner.
+      return {
+        ok: false,
+        error: parsed.error.issues
+          .map((i) => `${i.path.join('.') || 'value'}: ${i.message}`)
+          .join('; '),
+      };
+    }
+    settings = parsed.data;
   }
   if (!args.provider.verify) return { ok: true };
   try {

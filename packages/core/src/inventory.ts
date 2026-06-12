@@ -1,6 +1,6 @@
 /**
  * Minimal interfaces core needs from the runtime, defined here so core never
- * imports from @business-os/runtime (which would create a dependency cycle —
+ * imports from @frontrangesystems/business-os-runtime (which would create a dependency cycle —
  * runtime already imports from core).
  *
  * The runtime's Registry and Scheduler satisfy these structurally.
@@ -37,7 +37,7 @@ export interface ConnectorManifestLike {
   authKind: 'oauth2' | 'api-key' | 'none' | 'custom';
   /**
    * Set when the connector uses an external OAuth broker (e.g. Composio).
-   * Mirrors @business-os/connector-sdk's ConnectorManifest.externalOAuth.
+   * Mirrors @frontrangesystems/business-os-connector-sdk's ConnectorManifest.externalOAuth.
    */
   externalOAuth?: {
     provider: 'composio';
@@ -54,10 +54,10 @@ export interface ConnectorManifestLike {
 /**
  * Structural interface for external OAuth brokers (Composio, Nango, ...).
  * Core depends only on this shape; the client shell wires a concrete
- * implementation (e.g. ComposioSubstrate from @business-os/connector-composio)
+ * implementation (e.g. ComposioSubstrate from @frontrangesystems/business-os-connector-composio)
  * into startServer's deps.
  *
- * Mirrors @business-os/connector-sdk's ExternalOAuthBroker.
+ * Mirrors @frontrangesystems/business-os-connector-sdk's ExternalOAuthBroker.
  */
 export interface ExternalOAuthBrokerLike {
   findOrCreateManagedAuthConfig(toolkit: string): Promise<{ id: string; toolkit: string }>;
@@ -102,7 +102,7 @@ export interface ModulePackageLike {
 
 /**
  * The framework's view of what's registered. Implemented by
- * @business-os/runtime's Registry.
+ * @frontrangesystems/business-os-runtime's Registry.
  */
 export interface AgentInventory {
   listAgents(): RegisteredAgentLike[];
@@ -117,7 +117,7 @@ export interface AgentInventory {
   getModule?(slug: string): ModulePackageLike;
 }
 
-/** Implemented by @business-os/runtime's Scheduler. */
+/** Implemented by @frontrangesystems/business-os-runtime's Scheduler. */
 export interface ManualTriggerer {
   triggerManual(slug: string, input: unknown, triggeredBy: string): Promise<void>;
   /**

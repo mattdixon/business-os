@@ -5,8 +5,8 @@ import {
   type EmailCapability,
   type InboundEmail,
   type OutboundEmail,
-} from '@business-os/connector-sdk';
-import { ComposioSubstrate, ComposioSubstrateError } from '@business-os/connector-composio';
+} from '@frontrangesystems/business-os-connector-sdk';
+import { ComposioSubstrate, ComposioSubstrateError } from '@frontrangesystems/business-os-connector-composio';
 
 /**
  * Gmail provider for the `email` capability, backed by Composio.

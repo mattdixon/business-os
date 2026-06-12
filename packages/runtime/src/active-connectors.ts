@@ -1,12 +1,12 @@
 import { eq, and } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { connectorInstances, settings } from '@business-os/db';
-import type { SecretsStore } from '@business-os/core/secrets';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { connectorInstances, settings } from '@frontrangesystems/business-os-db';
+import type { SecretsStore } from '@frontrangesystems/business-os-core/secrets';
 import type {
   ConnectorCapabilityMap,
   ConnectorContext,
   ConnectorCredentials,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 import type { Registry } from './registry.js';
 import type { Logger } from 'pino';
 

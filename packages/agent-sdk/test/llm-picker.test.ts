@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { LlmPickerSchema, resolveLlm } from '../src/llm-picker.js';
-import type { LlmCapability, LlmRequest } from '@business-os/connector-sdk';
+import type { LlmCapability, LlmRequest } from '@frontrangesystems/business-os-connector-sdk';
 
 function fakeLlm(): LlmCapability & { _last: LlmRequest | null } {
   const obj: LlmCapability & { _last: LlmRequest | null } = {

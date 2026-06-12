@@ -1,5 +1,5 @@
 /**
- * @business-os/agents-all
+ * @frontrangesystems/business-os-agents-all
  *
  * Re-exports every framework-shipped agent. Client shells import this one
  * package and call `registry.registerManyAgents(allFrameworkAgents)` — no
@@ -12,14 +12,14 @@
  * operator picks which to install.
  */
 
-import inboxCategorize from '@business-os/agent-inbox-categorize';
-import inboxCleanup from '@business-os/agent-inbox-cleanup';
-import inboxSurface from '@business-os/agent-inbox-surface';
-import leadgen from '@business-os/agent-leadgen';
-import prospecting from '@business-os/agent-prospecting';
-import digest from '@business-os/agent-digest';
+import inboxCategorize from '@frontrangesystems/business-os-agent-inbox-categorize';
+import inboxCleanup from '@frontrangesystems/business-os-agent-inbox-cleanup';
+import inboxSurface from '@frontrangesystems/business-os-agent-inbox-surface';
+import leadgen from '@frontrangesystems/business-os-agent-leadgen';
+import prospecting from '@frontrangesystems/business-os-agent-prospecting';
+import digest from '@frontrangesystems/business-os-agent-digest';
 
-import type { AgentManifest, AgentRun } from '@business-os/agent-sdk';
+import type { AgentManifest, AgentRun } from '@frontrangesystems/business-os-agent-sdk';
 
 interface FrameworkAgent {
   manifest: AgentManifest;

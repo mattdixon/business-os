@@ -378,7 +378,7 @@ export function defineConnector<
 // -----------------------------------------------------------------------------
 // External OAuth broker — interface implemented by connector packages that
 // front an integration platform (Composio, Nango, Pipedream Connect, ...).
-// Defined here so @business-os/core can drive the Connect-flow against any
+// Defined here so @frontrangesystems/business-os-core can drive the Connect-flow against any
 // broker without taking a direct dependency on a connector package.
 //
 // The client shell constructs the concrete broker (with API key etc.) and

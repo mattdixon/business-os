@@ -5,8 +5,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sodium = require('libsodium-wrappers') as typeof import('libsodium-wrappers');
 import { eq, and } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { secrets } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { secrets } from '@frontrangesystems/business-os-db';
 
 /**
  * Symmetric encryption for secrets at rest.

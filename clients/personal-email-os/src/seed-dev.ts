@@ -19,8 +19,8 @@
  */
 
 import 'dotenv/config';
-import { createDb, settings as settingsTable, users } from '@business-os/db';
-import { hashPassword } from '@business-os/core/auth';
+import { createDb, settings as settingsTable, users } from '@frontrangesystems/business-os-db';
+import { hashPassword } from '@frontrangesystems/business-os-core/auth';
 import { eq } from 'drizzle-orm';
 
 const DEFAULT_EMAIL = process.env.SEED_DEV_EMAIL ?? 'admin@localhost';

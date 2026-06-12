@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-crm-stub",
+  "name": "@frontrangesystems/business-os-connector-crm-stub",
   "version": "0.0.1",
   "description": "Dev/demo provider for the crm capability — stores contacts in a local table.",
   "type": "module",
@@ -22,8 +22,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-sdk": "workspace:^",
-    "@business-os/db": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-db": "workspace:^",
     "drizzle-orm": "^0.33.0",
     "postgres": "^3.4.4",
     "zod": "^3.23.0"

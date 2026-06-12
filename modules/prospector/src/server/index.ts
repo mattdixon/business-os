@@ -10,12 +10,12 @@ import {
   type ModuleServerContext,
   type DigestContext,
   type DigestContribution,
-} from '@business-os/module-sdk';
-import { requireUser } from '@business-os/core';
+} from '@frontrangesystems/business-os-module-sdk';
+import { requireUser } from '@frontrangesystems/business-os-core';
 import { prospectorBidFeedback, bidWatcherSeen } from './schema.js';
 
 /**
- * @business-os/module-prospector
+ * @frontrangesystems/business-os-module-prospector
  *
  * Surfaces scored bid opportunities + collects per-user thumbs feedback.
  * Reads bids from `bid_watcher_seen` (owned by the bid-watcher agent).

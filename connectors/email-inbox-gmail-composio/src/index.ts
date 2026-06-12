@@ -9,8 +9,8 @@ import {
   type ListMessagesOpts,
   type ListMessagesResult,
   type SearchOpts,
-} from '@business-os/connector-sdk';
-import { ComposioSubstrate, ComposioSubstrateError } from '@business-os/connector-composio';
+} from '@frontrangesystems/business-os-connector-sdk';
+import { ComposioSubstrate, ComposioSubstrateError } from '@frontrangesystems/business-os-connector-composio';
 
 /**
  * Gmail provider for the `email-inbox` capability, backed by Composio.

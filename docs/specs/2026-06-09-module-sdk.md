@@ -1,7 +1,7 @@
 # Module SDK — Third Framework Primitive
 
 **Date:** 2026-06-09
-**Status:** Locked decision. Documents the existing implementation in `@business-os/module-sdk` and the wiring in `@business-os/core` and `@business-os/ui`. Do not re-litigate without explicit approval.
+**Status:** Locked decision. Documents the existing implementation in `@frontrangesystems/business-os-module-sdk` and the wiring in `@frontrangesystems/business-os-core` and `@frontrangesystems/business-os-ui`. Do not re-litigate without explicit approval.
 **Related:** [docs/specs/2026-06-06-business-os-architecture.md](2026-06-06-business-os-architecture.md)
 
 ---
@@ -28,7 +28,7 @@ Each of these is a slice of state with:
 - Its own UI pages (so a human can look at the data and edit it).
 - Its own settings (so per-install knobs work the same as agents and connectors).
 
-This is the **module** primitive. The implementation already ships under `@business-os/module-sdk` (155 lines), `@business-os/core/modules.ts` (70 lines), and a worked-example module at `modules/example/`. This spec locks the contract that those files implement.
+This is the **module** primitive. The implementation already ships under `@frontrangesystems/business-os-module-sdk` (155 lines), `@frontrangesystems/business-os-core/modules.ts` (70 lines), and a worked-example module at `modules/example/`. This spec locks the contract that those files implement.
 
 ## Decision
 
@@ -42,7 +42,7 @@ Modules **own state**. Agents and connectors do not.
 
 Modules are **per-install opt-in**, same as agents and connectors: each client shell imports the modules they need into `business-os.config.ts`, the framework wires them at boot. Zero, one, or many modules per install.
 
-The first reference implementation is `@business-os/module-example` — useful as a copy-pasta target, not for client deployments.
+The first reference implementation is `@frontrangesystems/business-os-module-example` — useful as a copy-pasta target, not for client deployments.
 
 ## Module manifest (locked)
 
@@ -170,7 +170,7 @@ Settings reload requires a process restart. (This matches agent behavior. Hot-re
 manifest.migrationsDir?: string  // absolute path to a dir of .sql files
 ```
 
-- Forward-only `.sql` files, same runner as core (`@business-os/db`).
+- Forward-only `.sql` files, same runner as core (`@frontrangesystems/business-os-db`).
 - Files named `NNNN_<description>.sql`, applied in lex order. Failure aborts boot.
 - Each module's migrations are recorded in the migration table under owner `module:<slug>`.
 - A module schema may freely reference core tables (`users`, `audit_log`, etc.) but MUST NOT touch other modules' tables (convention).
@@ -189,8 +189,8 @@ The framework boots modules in this order:
 The client shell declares modules in `business-os.config.ts`:
 
 ```ts
-import { inventoryModule } from '@business-os/module-inventory';
-import { jobsModule } from '@business-os/module-jobs';
+import { inventoryModule } from '@frontrangesystems/business-os-module-inventory';
+import { jobsModule } from '@frontrangesystems/business-os-module-jobs';
 
 export default {
   agents: [...],
@@ -221,9 +221,9 @@ The framework already has these rules in CLAUDE.md for agents/connectors. Module
 - Agents MUST NOT import from other agents.
 - Connectors MUST NOT import from agents or modules.
 - **Modules MUST NOT import from other modules.** Cross-module data crosses through REST.
-- **Modules MAY import `@business-os/agent-sdk` / `@business-os/connector-sdk` types** if they need to expose capability-shaped REST surfaces, but they are not agents and do not implement those interfaces.
-- Modules MAY import `@business-os/module-sdk` (their own SDK) and `@business-os/api-contract` (shared Zod types).
-- Client shells MAY import any `@business-os/*` package.
+- **Modules MAY import `@frontrangesystems/business-os-agent-sdk` / `@frontrangesystems/business-os-connector-sdk` types** if they need to expose capability-shaped REST surfaces, but they are not agents and do not implement those interfaces.
+- Modules MAY import `@frontrangesystems/business-os-module-sdk` (their own SDK) and `@frontrangesystems/business-os-api-contract` (shared Zod types).
+- Client shells MAY import any `@frontrangesystems/business-os-*` package.
 
 ## When to use which primitive
 
@@ -263,4 +263,4 @@ It is NOT meant for deployment. Real modules go under names like `module-invento
 
 ## Migration / backfill
 
-This spec documents the existing implementation. No code changes are required to ratify it — the contract above is already what `@business-os/module-sdk` enforces today. Future PRs that change the contract MUST update this spec in the same PR.
+This spec documents the existing implementation. No code changes are required to ratify it — the contract above is already what `@frontrangesystems/business-os-module-sdk` enforces today. Future PRs that change the contract MUST update this spec in the same PR.

@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-inbox-cleanup",
+  "name": "@frontrangesystems/business-os-agent-inbox-cleanup",
   "version": "0.0.1",
   "description": "Triage an inbox backlog: cluster by sender, classify with an LLM, then archive or trash bulk noise in batches.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/agent-sdk": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

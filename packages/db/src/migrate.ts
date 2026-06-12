@@ -20,7 +20,7 @@ import type { Sql } from 'postgres';
  */
 
 export interface MigrationOwner {
-  /** Identifier recorded in migrations_applied, e.g. "@business-os/db" */
+  /** Identifier recorded in migrations_applied, e.g. "@frontrangesystems/business-os-db" */
   owner: string;
   /** Absolute path to a directory containing 0001_*.sql, 0002_*.sql, ... */
   dir: string;

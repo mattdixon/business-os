@@ -40,7 +40,7 @@ Two artifacts, both delivered together:
 
 A thin per-client repo, scaffolded once via `pnpm create business-os-client <slug>`. Contains:
 
-- `package.json` pinning `@business-os/*` versions.
+- `package.json` pinning `@frontrangesystems/business-os-*` versions.
 - `business-os.config.ts` declaring which agents are enabled and which connectors are registered.
 - `.env` template for framework-level secrets only (DB URL, `SECRETS_KEY`, system email API key).
 - `deploy/` for client-specific deployment artifacts (Dockerfile, Fly/Render config).
@@ -51,12 +51,12 @@ The shell is intentionally small. Most of it is config and glue. Framework code 
 
 ### B. Versioned framework + agent packages
 
-Published to a private npm registry (GitHub Packages). Scope: `@business-os/*`.
+Published to a private npm registry (GitHub Packages). Scope: `@frontrangesystems/business-os-*`.
 
-- **Framework primitives** — `@business-os/core`, `@business-os/runtime`, `@business-os/db`, `@business-os/ui`, `@business-os/api-contract`.
-- **SDKs** — `@business-os/agent-sdk`, `@business-os/connector-sdk`.
-- **Shared agents** — `@business-os/agent-leadgen`, `@business-os/agent-prospecting`, `@business-os/agent-linkedin`, `@business-os/agent-instagram`, etc.
-- **Shared connectors** — `@business-os/connector-gmail`, `@business-os/connector-ghl`, `@business-os/connector-openai`, etc.
+- **Framework primitives** — `@frontrangesystems/business-os-core`, `@frontrangesystems/business-os-runtime`, `@frontrangesystems/business-os-db`, `@frontrangesystems/business-os-ui`, `@frontrangesystems/business-os-api-contract`.
+- **SDKs** — `@frontrangesystems/business-os-agent-sdk`, `@frontrangesystems/business-os-connector-sdk`.
+- **Shared agents** — `@frontrangesystems/business-os-agent-leadgen`, `@frontrangesystems/business-os-agent-prospecting`, `@frontrangesystems/business-os-agent-linkedin`, `@frontrangesystems/business-os-agent-instagram`, etc.
+- **Shared connectors** — `@frontrangesystems/business-os-connector-gmail`, `@frontrangesystems/business-os-connector-ghl`, `@frontrangesystems/business-os-connector-openai`, etc.
 
 Upgrades flow via `pnpm up`. Semver discipline is enforced.
 
@@ -74,7 +74,7 @@ This is the most important interface in the system. Get it right and everything 
 
 ```ts
 import { z } from 'zod';
-import type { AgentManifest, AgentContext, AgentResult } from '@business-os/agent-sdk';
+import type { AgentManifest, AgentContext, AgentResult } from '@frontrangesystems/business-os-agent-sdk';
 
 export const manifest: AgentManifest = {
   slug: 'leadgen',
@@ -128,7 +128,7 @@ export async function run(ctx: AgentContext, input: unknown): Promise<AgentResul
 Capabilities are stable; providers are pluggable.
 
 ```ts
-import type { ConnectorImpl, EmailCapability } from '@business-os/connector-sdk';
+import type { ConnectorImpl, EmailCapability } from '@frontrangesystems/business-os-connector-sdk';
 
 export const manifest = {
   slug: 'gmail',
@@ -198,11 +198,11 @@ The client's settings UI lists all registered providers per capability. The oper
 
 ## Build order (the smallest thing that proves the model)
 
-1. `@business-os/agent-sdk` — define the interfaces. No implementation.
-2. `@business-os/connector-sdk` — same.
-3. `@business-os/core` minimal — Fastify boot, Drizzle wiring, settings table, audit log table, one health endpoint.
-4. `@business-os/runtime` minimal — load a registry of agents, resolve `ctx.connector(cap)`, run an agent manually via CLI.
-5. **One end-to-end agent: Lead Gen.** Real connector (start with one LLM and one CRM — `@business-os/connector-openai` and `@business-os/connector-ghl`). Make it work for C&M's actual use case.
+1. `@frontrangesystems/business-os-agent-sdk` — define the interfaces. No implementation.
+2. `@frontrangesystems/business-os-connector-sdk` — same.
+3. `@frontrangesystems/business-os-core` minimal — Fastify boot, Drizzle wiring, settings table, audit log table, one health endpoint.
+4. `@frontrangesystems/business-os-runtime` minimal — load a registry of agents, resolve `ctx.connector(cap)`, run an agent manually via CLI.
+5. **One end-to-end agent: Lead Gen.** Real connector (start with one LLM and one CRM — `@frontrangesystems/business-os-connector-openai` and `@frontrangesystems/business-os-connector-ghl`). Make it work for C&M's actual use case.
 6. Settings UI for the one agent + its connectors.
 7. `templates/client-starter/` + `pnpm create business-os-client` — once we know what a real client repo needs.
 8. THEN start generalizing — more agents, more connectors, the operator UI shell.

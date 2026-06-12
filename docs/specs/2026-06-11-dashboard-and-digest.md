@@ -58,7 +58,7 @@ Each is independently adoptable. A module can have a dashboard section but no di
 Modules export a new optional field on the module manifest:
 
 ```ts
-// in @business-os/module-sdk
+// in @frontrangesystems/business-os-module-sdk
 export interface DashboardSection {
   /** Stable id within the module — used as the per-user reorder key. */
   id: string;
@@ -117,7 +117,7 @@ The framework renders each section as a card group. Default renderer is a vertic
 
 ### Build + send
 
-- A new framework agent (`@business-os/agent-digest`) runs once a day. Default schedule: `0 7 * * *` in the install's configured timezone. Schedulable like any agent, overridable per the existing schedule-override mechanism.
+- A new framework agent (`@frontrangesystems/business-os-agent-digest`) runs once a day. Default schedule: `0 7 * * *` in the install's configured timezone. Schedulable like any agent, overridable per the existing schedule-override mechanism.
 - For each user with a verified email, the digest agent:
   1. Calls each module's `digestContribution(user, since: lastSendOrInstallDate)` in parallel.
   2. Drops empty contributions.
@@ -223,7 +223,7 @@ These are all reachable later via additional `ctx` helpers. Don't pre-build.
 
 ## Worked example: Prospector module
 
-The Prospector module ships as `@business-os/module-prospector`. It owns:
+The Prospector module ships as `@frontrangesystems/business-os-module-prospector`. It owns:
 
 - Tables: `rfqs`, `rfq_diffs`, `triaged_emails`.
 - Settings: trade categories, geographic scope, deadline-urgency threshold (default 48h), score threshold for urgent escalation (default 7).
@@ -236,8 +236,8 @@ The Prospector module ships as `@business-os/module-prospector`. It owns:
 
 Two agents support it:
 
-- `@business-os/agent-rfq-crawler` — `cron: 0 * * * *` (hourly). Uses a `web-scraper` connector (or per-target adapter). For each item: computes embedding, calls `ctx.recall()` to fetch the user's past ratings of similar RFQs, calls LLM to score, upserts via `POST /modules/prospector/rfqs`. Per-user scoring: the agent iterates users with prospector access and scores once per user (cheap because the recall cache hits).
-- `@business-os/agent-email-triage` — `event: email-received` (or `cron: */15 * * * *` if event delivery isn't wired). Same pattern: embed, recall, score, post to the module.
+- `@frontrangesystems/business-os-agent-rfq-crawler` — `cron: 0 * * * *` (hourly). Uses a `web-scraper` connector (or per-target adapter). For each item: computes embedding, calls `ctx.recall()` to fetch the user's past ratings of similar RFQs, calls LLM to score, upserts via `POST /modules/prospector/rfqs`. Per-user scoring: the agent iterates users with prospector access and scores once per user (cheap because the recall cache hits).
+- `@frontrangesystems/business-os-agent-email-triage` — `event: email-received` (or `cron: */15 * * * *` if event delivery isn't wired). Same pattern: embed, recall, score, post to the module.
 
 Both agents declare:
 
@@ -275,7 +275,7 @@ Update the operator UI shell:
 ## Implementation order
 
 1. `dashboardSections` field on `ModuleManifest` + `/home` route in operator UI shell + default renderer + `user_dashboard_layout` table + reorder.
-2. `digestContribution` field + `@business-os/agent-digest` + `urgent_notifications_sent` table.
+2. `digestContribution` field + `@frontrangesystems/business-os-agent-digest` + `urgent_notifications_sent` table.
 3. `item_feedback` + `item_embeddings` tables + `ctx.recall()` helper + feedback wire-up on cards.
 4. Prospector module + RFQ crawler agent + email-triage agent.
 

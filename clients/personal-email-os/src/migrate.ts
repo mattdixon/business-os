@@ -7,7 +7,7 @@
  */
 
 import 'dotenv/config';
-import { createDb, runMigrations, coreMigrations } from '@business-os/db';
+import { createDb, runMigrations, coreMigrations } from '@frontrangesystems/business-os-db';
 import { extraMigrations } from '../business-os.config.js';
 
 const url = process.env.DATABASE_URL;

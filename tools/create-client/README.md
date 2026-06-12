@@ -1,4 +1,4 @@
-# @business-os/create-client
+# @frontrangesystems/business-os-create-client
 
 Scaffolds a thin per-client Business OS install repo from `templates/client-starter`.
 

@@ -5,7 +5,7 @@ import {
   coreMigrations,
   settings as settingsTable,
   type MigrationOwner,
-} from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
 import { sql as sqlOp } from 'drizzle-orm';
 import { buildApp, type AppDeps } from '../app.js';
 import { registerModuleRoutes } from '../modules.js';
@@ -20,10 +20,10 @@ import type {
 /**
  * The framework's entry point. A client shell's index.ts does:
  *
- *   import { startServer } from '@business-os/core';
- *   import { Registry, Scheduler, createConnectorResolver } from '@business-os/runtime';
- *   import leadgen from '@business-os/agent-leadgen';
- *   import anthropic from '@business-os/connector-anthropic';
+ *   import { startServer } from '@frontrangesystems/business-os-core';
+ *   import { Registry, Scheduler, createConnectorResolver } from '@frontrangesystems/business-os-runtime';
+ *   import leadgen from '@frontrangesystems/business-os-agent-leadgen';
+ *   import anthropic from '@frontrangesystems/business-os-connector-anthropic';
  *
  *   const registry = new Registry();
  *   registry.registerAgent(leadgen);
@@ -34,7 +34,7 @@ import type {
  *     inventory: registry,
  *     mode: process.argv.includes('--worker') ? 'worker' : 'api',
  *     // Optional: a function that returns a Scheduler-like trigger. We can't
- *     // import @business-os/runtime here without creating a cycle, so the
+ *     // import @frontrangesystems/business-os-runtime here without creating a cycle, so the
  *     // client constructs it and passes it in.
  *     trigger: (deps) => makeScheduler(deps),
  *     // Optional: agents and connectors may ship their own migration owners.
@@ -113,6 +113,7 @@ export async function startServer(opts: StartServerOpts): Promise<StartedServer>
     for (const mod of opts.inventory.listModules()) {
       if (mod.manifest.migrationsDir) {
         moduleOwners.push({
+          // Internal migration tracking string — see packages/db/src/owners.ts.
           owner: `@business-os/module-${mod.manifest.slug}`,
           dir: mod.manifest.migrationsDir,
         });

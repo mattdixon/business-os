@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { ModuleUiPage } from '@business-os/module-sdk';
+import type { ModuleUiPage } from '@frontrangesystems/business-os-module-sdk';
 
 /**
- * UI half of @business-os/module-prospector.
+ * UI half of @frontrangesystems/business-os-module-prospector.
  *
  * Two pages:
  *   - Home (path: ''): dashboard with "New bids worth a look" cards + thumbs feedback.

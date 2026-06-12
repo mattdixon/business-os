@@ -6,7 +6,7 @@ import {
   type CrmCapability,
   type CrmContact,
   type CrmTask,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { crmStubContacts, crmStubNotes, crmStubTags, crmStubTasks } from './schema.js';
@@ -20,8 +20,8 @@ import { crmStubContacts, crmStubNotes, crmStubTags, crmStubTasks } from './sche
  *   - Demos where you want everything visible in a single DB.
  *   - Smoke tests of agents that need a working CrmCapability.
  *
- * NOT for production: real installs swap in @business-os/connector-ghl,
- * @business-os/connector-hubspot, etc.
+ * NOT for production: real installs swap in @frontrangesystems/business-os-connector-ghl,
+ * @frontrangesystems/business-os-connector-hubspot, etc.
  *
  * Operator note: the CRM table lives in the same Postgres as the framework
  * itself. The settings.databaseUrl override lets a client point this

@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connectors-all",
+  "name": "@frontrangesystems/business-os-connectors-all",
   "version": "0.0.1",
   "description": "Aggregator package — re-exports every framework connector so client shells can registerMany() instead of importing each one individually.",
   "type": "module",
@@ -17,17 +17,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@business-os/connector-anthropic": "workspace:^",
-    "@business-os/connector-crm-stub": "workspace:^",
-    "@business-os/connector-email-gmail-composio": "workspace:^",
-    "@business-os/connector-email-inbox-gmail-composio": "workspace:^",
-    "@business-os/connector-email-inbox-imap": "workspace:^",
-    "@business-os/connector-email-inbox-outlook-composio": "workspace:^",
-    "@business-os/connector-email-stub": "workspace:^",
-    "@business-os/connector-openai": "workspace:^",
-    "@business-os/connector-resend": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
-    "@business-os/db": "workspace:^"
+    "@frontrangesystems/business-os-connector-anthropic": "workspace:^",
+    "@frontrangesystems/business-os-connector-crm-stub": "workspace:^",
+    "@frontrangesystems/business-os-connector-email-gmail-composio": "workspace:^",
+    "@frontrangesystems/business-os-connector-email-inbox-gmail-composio": "workspace:^",
+    "@frontrangesystems/business-os-connector-email-inbox-imap": "workspace:^",
+    "@frontrangesystems/business-os-connector-email-inbox-outlook-composio": "workspace:^",
+    "@frontrangesystems/business-os-connector-email-stub": "workspace:^",
+    "@frontrangesystems/business-os-connector-openai": "workspace:^",
+    "@frontrangesystems/business-os-connector-resend": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-db": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

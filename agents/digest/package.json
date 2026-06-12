@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-digest",
+  "name": "@frontrangesystems/business-os-agent-digest",
   "version": "0.0.1",
   "description": "Daily digest. Walks every active user, calls each registered module's digestContribution, sends one email per user via the email capability.",
   "type": "module",
@@ -18,9 +18,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/agent-sdk": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
-    "@business-os/db": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-db": "workspace:^",
     "drizzle-orm": "^0.33.0",
     "zod": "^3.23.0"
   },

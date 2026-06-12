@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-inbox-surface",
+  "name": "@frontrangesystems/business-os-agent-inbox-surface",
   "version": "0.0.1",
   "description": "Score recent unread messages for human-response need and return a ranked digest of the top items.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/agent-sdk": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

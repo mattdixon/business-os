@@ -1,10 +1,10 @@
 import PgBoss from 'pg-boss';
 import type { Logger } from 'pino';
-import type { EnqueueOpts } from '@business-os/agent-sdk';
+import type { EnqueueOpts } from '@frontrangesystems/business-os-agent-sdk';
 import type { Registry } from './registry.js';
 import type { ConnectorResolver } from './active-connectors.js';
 import { runAgent } from './run.js';
-import type { Db } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
 
 /**
  * Durable background jobs.

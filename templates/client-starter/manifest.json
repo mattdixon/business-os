@@ -1,5 +1,5 @@
 {
-  "$comment": "Files in this template that should be copied verbatim and (if listed under tmplFiles) have {{PLACEHOLDERS}} substituted. Manifest is read by @business-os/create-client.",
+  "$comment": "Files in this template that should be copied verbatim and (if listed under tmplFiles) have {{PLACEHOLDERS}} substituted. Manifest is read by @frontrangesystems/business-os-create-client.",
   "tmplFiles": [
     "package.json.tmpl",
     "tsconfig.json.tmpl",

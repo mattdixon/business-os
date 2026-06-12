@@ -1,11 +1,12 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { MigrationOwner } from '@business-os/db';
+import type { MigrationOwner } from '@frontrangesystems/business-os-db';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 /** Migration owner shipped by connector-crm-stub. Add to client-starter's extraMigrations. */
 export const crmStubMigrations: MigrationOwner = {
+  // Internal migration tracking string — see packages/db/src/owners.ts.
   owner: '@business-os/connector-crm-stub',
   dir: resolve(here, '..', 'migrations'),
 };

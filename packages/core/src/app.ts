@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerUiServe } from './ui-serve.js';
@@ -30,7 +30,7 @@ export interface AppDeps {
   /** Fastify logger options. Tests pass `false` to silence. */
   logger?: boolean | { level?: string };
   /**
-   * Serve @business-os/ui static assets at /. Default true outside tests.
+   * Serve @frontrangesystems/business-os-ui static assets at /. Default true outside tests.
    * Tests typically set this false to keep the app surface API-only.
    */
   serveUi?: boolean;

@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { executeTool } = vi.hoisted(() => ({ executeTool: vi.fn() }));
 
-vi.mock('@business-os/connector-composio', async () => {
-  const actual = await vi.importActual<typeof import('@business-os/connector-composio')>(
-    '@business-os/connector-composio',
+vi.mock('@frontrangesystems/business-os-connector-composio', async () => {
+  const actual = await vi.importActual<typeof import('@frontrangesystems/business-os-connector-composio')>(
+    '@frontrangesystems/business-os-connector-composio',
   );
   return {
     ...actual,

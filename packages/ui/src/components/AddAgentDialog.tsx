@@ -128,7 +128,7 @@ export function AddAgentDialog(props: {
                 <div className="rounded border border-dashed border-ink-200 px-3 py-10 text-center text-sm text-ink-500 dark:border-ink-700 dark:text-ink-400">
                   Every agent this install knows about is already enabled. To
                   add new agents, install the package on the server and add it
-                  to <code className="font-mono text-xs">@business-os/agents-all</code>.
+                  to <code className="font-mono text-xs">@frontrangesystems/business-os-agents-all</code>.
                 </div>
               ) : (
                 <ul className="space-y-2">

@@ -5,11 +5,11 @@ import { desc, eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { FastifyInstance } from 'fastify';
-import { defineModule, type ModuleServerContext } from '@business-os/module-sdk';
+import { defineModule, type ModuleServerContext } from '@frontrangesystems/business-os-module-sdk';
 import { exampleNotes } from './schema.js';
 
 /**
- * @business-os/module-example
+ * @frontrangesystems/business-os-module-example
  *
  * The minimum shape of a real module. Demonstrates:
  *   - a settings schema (auto-rendered in the operator UI)

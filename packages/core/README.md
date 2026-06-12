@@ -1,4 +1,4 @@
-# @business-os/core
+# @frontrangesystems/business-os-core
 
 The runnable spine of a Business OS install.
 
@@ -12,15 +12,15 @@ The runnable spine of a Business OS install.
 - **Zod → form schema.** `zodToFieldSchema()` walks an agent/connector's manifest schema and emits a discriminated union the UI auto-renders into a typed form.
 - **Sentry.** `initSentry({ dsn, clientSlug })`, `registerFastifySentry(app)`, `captureAgentError(err, { agentSlug, runId, clientSlug })`. DSN-driven; no-op when empty.
 - **Boot.** `startServer({ inventory, triggerFactory, migrations, mode })` validates env, runs migrations, builds the SecretsStore, optionally starts Fastify, optionally starts the scheduler. Three modes: `api`, `worker`, `both`.
-- **Static UI.** Serves `@business-os/ui/dist` at `/` via `@fastify/static` with SPA fallback. Disabled with `serveUi: false` for test harnesses.
+- **Static UI.** Serves `@frontrangesystems/business-os-ui/dist` at `/` via `@fastify/static` with SPA fallback. Disabled with `serveUi: false` for test harnesses.
 
 ## Use
 
 Client shells call `startServer({...})`. Tests use `buildApp({...})` directly.
 
 ```ts
-import { startServer } from '@business-os/core';
-import { Registry, Scheduler, createConnectorResolver, createJobsBackend } from '@business-os/runtime';
+import { startServer } from '@frontrangesystems/business-os-core';
+import { Registry, Scheduler, createConnectorResolver, createJobsBackend } from '@frontrangesystems/business-os-runtime';
 
 const registry = new Registry();
 // registry.registerAgent(...)

@@ -7,8 +7,8 @@ import {
   settings as settingsTable,
   connectorInstances,
   users,
-} from '@business-os/db';
-import type { Db } from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
+import type { Db } from '@frontrangesystems/business-os-db';
 import { requireUser } from './_require-user.js';
 import { zodToFieldSchema } from '../zod-form.js';
 

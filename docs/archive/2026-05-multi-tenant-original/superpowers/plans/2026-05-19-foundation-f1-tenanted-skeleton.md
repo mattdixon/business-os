@@ -117,9 +117,9 @@ business-os/
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "tenant:create": "pnpm --filter @business-os/tenant-cli run start create",
-    "tenant:migrate": "pnpm --filter @business-os/tenant-cli run start migrate",
-    "tenant:migrate-all": "pnpm --filter @business-os/tenant-cli run start migrate-all"
+    "tenant:create": "pnpm --filter @frontrangesystems/business-os-tenant-cli run start create",
+    "tenant:migrate": "pnpm --filter @frontrangesystems/business-os-tenant-cli run start migrate",
+    "tenant:migrate-all": "pnpm --filter @frontrangesystems/business-os-tenant-cli run start migrate-all"
   },
   "devDependencies": {
     "turbo": "^2.1.0",
@@ -317,7 +317,7 @@ git commit -m "Chore: local Postgres via docker-compose"
 
 ```json
 {
-  "name": "@business-os/db",
+  "name": "@frontrangesystems/business-os-db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -456,12 +456,12 @@ export default defineConfig({
 
 - [ ] **Step 8: Add `dotenv` to package**
 
-Run: `pnpm --filter @business-os/db add dotenv`
+Run: `pnpm --filter @frontrangesystems/business-os-db add dotenv`
 Expected: dotenv added to `packages/db/package.json`.
 
 - [ ] **Step 9: Install + typecheck**
 
-Run: `pnpm install && pnpm --filter @business-os/db run typecheck`
+Run: `pnpm install && pnpm --filter @frontrangesystems/business-os-db run typecheck`
 Expected: no errors.
 
 - [ ] **Step 10: Commit**
@@ -481,7 +481,7 @@ git commit -m "Feat(db): control-plane schema + client (tenants, tenant_modules)
 
 - [ ] **Step 1: Generate initial migration**
 
-Run: `pnpm --filter @business-os/db run drizzle:control:generate`
+Run: `pnpm --filter @frontrangesystems/business-os-db run drizzle:control:generate`
 Expected: `packages/db/migrations/control-plane/0000_*.sql` created. Inspect it: should contain `CREATE TABLE tenants` and `CREATE TABLE tenant_modules`.
 
 - [ ] **Step 2: Create `packages/db/src/migrate.ts`**
@@ -664,12 +664,12 @@ export default defineConfig({
 
 - [ ] **Step 6: Generate tenant migration**
 
-Run: `pnpm --filter @business-os/db run drizzle:tenant:generate`
+Run: `pnpm --filter @frontrangesystems/business-os-db run drizzle:tenant:generate`
 Expected: `packages/db/migrations/tenant/0000_*.sql` created with `CREATE TABLE probes`.
 
 - [ ] **Step 7: Typecheck**
 
-Run: `pnpm --filter @business-os/db run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-db run typecheck`
 Expected: no errors.
 
 - [ ] **Step 8: Commit**
@@ -692,7 +692,7 @@ git commit -m "Feat(db): tenant probe schema + per-tenant connection factory"
 
 ```json
 {
-  "name": "@business-os/tenant-cli",
+  "name": "@frontrangesystems/business-os-tenant-cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -703,7 +703,7 @@ git commit -m "Feat(db): tenant probe schema + per-tenant connection factory"
     "build": "tsc"
   },
   "dependencies": {
-    "@business-os/db": "workspace:*",
+    "@frontrangesystems/business-os-db": "workspace:*",
     "dotenv": "^16.4.0",
     "pg": "^8.13.0",
     "drizzle-orm": "^0.36.0"
@@ -799,7 +799,7 @@ main().catch((err) => {
 - [ ] **Step 4: Install**
 
 Run: `pnpm install`
-Expected: workspace links @business-os/db, no errors.
+Expected: workspace links @frontrangesystems/business-os-db, no errors.
 
 - [ ] **Step 5: Commit**
 
@@ -830,7 +830,7 @@ import {
   tenants,
   migrateControlPlane,
   migrateTenant,
-} from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
 
 const SLUG_RE = /^[a-z][a-z0-9-]{1,30}[a-z0-9]$/;
 
@@ -906,7 +906,7 @@ function required(name: string): string {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `pnpm --filter @business-os/tenant-cli run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-tenant-cli run typecheck`
 Expected: no errors.
 
 - [ ] **Step 3: Create a real tenant from the root**
@@ -951,7 +951,7 @@ import {
   closeControlPlaneDb,
   tenants,
   migrateTenant,
-} from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
 
 export async function migrateOneTenant(slug: string): Promise<void> {
   const controlUrl = required('CONTROL_PLANE_DATABASE_URL');
@@ -1021,7 +1021,7 @@ git commit -m "Feat(cli): tenant:migrate and tenant:migrate-all"
 
 ```json
 {
-  "name": "@business-os/api",
+  "name": "@frontrangesystems/business-os-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -1034,7 +1034,7 @@ git commit -m "Feat(cli): tenant:migrate and tenant:migrate-all"
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/db": "workspace:*",
+    "@frontrangesystems/business-os-db": "workspace:*",
     "@fastify/cookie": "^11.0.0",
     "@sentry/node": "^8.30.0",
     "dotenv": "^16.4.0",
@@ -1150,9 +1150,9 @@ console.log('env loaded', { NODE_ENV: env.NODE_ENV, port: env.API_PORT });
 - [ ] **Step 7: Install + typecheck + smoke-run**
 
 Run: `pnpm install`
-Run: `pnpm --filter @business-os/api run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-api run typecheck`
 Expected: no errors.
-Run: `pnpm --filter @business-os/api run start`
+Run: `pnpm --filter @frontrangesystems/business-os-api run start`
 Expected: prints `env loaded ...` and exits.
 
 - [ ] **Step 8: Commit**
@@ -1229,7 +1229,7 @@ describe('TenantCache', () => {
 
 - [ ] **Step 2: Run the test — expect failure**
 
-Run: `pnpm --filter @business-os/api run test`
+Run: `pnpm --filter @frontrangesystems/business-os-api run test`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `apps/api/src/tenant-cache.ts`**
@@ -1289,7 +1289,7 @@ export class TenantCache<T = TenantRecord> {
 
 - [ ] **Step 4: Run tests — expect pass**
 
-Run: `pnpm --filter @business-os/api run test`
+Run: `pnpm --filter @frontrangesystems/business-os-api run test`
 Expected: 4 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -1375,7 +1375,7 @@ export const __testing__ = { extractSubdomain };
 
 - [ ] **Step 2: Install `fastify-plugin`**
 
-Run: `pnpm --filter @business-os/api add fastify-plugin`
+Run: `pnpm --filter @frontrangesystems/business-os-api add fastify-plugin`
 
 - [ ] **Step 3: Quick unit test for the subdomain extractor**
 
@@ -1408,7 +1408,7 @@ describe('extractSubdomain', () => {
 });
 ```
 
-Run: `pnpm --filter @business-os/api run test`
+Run: `pnpm --filter @frontrangesystems/business-os-api run test`
 Expected: 8 tests pass total (4 cache + 4 resolver).
 
 - [ ] **Step 4: Commit**
@@ -1431,7 +1431,7 @@ git commit -m "Feat(api): tenant-resolver Fastify plugin + subdomain extractor"
 - [ ] **Step 1: Create `apps/api/src/tenant-pool-cache.ts`**
 
 ```ts
-import { createTenantConnection, type TenantConnection } from '@business-os/db/tenant';
+import { createTenantConnection, type TenantConnection } from '@frontrangesystems/business-os-db/tenant';
 
 export interface TenantPoolCacheOptions {
   urlTemplate: string;
@@ -1502,7 +1502,7 @@ export class TenantPoolCache {
 ```ts
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-import type { TenantDb } from '@business-os/db/tenant';
+import type { TenantDb } from '@frontrangesystems/business-os-db/tenant';
 import type { TenantPoolCache } from '../tenant-pool-cache.js';
 
 declare module 'fastify' {
@@ -1534,7 +1534,7 @@ export const dbBinder = fp(plugin, {
 
 - [ ] **Step 3: Typecheck**
 
-Run: `pnpm --filter @business-os/api run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-api run typecheck`
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
@@ -1587,7 +1587,7 @@ import { eq } from 'drizzle-orm';
 import {
   getControlPlaneDb,
   tenants as tenantsTable,
-} from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
 import type { Env } from './env.js';
 import type { Logger } from 'pino';
 import { TenantCache, type TenantRecord } from './tenant-cache.js';
@@ -1696,12 +1696,12 @@ logger.info({ port: env.API_PORT, baseDomain: env.API_BASE_DOMAIN }, 'API listen
 
 - [ ] **Step 4: Typecheck**
 
-Run: `pnpm --filter @business-os/api run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-api run typecheck`
 Expected: no errors.
 
 - [ ] **Step 5: Start it and hit the endpoints**
 
-Run: `pnpm --filter @business-os/api run start`
+Run: `pnpm --filter @frontrangesystems/business-os-api run start`
 In another shell:
 ```bash
 curl -i -H "Host: businessos.localhost:3000" http://localhost:3000/health
@@ -1776,7 +1776,7 @@ app.get('/openapi.json', async () => app.swagger());
 
 - [ ] **Step 2: Install plugins**
 
-Run: `pnpm --filter @business-os/api add @fastify/swagger`
+Run: `pnpm --filter @frontrangesystems/business-os-api add @fastify/swagger`
 (`fastify-zod-openapi` is already in deps.)
 
 - [ ] **Step 3: Update `apps/api/src/routes/health.ts`** to use Zod schemas
@@ -1836,7 +1836,7 @@ export const healthRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
 
 - [ ] **Step 4: Typecheck + run**
 
-Run: `pnpm --filter @business-os/api run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-api run typecheck`
 Expected: no errors.
 
 Run server, then:
@@ -1932,7 +1932,7 @@ import {
   tenants,
   migrateControlPlane,
   migrateTenant,
-} from '@business-os/db';
+} from '@frontrangesystems/business-os-db';
 import { createTenantDatabase } from './postgres.js';
 
 export interface ProvisionedTenant {
@@ -1979,7 +1979,7 @@ export async function teardown(): Promise<void> {
 
 - [ ] **Step 4: Typecheck**
 
-Run: `pnpm --filter @business-os/api run typecheck`
+Run: `pnpm --filter @frontrangesystems/business-os-api run typecheck`
 Expected: no errors.
 
 - [ ] **Step 5: Commit**
@@ -2008,7 +2008,7 @@ import { provisionTenant, setupControlPlane, teardown } from './helpers/tenants.
 import { loadEnv } from '../src/env.js';
 import { createLogger } from '../src/logger.js';
 import { buildServer } from '../src/server.js';
-import { tenant as tenantPkg } from '@business-os/db';
+import { tenant as tenantPkg } from '@frontrangesystems/business-os-db';
 
 let pg: PgHarness;
 let app: FastifyInstance;
@@ -2121,7 +2121,7 @@ describe('cross-tenant isolation', () => {
 
 - [ ] **Step 2: Run the tests**
 
-Run: `pnpm --filter @business-os/api run test`
+Run: `pnpm --filter @frontrangesystems/business-os-api run test`
 Expected: all isolation tests pass, plus the earlier unit tests (12 total). First run will take a minute while testcontainers pulls postgres:16-alpine.
 
 - [ ] **Step 3: Commit**
@@ -2230,7 +2230,7 @@ describe('error handler', () => {
 
 - [ ] **Step 3: Run all tests**
 
-Run: `pnpm --filter @business-os/api run test`
+Run: `pnpm --filter @frontrangesystems/business-os-api run test`
 Expected: all suites pass (tenant-cache, tenant-resolver, isolation, sentry-smoke).
 
 - [ ] **Step 4: Create `README.md` at repo root**
@@ -2257,14 +2257,14 @@ cp .env.example .env
 
 # 3. Install + migrate control plane
 pnpm install
-pnpm --filter @business-os/db drizzle:control:generate   # only if schema changed
+pnpm --filter @frontrangesystems/business-os-db drizzle:control:generate   # only if schema changed
 # (control-plane is auto-migrated on first tenant create in F1; full auto-migration arrives in F2)
 
 # 4. Create a tenant
 pnpm tenant:create --slug demo --name "Demo Tenant"
 
 # 5. Run the API
-pnpm --filter @business-os/api dev
+pnpm --filter @frontrangesystems/business-os-api dev
 
 # 6. Hit it
 curl -H "Host: demo.businessos.localhost:3000" http://localhost:3000/tenant-health
@@ -2313,7 +2313,7 @@ docker compose ps
 # Create a fresh tenant
 pnpm tenant:create --slug e2e --name "End-to-end Test"
 # Start API
-pnpm --filter @business-os/api dev
+pnpm --filter @frontrangesystems/business-os-api dev
 # In another shell:
 curl -H "Host: e2e.businessos.localhost:3000" http://localhost:3000/tenant-health
 # Expected: {"ok":true,"tenant":"e2e","dbProbe":{"one":1}}

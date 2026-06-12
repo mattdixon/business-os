@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-import { createDb, runMigrations, coreMigrations } from '@business-os/db';
+import { createDb, runMigrations, coreMigrations } from '@frontrangesystems/business-os-db';
 
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ??

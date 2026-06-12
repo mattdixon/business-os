@@ -10,7 +10,7 @@ import {
   type ListMessagesOpts,
   type ListMessagesResult,
   type SearchOpts,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Direct IMAP provider for the `email-inbox` capability.

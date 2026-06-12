@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/module-sdk",
+  "name": "@frontrangesystems/business-os-module-sdk",
   "version": "0.0.1",
   "description": "The interface every Business OS module implements — schema + server routes + optional UI pages.",
   "type": "module",
@@ -21,7 +21,7 @@
     "zod": "^3.23.0"
   },
   "peerDependencies": {
-    "@business-os/db": "workspace:^",
+    "@frontrangesystems/business-os-db": "workspace:^",
     "react": "^18.0.0"
   },
   "devDependencies": {

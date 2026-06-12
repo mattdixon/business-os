@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
- * Core schema owned by @business-os/db.
+ * Core schema owned by @frontrangesystems/business-os-db.
  *
  * Each Business OS install is single-tenant. There is no `tenant_id` column
  * anywhere — every row belongs to *this* client. The `client_slug` lives in
@@ -200,7 +200,7 @@ export const agentRuns = pgTable(
 );
 
 // -----------------------------------------------------------------------------
-// migrations — applied migration tracking, owned by @business-os/db
+// migrations — applied migration tracking, owned by @frontrangesystems/business-os-db
 // -----------------------------------------------------------------------------
 
 /**
@@ -210,7 +210,7 @@ export const agentRuns = pgTable(
 export const migrationsApplied = pgTable(
   'migrations_applied',
   {
-    owner: text('owner').notNull(), // e.g. "@business-os/db", "@business-os/agent-leadgen"
+    owner: text('owner').notNull(), // e.g. "@frontrangesystems/business-os-db", "@frontrangesystems/business-os-agent-leadgen"
     name: text('name').notNull(),   // e.g. "0001_init"
     appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
     /** sha256 of the migration sql for drift detection */

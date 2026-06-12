@@ -6,14 +6,14 @@ import {
   type EmailCapability,
   type InboundEmail,
   type OutboundEmail,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Dev/demo email provider.
  *
  * Doesn't actually send anything. Every send() returns a fake messageId and
  * emits a logger.info line. Use this in development, demo environments, and
- * smoke tests; swap in @business-os/connector-gmail (or similar) for prod.
+ * smoke tests; swap in @frontrangesystems/business-os-connector-gmail (or similar) for prod.
  *
  * listInbox() returns an empty array by default. Operators can paste sample
  * inbound messages via the `seedInbox` setting for testing email-triage agents

@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-email-gmail-composio",
+  "name": "@frontrangesystems/business-os-connector-email-gmail-composio",
   "version": "0.0.1",
   "description": "Gmail provider for the email capability, backed by Composio.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-composio": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-composio": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

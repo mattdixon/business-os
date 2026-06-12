@@ -1,4 +1,4 @@
-# @business-os/ui
+# @frontrangesystems/business-os-ui
 
 Operator console. Vite + React + Tailwind.
 
@@ -14,11 +14,11 @@ Operator console. Vite + React + Tailwind.
 
 ```sh
 pnpm dev      # Vite dev server on http://localhost:4937
-pnpm build    # Vite production build → dist/ (served by @business-os/core)
+pnpm build    # Vite production build → dist/ (served by @frontrangesystems/business-os-core)
 ```
 
 Dev server proxies `/api`, `/auth`, `/healthz`, `/readyz` to the running Fastify on `API_PORT`.
 
 ## Built artifacts
 
-The built `dist/` directory is what `@business-os/core` serves at `/` in production via `@fastify/static`. SPA fallback to `index.html` for any path that isn't an API route.
+The built `dist/` directory is what `@frontrangesystems/business-os-core` serves at `/` in production via `@fastify/static`. SPA fallback to `index.html` for any path that isn't an API route.

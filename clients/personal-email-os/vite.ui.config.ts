@@ -2,7 +2,7 @@
  * Personal Email — operator UI Vite build.
  *
  * Builds src/ui/main.tsx into dist-ui/. Core serves that directory at /
- * when it exists, falling back to @business-os/ui's default bundle.
+ * when it exists, falling back to @frontrangesystems/business-os-ui's default bundle.
  *
  * `pnpm build:ui` → production bundle into dist-ui/
  * `pnpm dev:ui`   → Vite dev server on a fixed unique port (proxies /api,

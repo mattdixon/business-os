@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { ModuleUiPage } from '@business-os/module-sdk';
+import type { ModuleUiPage } from '@frontrangesystems/business-os-module-sdk';
 
 /**
- * UI half of @business-os/module-example.
+ * UI half of @frontrangesystems/business-os-module-example.
  *
  * Operator UI imports this and renders ExampleNotesPage at
  * /modules/example. The page talks to the module's own REST routes
@@ -87,7 +87,7 @@ export function ExampleNotesPage(): JSX.Element {
         <h1 className="text-lg font-semibold">Example module — notes</h1>
         <p className="text-sm text-ink-500">
           Minimal proof that modules own their own data + UI. This whole page
-          is shipped by <code className="font-mono">@business-os/module-example</code>.
+          is shipped by <code className="font-mono">@frontrangesystems/business-os-module-example</code>.
         </p>
       </header>
 
@@ -148,7 +148,7 @@ export function ExampleNotesPage(): JSX.Element {
 
 /**
  * UI pages contributed to the operator app. The client shell's UI entry
- * imports this list and feeds it to @business-os/ui's createOperatorApp.
+ * imports this list and feeds it to @frontrangesystems/business-os-ui's createOperatorApp.
  */
 export const uiPages: ModuleUiPage[] = [
   { path: '', navLabel: 'Example notes', Component: ExampleNotesPage },

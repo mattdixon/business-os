@@ -4,7 +4,7 @@ import {
   type ConnectorContext,
   type EmailCapability,
   type OutboundEmail,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Resend provider for the `email` (send) capability.

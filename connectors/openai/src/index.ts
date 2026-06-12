@@ -7,7 +7,7 @@ import {
   type LlmRequest,
   type LlmResponse,
   type LlmStreamChunk,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * OpenAI provider for the `llm` capability.

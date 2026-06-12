@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { ConnectorCapabilityMap } from '@business-os/connector-sdk';
+import type { ConnectorCapabilityMap } from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Schedule declares when the runtime invokes the agent.
@@ -73,7 +73,7 @@ export interface AgentContext<TSettings = unknown> {
     opts?: { providerSlug?: string },
   ): Promise<ConnectorCapabilityMap[C]> | ConnectorCapabilityMap[C];
   /** Drizzle client scoped to the client's database */
-  db: unknown; // typed once @business-os/db is in place
+  db: unknown; // typed once @frontrangesystems/business-os-db is in place
   /** Write an audit-log row */
   audit(action: string, meta?: Record<string, unknown>): Promise<void>;
   /** Enqueue a follow-up job (handled by the same agent or another) */

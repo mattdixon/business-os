@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { pino } from 'pino';
-import { connectorInstances } from '@business-os/db';
+import { connectorInstances } from '@frontrangesystems/business-os-db';
 import { eq } from 'drizzle-orm';
-import { createSecretsStore } from '@business-os/core/secrets';
+import { createSecretsStore } from '@frontrangesystems/business-os-core/secrets';
 import { Registry } from '../src/registry.js';
 import { createConnectorResolver, NoActiveConnectorError } from '../src/active-connectors.js';
 import { freshDb, pgReachable, TEST_DATABASE_URL } from './_db.js';
@@ -92,7 +92,7 @@ d('ConnectorResolver providerSlug (real Postgres)', () => {
   });
 
   it('resolve({ agentSlug }) honors per-agent binding even when another instance is "active"', async () => {
-    const { settings } = await import('@business-os/db');
+    const { settings } = await import('@frontrangesystems/business-os-db');
     // anthropic is the globally-active llm in this test setup, but bind
     // leadgen to the openai instance instead.
     const openaiRow = await env.db

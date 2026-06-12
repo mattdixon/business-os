@@ -1,5 +1,5 @@
-import type { Db } from '@business-os/db';
-import { auditLog } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { auditLog } from '@frontrangesystems/business-os-db';
 
 /**
  * Audit log helper.

@@ -12,7 +12,7 @@ import type { FastifyInstance } from 'fastify';
  *      shellUiDist points). This is what a shell that has registered
  *      modules produces via its own Vite config — the bundle includes
  *      module UI pages.
- *   2. @business-os/ui's default pre-built dist. No modules wired in —
+ *   2. @frontrangesystems/business-os-ui's default pre-built dist. No modules wired in —
  *      module pages render as a placeholder explaining how to switch
  *      to a shell-owned build.
  *
@@ -42,14 +42,14 @@ export function registerUiServe(
     return;
   }
 
-  // 2. Fall back to @business-os/ui's pre-built default bundle.
+  // 2. Fall back to @frontrangesystems/business-os-ui's pre-built default bundle.
   let pkgRoot: string;
   try {
     const pkgJsonPath =
-      opts.uiPackageRoot ?? require.resolve('@business-os/ui/package.json');
+      opts.uiPackageRoot ?? require.resolve('@frontrangesystems/business-os-ui/package.json');
     pkgRoot = opts.uiPackageRoot ?? dirname(pkgJsonPath);
   } catch {
-    app.log.warn('@business-os/ui not resolvable; UI serving disabled.');
+    app.log.warn('@frontrangesystems/business-os-ui not resolvable; UI serving disabled.');
     return;
   }
 
@@ -57,12 +57,12 @@ export function registerUiServe(
   if (!existsSync(dist)) {
     app.log.warn(
       { dist, shellDist },
-      'No UI bundle found. Build the shell UI (`pnpm build:ui`) or @business-os/ui (`pnpm --filter @business-os/ui build`).',
+      'No UI bundle found. Build the shell UI (`pnpm build:ui`) or @frontrangesystems/business-os-ui (`pnpm --filter @frontrangesystems/business-os-ui build`).',
     );
     return;
   }
 
-  mount(app, dist, '@business-os/ui default bundle');
+  mount(app, dist, '@frontrangesystems/business-os-ui default bundle');
 }
 
 function mount(app: FastifyInstance, root: string, label: string): void {

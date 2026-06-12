@@ -1,7 +1,7 @@
 import { Cron } from 'croner';
 import { eq } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import { settings as settingsTable, type Db } from '@business-os/db';
+import { settings as settingsTable, type Db } from '@frontrangesystems/business-os-db';
 import type { Registry } from './registry.js';
 import type { ConnectorResolver } from './active-connectors.js';
 import { runAgent, type RunTrigger } from './run.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/module-prospector",
+  "name": "@frontrangesystems/business-os-module-prospector",
   "version": "0.0.1",
   "description": "Prospector — surfaces scored bid opportunities + accepts thumbs feedback. Reads bids written by the bid-watcher agent; owns its own feedback table.",
   "type": "module",
@@ -21,8 +21,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@business-os/core": "workspace:^",
-    "@business-os/module-sdk": "workspace:^",
+    "@frontrangesystems/business-os-core": "workspace:^",
+    "@frontrangesystems/business-os-module-sdk": "workspace:^",
     "drizzle-orm": "^0.33.0",
     "postgres": "^3.4.4",
     "zod": "^3.23.0"

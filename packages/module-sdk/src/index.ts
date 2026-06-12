@@ -133,7 +133,7 @@ export interface ModuleUiPage {
 
 /**
  * One section of the daily digest, contributed by a module. The digest
- * agent (`@business-os/agent-digest`) calls each module's
+ * agent (`@frontrangesystems/business-os-agent-digest`) calls each module's
  * digestContribution per user, drops empty contributions, and composes
  * one email per user from what's left.
  *

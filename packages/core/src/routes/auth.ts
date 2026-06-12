@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { users } from '@business-os/db';
-import { authContract } from '@business-os/api-contract';
+import { users } from '@frontrangesystems/business-os-db';
+import { authContract } from '@frontrangesystems/business-os-api-contract';
 import { SESSION_COOKIE } from '../app.js';
 import { requireUser } from './_require-user.js';
 import {

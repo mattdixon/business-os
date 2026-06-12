@@ -1,7 +1,7 @@
 import * as OTPAuth from 'otpauth';
 import { eq } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { users } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { users } from '@frontrangesystems/business-os-db';
 import { sealString, openString, type EncryptedPayload } from '../secrets/index.js';
 
 /**

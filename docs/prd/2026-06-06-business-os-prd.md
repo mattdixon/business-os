@@ -86,7 +86,7 @@ Nothing they do requires touching code, redeploying, or editing config files. Th
 **Hybrid A+B:**
 
 - **A. Starter shell** — a thin per-client repo scaffolded once via `pnpm create business-os-client <slug>`. Contains config, env, deploy artifacts, and a place for client-custom agents. Nothing more.
-- **B. Versioned packages** — `@business-os/*` published to a private npm registry. Framework, runtime, SDKs, shared agents, shared connectors. Upgrades flow via `pnpm up`.
+- **B. Versioned packages** — `@frontrangesystems/business-os-*` published to a private npm registry. Framework, runtime, SDKs, shared agents, shared connectors. Upgrades flow via `pnpm up`.
 
 Why hybrid: pure starter-template means every framework upgrade is a per-client merge job. Pure packages means there's no client repo at all. Hybrid means we scaffold the entry point once and put the meat behind versions. This is the same pattern Next.js and Vite use.
 

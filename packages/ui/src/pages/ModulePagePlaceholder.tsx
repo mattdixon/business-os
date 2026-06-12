@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 
 /**
- * Default route handler for /modules/:slug/* in the pre-built @business-os/ui
+ * Default route handler for /modules/:slug/* in the pre-built @frontrangesystems/business-os-ui
  * bundle.
  *
  * Module UI pages are React components shipped by the module package — to
@@ -34,7 +34,7 @@ export function ModulePagePlaceholder(): JSX.Element {
             To get its UI pages in here, build a shell-owned UI that imports the
             module's React components and passes them to{' '}
             <code className="font-mono">createOperatorApp(&#123; modulePages &#125;)</code>{' '}
-            from <code className="font-mono">@business-os/ui</code>. That builds a
+            from <code className="font-mono">@frontrangesystems/business-os-ui</code>. That builds a
             replacement <code className="font-mono">dist/</code> that core serves
             instead of the default.
           </p>

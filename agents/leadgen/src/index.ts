@@ -4,7 +4,7 @@ import {
   LlmPickerSchema,
   resolveLlm,
   type AgentResult,
-} from '@business-os/agent-sdk';
+} from '@frontrangesystems/business-os-agent-sdk';
 
 /**
  * Lead-generation agent.

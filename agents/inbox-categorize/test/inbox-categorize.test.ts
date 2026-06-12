@@ -4,7 +4,7 @@ import type {
   EmailInboxCapability,
   InboxMessageSummary,
   ListMessagesResult,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 interface FakeLlm {
   reply: string;

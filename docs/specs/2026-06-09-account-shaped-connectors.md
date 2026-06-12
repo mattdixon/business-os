@@ -138,7 +138,7 @@ Both can now resolve to the same underlying account. From the agent's perspectiv
 6. **Merge `email-gmail-composio` + `email-inbox-gmail-composio`** into account `gmail-composio` exposing both capabilities.
 7. **Merge `email-inbox-outlook-composio`** into account `outlook-composio` exposing `email-inbox` (later `email` when send adapter lands).
 8. **AddForm + ConnectorsPage UI**.
-9. **API contract** — `/api/connectors` list/instance shapes; update Zod schemas in `@business-os/api-contract`.
+9. **API contract** — `/api/connectors` list/instance shapes; update Zod schemas in `@frontrangesystems/business-os-api-contract`.
 10. **Tests** — vitest integration: create IMAP account, resolve email-inbox and email from it, agent gets both.
 
 ## Risks / open questions

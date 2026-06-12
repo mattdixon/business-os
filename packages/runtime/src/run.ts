@@ -1,15 +1,15 @@
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import type { Db } from '@business-os/db';
-import { agentRuns, settings as settingsTable } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { agentRuns, settings as settingsTable } from '@frontrangesystems/business-os-db';
 import type {
   AgentContext,
   AgentResult,
   Logger as AgentLogger,
-} from '@business-os/agent-sdk';
-import type { ConnectorCapabilityMap } from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-agent-sdk';
+import type { ConnectorCapabilityMap } from '@frontrangesystems/business-os-connector-sdk';
 import type { Logger } from 'pino';
-import { audit, type AuditContext } from '@business-os/core/audit';
+import { audit, type AuditContext } from '@frontrangesystems/business-os-core/audit';
 import type { Registry } from './registry.js';
 import type { ConnectorResolver } from './active-connectors.js';
 
@@ -27,7 +27,7 @@ export interface RunAgentDeps {
   /**
    * Optional error sink. When provided, runAgent calls this whenever an
    * agent throws — used by client shells to forward to Sentry (via
-   * captureAgentError in @business-os/core/sentry).
+   * captureAgentError in @frontrangesystems/business-os-core/sentry).
    */
   onAgentError?: (err: unknown, ctx: { agentSlug: string; runId: string }) => void;
 }

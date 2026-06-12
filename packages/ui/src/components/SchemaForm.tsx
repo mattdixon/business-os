@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 /**
  * Renders an operator-friendly settings form from a FieldSchema tree
- * produced by @business-os/core's zodToFieldSchema(). Mirrors the discriminated
+ * produced by @frontrangesystems/business-os-core's zodToFieldSchema(). Mirrors the discriminated
  * union over there — keeping the shapes copy-pasted here avoids a runtime
  * dep on core from the UI.
  *

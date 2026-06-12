@@ -43,11 +43,11 @@ agent → ctx.connector('email-inbox') → resolver → ComposioEmailConnector(p
 
 ### Package layout
 
-- `@business-os/connector-composio` — the generic Composio client wrapper. Owns the SDK init, auth-config handling, tool invocation, error mapping. NOT registered as a connector itself; it is the runtime substrate that other connectors are built on.
-- `@business-os/connector-<capability>-<provider>` — thin per-provider, per-capability packages. Each one declares the capability it satisfies (`email-inbox`, `crm`, `project-management`) and delegates to `connector-composio`. Example: `@business-os/connector-email-gmail-composio` satisfies `email-inbox`.
-- `@business-os/connector-<capability>-<provider>` (direct) — for non-Composio providers (e.g. `connector-email-imap`).
+- `@frontrangesystems/business-os-connector-composio` — the generic Composio client wrapper. Owns the SDK init, auth-config handling, tool invocation, error mapping. NOT registered as a connector itself; it is the runtime substrate that other connectors are built on.
+- `@frontrangesystems/business-os-connector-<capability>-<provider>` — thin per-provider, per-capability packages. Each one declares the capability it satisfies (`email-inbox`, `crm`, `project-management`) and delegates to `connector-composio`. Example: `@frontrangesystems/business-os-connector-email-gmail-composio` satisfies `email-inbox`.
+- `@frontrangesystems/business-os-connector-<capability>-<provider>` (direct) — for non-Composio providers (e.g. `connector-email-imap`).
 
-Both Composio-backed and direct connectors implement the same `@business-os/connector-sdk` interface. The framework does not care which is which.
+Both Composio-backed and direct connectors implement the same `@frontrangesystems/business-os-connector-sdk` interface. The framework does not care which is which.
 
 ### Auth modes per integration
 
@@ -88,7 +88,7 @@ Direct/custom connectors are required for:
 
 The earlier "should email be Composio or direct" question dissolves:
 
-- `email-inbox` capability: `@business-os/connector-email-gmail-composio`, `@business-os/connector-email-outlook-composio`, `@business-os/connector-email-imap` (direct, imapflow). Three connectors, one capability, operator picks per client.
+- `email-inbox` capability: `@frontrangesystems/business-os-connector-email-gmail-composio`, `@frontrangesystems/business-os-connector-email-outlook-composio`, `@frontrangesystems/business-os-connector-email-imap` (direct, imapflow). Three connectors, one capability, operator picks per client.
 - `email-transactional`: framework-owned, Postmark or Resend, no client config.
 - `email-outreach` (cold sequences for leadgen): deferred. Likely a dedicated provider (Instantly, Smartlead, or a warmed SMTP pool) — not the same job as inbox access. Will get its own capability when leadgen needs it.
 
@@ -96,8 +96,8 @@ The earlier "should email be Composio or direct" question dissolves:
 
 Sequence:
 1. Lock this spec (this document).
-2. Build `@business-os/connector-composio` — the generic wrapper. Init from `COMPOSIO_API_KEY` env var, surface `executeTool(toolkit, action, params)`, `createConnection(toolkit, entityId)`, error mapping.
-3. Build `@business-os/connector-email-gmail-composio` — proof of pattern. Implements the `email-inbox` capability surface: `listMessages`, `getMessage`, `sendMessage`, `reply`, label/thread ops.
+2. Build `@frontrangesystems/business-os-connector-composio` — the generic wrapper. Init from `COMPOSIO_API_KEY` env var, surface `executeTool(toolkit, action, params)`, `createConnection(toolkit, entityId)`, error mapping.
+3. Build `@frontrangesystems/business-os-connector-email-gmail-composio` — proof of pattern. Implements the `email-inbox` capability surface: `listMessages`, `getMessage`, `sendMessage`, `reply`, label/thread ops.
 4. Wire one of the existing agents (likely leadgen) to depend on `email-inbox` via the connector resolver. End-to-end smoke test against a real Gmail account.
 5. Once the pattern proves out, add `connector-email-outlook-composio` and `connector-email-imap` (direct). The capability now has three providers.
 6. From here, every new SaaS integration follows the Composio pattern. Direct only when the exception list applies.

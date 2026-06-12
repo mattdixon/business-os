@@ -40,11 +40,11 @@ Options:
                     works from anywhere.
   --workspace-mode  Place the scaffold inside an existing pnpm workspace
                     and auto-register it in pnpm-workspace.yaml. Required
-                    until @business-os/* are published to a registry.
+                    until @frontrangesystems/business-os-* are published to a registry.
   --help, -h        Show this help
 
 Examples:
-  # Scaffold a standalone shell (requires @business-os/* to be published):
+  # Scaffold a standalone shell (requires @frontrangesystems/business-os-* to be published):
   pnpm create business-os-client c-and-m-construction --name "C&M Construction"
 
   # Scaffold into the framework monorepo so workspace:^ deps resolve locally:
@@ -69,7 +69,7 @@ async function main(): Promise<void> {
 
   // Resolve --dir. Under --workspace-mode, default to <wsRoot>/clients/<slug>-os
   // and resolve relative paths against the workspace root, not CWD. This makes
-  // `pnpm --filter @business-os/create-client start <slug> --workspace-mode`
+  // `pnpm --filter @frontrangesystems/business-os-create-client start <slug> --workspace-mode`
   // do the right thing regardless of which directory you invoked from.
   let targetDir: string;
   if (args.workspaceMode) {
@@ -131,7 +131,7 @@ async function main(): Promise<void> {
       console.log(`  docker compose up -d postgres`);
       console.log(`  pnpm dev\n`);
       console.log(
-        `Note: \`pnpm install\` will fail until @business-os/* are published to your`,
+        `Note: \`pnpm install\` will fail until @frontrangesystems/business-os-* are published to your`,
       );
       console.log(
         `registry. While that's still being decided, scaffold with --workspace-mode`,

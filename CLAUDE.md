@@ -16,7 +16,7 @@ A framework and a library of pluggable agents that we install **once per client*
 
 We ship two things:
 
-1. **Framework + agent library** — versioned npm packages under `@business-os/*`. Published to a private registry (GitHub Packages). Each client install pins versions. Bug fixes flow via `pnpm up`.
+1. **Framework + agent library** — versioned npm packages under `@frontrangesystems/business-os-*`. Published to a private registry (GitHub Packages). Each client install pins versions. Bug fixes flow via `pnpm up`.
 2. **Client starter template** — a thin shell scaffolded once per client via `pnpm create business-os-client <name>`. The shell contains: `package.json` with versioned framework deps, a config file declaring which agents are enabled, env template, deploy scripts, and a place for client-custom agents.
 
 **Per-client install is one repo per client.** Their repo is small (the shell). The framework code lives in the versioned packages, not in their tree.
@@ -28,15 +28,15 @@ We ship two things:
 | Area | Decision |
 |---|---|
 | **Tenancy** | **Single-tenant per install.** No multi-tenant routing, no control-plane DB, no tenant registry. Each client = one deployment + one DB. |
-| **Distribution** | **Hybrid A+B.** Thin starter shell per client (scaffolded once), versioned `@business-os/*` packages for framework and shared agents. |
+| **Distribution** | **Hybrid A+B.** Thin starter shell per client (scaffolded once), versioned `@frontrangesystems/business-os-*` packages for framework and shared agents. |
 | **Registry** | Private npm registry (GitHub Packages under whatever GH org we land on). |
 | **Identity** | Server-side sessions + httpOnly cookie. Argon2id passwords. TOTP MFA optional. Users live in the client's own DB. |
 | **API style** | REST + JSON. Fastify + Zod + OpenAPI. OpenAPI doc is the contract for web + mobile + 3rd party. |
 | **Monorepo** | pnpm workspaces + Turborepo. |
-| **ORM** | Drizzle. Core schema in `@business-os/core`. Each agent owns its own migrations. |
+| **ORM** | Drizzle. Core schema in `@frontrangesystems/business-os-core`. Each agent owns its own migrations. |
 | **Auth** | Server-side sessions, Argon2id, optional TOTP. Password reset via single-use emailed token (15-min TTL). |
 | **Agent registration** | Static registry in the client shell's `business-os.config.ts`. Agents are imported by name and the framework wires them up at boot. |
-| **Connector registration** | Every framework connector is registered automatically via `@business-os/connectors-all` (the client shell calls `registry.registerMany(allFrameworkConnectors)`). The operator decides which providers are *visible* in the Add Instance dropdown via the **Providers** admin page — disabled providers stay registered (existing instances keep working) but don't appear for new instance creation. Client-custom connectors still register explicitly. |
+| **Connector registration** | Every framework connector is registered automatically via `@frontrangesystems/business-os-connectors-all` (the client shell calls `registry.registerMany(allFrameworkConnectors)`). The operator decides which providers are *visible* in the Add Instance dropdown via the **Providers** admin page — disabled providers stay registered (existing instances keep working) but don't appear for new instance creation. Client-custom connectors still register explicitly. |
 | **Agent runtime** | Each agent declares a `manifest` (slug, version, required connectors, settings schema, schedule) and a `run(ctx, input)` function. Framework boots them, schedules them, gives them ctx (logger, db, connectors, settings, audit log). |
 | **Connectors** | Per-capability interfaces, pluggable providers. Agents call `ctx.connector('email')` — never name a provider. Multiple providers per capability allowed; client picks in settings UI. |
 | **Runtime config** | **All credentials, API keys, schedules, on/off, and per-agent settings live in the DB and are managed in the settings UI.** Files declare *what* is installed, NOT secrets or runtime values. Each agent declares a settings Zod schema; framework auto-renders the form. |
@@ -56,27 +56,27 @@ We ship two things:
 ```
 business-os/                              ← this repo (the framework monorepo)
 ├── packages/
-│   ├── core/                  @business-os/core           # Fastify server, auth, users, audit, settings, deploy primitives
-│   ├── runtime/               @business-os/runtime        # Agent runtime: scheduler, ctx, connector resolver, manifest loader
-│   ├── agent-sdk/             @business-os/agent-sdk      # The interface every agent implements + helpers
-│   ├── connector-sdk/         @business-os/connector-sdk  # The interface every connector implements + capability types
-│   ├── db/                    @business-os/db             # Drizzle base schema + migration runner
-│   ├── ui/                    @business-os/ui             # Shared React components (operator UI shell, settings forms)
-│   └── api-contract/          @business-os/api-contract   # Zod schemas + generated OpenAPI types
+│   ├── core/                  @frontrangesystems/business-os-core           # Fastify server, auth, users, audit, settings, deploy primitives
+│   ├── runtime/               @frontrangesystems/business-os-runtime        # Agent runtime: scheduler, ctx, connector resolver, manifest loader
+│   ├── agent-sdk/             @frontrangesystems/business-os-agent-sdk      # The interface every agent implements + helpers
+│   ├── connector-sdk/         @frontrangesystems/business-os-connector-sdk  # The interface every connector implements + capability types
+│   ├── db/                    @frontrangesystems/business-os-db             # Drizzle base schema + migration runner
+│   ├── ui/                    @frontrangesystems/business-os-ui             # Shared React components (operator UI shell, settings forms)
+│   └── api-contract/          @frontrangesystems/business-os-api-contract   # Zod schemas + generated OpenAPI types
 ├── agents/                                                # Shared agent library — each is its own published package
-│   ├── leadgen/               @business-os/agent-leadgen
-│   ├── prospecting/           @business-os/agent-prospecting
-│   ├── linkedin/              @business-os/agent-linkedin
-│   └── instagram/             @business-os/agent-instagram
+│   ├── leadgen/               @frontrangesystems/business-os-agent-leadgen
+│   ├── prospecting/           @frontrangesystems/business-os-agent-prospecting
+│   ├── linkedin/              @frontrangesystems/business-os-agent-linkedin
+│   └── instagram/             @frontrangesystems/business-os-agent-instagram
 ├── connectors/                                            # Shared connector library — each is its own published package
-│   ├── gmail/                 @business-os/connector-gmail
-│   ├── ghl/                   @business-os/connector-ghl
-│   ├── linkedin/              @business-os/connector-linkedin
-│   └── openai/                @business-os/connector-openai
+│   ├── gmail/                 @frontrangesystems/business-os-connector-gmail
+│   ├── ghl/                   @frontrangesystems/business-os-connector-ghl
+│   ├── linkedin/              @frontrangesystems/business-os-connector-linkedin
+│   └── openai/                @frontrangesystems/business-os-connector-openai
 ├── templates/
 │   └── client-starter/                                    # The thin shell every client repo starts from
 ├── tools/
-│   └── create-client/         @business-os/create-client  # `pnpm create business-os-client <name>` scaffolder
+│   └── create-client/         @frontrangesystems/business-os-create-client  # `pnpm create business-os-client <name>` scaffolder
 └── docs/
     ├── prd/                                               # Product requirements
     ├── specs/                                             # Technical design docs
@@ -87,7 +87,7 @@ business-os/                              ← this repo (the framework monorepo)
 
 ```
 c-and-m-construction-os/
-├── package.json               # depends on @business-os/core + agents + connectors at pinned versions
+├── package.json               # depends on @frontrangesystems/business-os-core + agents + connectors at pinned versions
 ├── business-os.config.ts      # registry: which agents enabled, which connectors registered, default schedules
 ├── .env                       # framework-level secrets (DB URL, SECRETS_KEY, system email API key)
 ├── agents/                    # ONLY client-custom agents live here
@@ -99,9 +99,9 @@ c-and-m-construction-os/
 
 - Framework packages (`packages/*`) MUST NOT import from any agent or connector package — only SDK interfaces.
 - Agents MUST NOT import from other agents.
-- Agents may import `@business-os/agent-sdk` and `@business-os/connector-sdk` types.
-- Connectors implement `@business-os/connector-sdk` interfaces and nothing else from the framework.
-- Client shells may import any `@business-os/*` package.
+- Agents may import `@frontrangesystems/business-os-agent-sdk` and `@frontrangesystems/business-os-connector-sdk` types.
+- Connectors implement `@frontrangesystems/business-os-connector-sdk` interfaces and nothing else from the framework.
+- Client shells may import any `@frontrangesystems/business-os-*` package.
 
 ---
 
@@ -157,8 +157,8 @@ If you find yourself writing "put it in `.env`" or "edit the config file" for an
 - A connector capability can have multiple registered providers; the client picks which one is active in settings.
 
 ### Schemas
-- API request/response shapes in `@business-os/api-contract`.
-- Drizzle schemas: core in `@business-os/db`, agent-owned tables in the agent's own package.
+- API request/response shapes in `@frontrangesystems/business-os-api-contract`.
+- Drizzle schemas: core in `@frontrangesystems/business-os-db`, agent-owned tables in the agent's own package.
 - Migrations colocate with the schema that owns them.
 
 ### Tests

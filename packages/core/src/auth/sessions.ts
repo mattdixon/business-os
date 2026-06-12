@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { eq, and, isNull, gt } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { sessions, users, type User } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { sessions, users, type User } from '@frontrangesystems/business-os-db';
 
 /**
  * Sessions.

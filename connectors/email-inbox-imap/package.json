@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-email-inbox-imap",
+  "name": "@frontrangesystems/business-os-connector-email-inbox-imap",
   "version": "0.0.1",
   "description": "Direct IMAP provider for the email-inbox capability.",
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "imapflow": "^1.0.0",
     "zod": "^3.23.0"
   },

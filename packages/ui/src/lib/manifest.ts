@@ -1,5 +1,5 @@
 /**
- * Path constants used by @business-os/core to locate built UI assets at
+ * Path constants used by @frontrangesystems/business-os-core to locate built UI assets at
  * runtime. Kept free of node:* imports so this file typechecks under the
  * UI's browser-only tsconfig.
  */

@@ -1,4 +1,4 @@
-# @business-os/runtime
+# @frontrangesystems/business-os-runtime
 
 Boots agents: registry, ctx factory, runAgent, scheduler, jobs.
 

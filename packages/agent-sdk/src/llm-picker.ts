@@ -4,7 +4,7 @@ import type {
   LlmCapability,
   LlmRequest,
   LlmResponse,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Per-agent LLM picker.

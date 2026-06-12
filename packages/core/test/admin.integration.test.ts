@@ -10,7 +10,7 @@ import type {
   ExternalOAuthBrokerLike,
 } from '../src/inventory.js';
 import { freshDb, pgReachable, TEST_DATABASE_URL } from './_db.js';
-import { settings } from '@business-os/db';
+import { settings } from '@frontrangesystems/business-os-db';
 
 const reachable = await pgReachable(TEST_DATABASE_URL);
 const d = reachable ? describe : describe.skip;
@@ -24,7 +24,7 @@ if (!reachable) {
 
 /**
  * Hand-rolled fake registry that satisfies AgentInventory structurally.
- * Used here so this test doesn't depend on @business-os/runtime (the
+ * Used here so this test doesn't depend on @frontrangesystems/business-os-runtime (the
  * Registry is itself integration-tested in runtime/test).
  */
 function fakeInventory(): AgentInventory {

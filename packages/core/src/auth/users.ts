@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { users, type User } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { users, type User } from '@frontrangesystems/business-os-db';
 import { hashPassword, verifyPassword } from './passwords.js';
 
 export async function createUser(

@@ -12,14 +12,14 @@
  */
 import 'dotenv/config';
 
-import { startServer, captureAgentError } from '@business-os/core';
-import { createSecretsStore, loadSecretsKey } from '@business-os/core/secrets';
-import { createDb } from '@business-os/db';
+import { startServer, captureAgentError } from '@frontrangesystems/business-os-core';
+import { createSecretsStore, loadSecretsKey } from '@frontrangesystems/business-os-core/secrets';
+import { createDb } from '@frontrangesystems/business-os-db';
 import {
   Scheduler,
   createConnectorResolver,
   createJobsBackend,
-} from '@business-os/runtime';
+} from '@frontrangesystems/business-os-runtime';
 import { pino } from 'pino';
 
 import { buildRegistry, extraMigrations } from '../business-os.config.js';

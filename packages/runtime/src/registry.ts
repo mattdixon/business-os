@@ -2,13 +2,13 @@ import type { z } from 'zod';
 import type {
   AgentManifest,
   AgentRun,
-} from '@business-os/agent-sdk';
+} from '@frontrangesystems/business-os-agent-sdk';
 import type {
   ConnectorCapabilityMap,
   ConnectorManifest,
   ConnectorContext,
-} from '@business-os/connector-sdk';
-import type { ModulePackage } from '@business-os/module-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
+import type { ModulePackage } from '@frontrangesystems/business-os-module-sdk';
 
 /**
  * The agent + connector registries.
@@ -88,7 +88,7 @@ export class Registry {
 
   /**
    * Batch-register every agent in `agents`. Used by client shells to wire
-   * `@business-os/agents-all` in one line instead of N individual calls.
+   * `@frontrangesystems/business-os-agents-all` in one line instead of N individual calls.
    * Fails fast on the first duplicate slug, leaving previously-registered
    * agents in place.
    */
@@ -98,7 +98,7 @@ export class Registry {
 
   /**
    * Batch-register every connector in `providers`. Used by client shells
-   * to wire `@business-os/connectors-all` in one line instead of N
+   * to wire `@frontrangesystems/business-os-connectors-all` in one line instead of N
    * individual calls. Fails fast on the first duplicate, leaving previously-
    * registered providers in place.
    */

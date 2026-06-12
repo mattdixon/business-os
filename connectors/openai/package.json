@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-openai",
+  "name": "@frontrangesystems/business-os-connector-openai",
   "version": "0.0.1",
   "description": "OpenAI provider for the @business-os llm capability.",
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "openai": "^4.65.0",
     "zod": "^3.23.0"
   },

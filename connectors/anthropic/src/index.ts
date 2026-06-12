@@ -7,7 +7,7 @@ import {
   type LlmRequest,
   type LlmResponse,
   type LlmStreamChunk,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Anthropic provider for the `llm` capability.
@@ -18,7 +18,7 @@ import {
  * model family. Other models keep `temperature` when provided.
  *
  * The operator configures this connector via the framework settings UI:
- *   - secret: Anthropic API key (encrypted at rest via @business-os/core/secrets)
+ *   - secret: Anthropic API key (encrypted at rest via @frontrangesystems/business-os-core/secrets)
  *   - settings: default model, default max_tokens, optional system prefix
  */
 

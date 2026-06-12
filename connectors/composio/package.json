@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-composio",
+  "name": "@frontrangesystems/business-os-connector-composio",
   "version": "0.0.1",
   "description": "Substrate for Composio-backed connectors — shared client, version pinning, error mapping. Not a connector itself.",
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "@composio/core": "0.10.0",
     "zod": "^3.23.0"
   },

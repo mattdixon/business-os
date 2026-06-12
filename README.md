@@ -8,7 +8,7 @@ A framework and a library of pluggable agents that we install **once per client*
 
 This is the framework monorepo. Two artifacts ship out of here:
 
-1. **Versioned `@business-os/*` npm packages** — the framework primitives, SDKs, and a library of shared agents + connectors. Each client install pins versions and upgrades via `pnpm up`.
+1. **Versioned `@frontrangesystems/business-os-*` npm packages** — the framework primitives, SDKs, and a library of shared agents + connectors. Each client install pins versions and upgrades via `pnpm up`.
 2. **A starter template** — `templates/client-starter/`, the thin per-client repo every install gets via the scaffolder.
 
 You scaffold a client install from the framework, then deploy that install on the client's infrastructure. The framework code lives in versioned packages, not in their tree.
@@ -17,18 +17,18 @@ You scaffold a client install from the framework, then deploy that install on th
 
 ## Run it locally
 
-Two paths. The first is what you want for a demo or for local development. The second is what a real client install looks like once `@business-os/*` is published to a private registry.
+Two paths. The first is what you want for a demo or for local development. The second is what a real client install looks like once `@frontrangesystems/business-os-*` is published to a private registry.
 
 ### Path A — Workspace mode (recommended while there's no private registry)
 
-Scaffolds a client shell **inside this monorepo** under `clients/`, registers it in `pnpm-workspace.yaml`, and consumes the `@business-os/*` deps via `workspace:^`. No registry needed.
+Scaffolds a client shell **inside this monorepo** under `clients/`, registers it in `pnpm-workspace.yaml`, and consumes the `@frontrangesystems/business-os-*` deps via `workspace:^`. No registry needed.
 
 ```sh
 # From the monorepo root
 pnpm install
 pnpm -r build                          # one-time, so workspace packages resolve via dist/
 
-pnpm --filter @business-os/create-client start c-and-m-construction \
+pnpm --filter @frontrangesystems/business-os-create-client start c-and-m-construction \
   --name "C&M Construction" \
   --dir ./clients/c-and-m-construction-os \
   --workspace-mode
@@ -60,7 +60,7 @@ The `email-stub` and `crm-stub` connectors are already active after `seed:dev`, 
 
 ### Path B — Standalone shell (post-registry)
 
-Once `@business-os/*` are published to a private registry, the same scaffolder builds a repo outside the monorepo:
+Once `@frontrangesystems/business-os-*` are published to a private registry, the same scaffolder builds a repo outside the monorepo:
 
 ```sh
 pnpm create business-os-client c-and-m-construction \
@@ -87,7 +87,7 @@ pnpm -r build                          # rebuild dist/ across packages
 pnpm -r typecheck                      # whole-workspace typecheck
 pnpm -r test                           # whole-workspace tests
 
-pnpm --filter @business-os/ui dev      # UI dev server on http://localhost:4937
+pnpm --filter @frontrangesystems/business-os-ui dev      # UI dev server on http://localhost:4937
                                        # (proxies /api, /auth to API_PORT)
 ```
 
@@ -106,23 +106,23 @@ Most workspace tests run pure unit-style. The integration tests against real Pos
 ```
 business-os/
 ├── packages/
-│   ├── core/                 @business-os/core           Fastify server, auth, audit, secrets, admin API, boot, Sentry
-│   ├── runtime/              @business-os/runtime        Registry, scheduler, ctx, connector resolver, pg-boss jobs
-│   ├── agent-sdk/            @business-os/agent-sdk      The interface every agent implements + LlmPicker helper
-│   ├── connector-sdk/        @business-os/connector-sdk  The interface every connector implements + capability types
-│   ├── db/                   @business-os/db             Drizzle base schema + forward-only migration runner
-│   ├── ui/                   @business-os/ui             Operator UI (Vite + React + Tailwind)
-│   └── api-contract/         @business-os/api-contract   Zod request/response schemas
+│   ├── core/                 @frontrangesystems/business-os-core           Fastify server, auth, audit, secrets, admin API, boot, Sentry
+│   ├── runtime/              @frontrangesystems/business-os-runtime        Registry, scheduler, ctx, connector resolver, pg-boss jobs
+│   ├── agent-sdk/            @frontrangesystems/business-os-agent-sdk      The interface every agent implements + LlmPicker helper
+│   ├── connector-sdk/        @frontrangesystems/business-os-connector-sdk  The interface every connector implements + capability types
+│   ├── db/                   @frontrangesystems/business-os-db             Drizzle base schema + forward-only migration runner
+│   ├── ui/                   @frontrangesystems/business-os-ui             Operator UI (Vite + React + Tailwind)
+│   └── api-contract/         @frontrangesystems/business-os-api-contract   Zod request/response schemas
 ├── agents/
-│   ├── leadgen/              @business-os/agent-leadgen    Prospect drafting via the llm capability
-│   └── prospecting/          @business-os/agent-prospecting Per-company research + outreach
+│   ├── leadgen/              @frontrangesystems/business-os-agent-leadgen    Prospect drafting via the llm capability
+│   └── prospecting/          @frontrangesystems/business-os-agent-prospecting Per-company research + outreach
 ├── connectors/
-│   ├── anthropic/            @business-os/connector-anthropic   LLM provider (Claude)
-│   ├── openai/               @business-os/connector-openai      LLM provider (GPT)
-│   ├── email-stub/           @business-os/connector-email-stub  Dev/demo email provider
-│   └── crm-stub/             @business-os/connector-crm-stub    Dev/demo CRM provider (own migration)
+│   ├── anthropic/            @frontrangesystems/business-os-connector-anthropic   LLM provider (Claude)
+│   ├── openai/               @frontrangesystems/business-os-connector-openai      LLM provider (GPT)
+│   ├── email-stub/           @frontrangesystems/business-os-connector-email-stub  Dev/demo email provider
+│   └── crm-stub/             @frontrangesystems/business-os-connector-crm-stub    Dev/demo CRM provider (own migration)
 ├── tools/
-│   └── create-client/        @business-os/create-client    pnpm create CLI (--workspace-mode supported)
+│   └── create-client/        @frontrangesystems/business-os-create-client    pnpm create CLI (--workspace-mode supported)
 ├── templates/
 │   └── client-starter/       The per-client shell scaffold (NOT a workspace package)
 └── docs/
@@ -134,7 +134,7 @@ business-os/
 ## Locked architectural decisions
 
 - **Single-tenant per install.** No multi-tenant routing, no control-plane DB, no tenant registry. Each client = one deployment + one DB.
-- **Hybrid distribution.** Thin starter shell per client (scaffolded once) + versioned `@business-os/*` packages for the framework and shared agents/connectors.
+- **Hybrid distribution.** Thin starter shell per client (scaffolded once) + versioned `@frontrangesystems/business-os-*` packages for the framework and shared agents/connectors.
 - **Connectors expose capabilities, not providers.** Agents ask `ctx.connector('email')`; operators pick the provider in the UI. Multiple providers per capability are allowed; per-agent provider+model selection is supported via the `LlmPicker` convention.
 - **All credentials, schedules, on/off, per-agent settings live in the DB.** Files declare what is installed, never secrets or runtime values.
 - **Forward-only migrations.** Each owner (framework core, every agent, every connector) ships its own migration directory with sha256 drift detection.

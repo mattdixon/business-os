@@ -1,5 +1,5 @@
 /**
- * @business-os/connectors-all
+ * @frontrangesystems/business-os-connectors-all
  *
  * Re-exports every framework-shipped connector. Client shells import this
  * one package and call `registry.registerMany(allFrameworkConnectors)` —
@@ -12,18 +12,18 @@
  * toggles which providers are surfaced.
  */
 
-import anthropic from '@business-os/connector-anthropic';
-import openai from '@business-os/connector-openai';
-import emailStub from '@business-os/connector-email-stub';
-import crmStub, { crmStubMigrations } from '@business-os/connector-crm-stub';
-import emailGmailComposio from '@business-os/connector-email-gmail-composio';
-import emailResend from '@business-os/connector-resend';
-import emailInboxGmailComposio from '@business-os/connector-email-inbox-gmail-composio';
-import emailInboxOutlookComposio from '@business-os/connector-email-inbox-outlook-composio';
-import emailInboxImap from '@business-os/connector-email-inbox-imap';
+import anthropic from '@frontrangesystems/business-os-connector-anthropic';
+import openai from '@frontrangesystems/business-os-connector-openai';
+import emailStub from '@frontrangesystems/business-os-connector-email-stub';
+import crmStub, { crmStubMigrations } from '@frontrangesystems/business-os-connector-crm-stub';
+import emailGmailComposio from '@frontrangesystems/business-os-connector-email-gmail-composio';
+import emailResend from '@frontrangesystems/business-os-connector-resend';
+import emailInboxGmailComposio from '@frontrangesystems/business-os-connector-email-inbox-gmail-composio';
+import emailInboxOutlookComposio from '@frontrangesystems/business-os-connector-email-inbox-outlook-composio';
+import emailInboxImap from '@frontrangesystems/business-os-connector-email-inbox-imap';
 
-import type { ConnectorPackage, ConnectorCapabilityMap } from '@business-os/connector-sdk';
-import type { MigrationOwner } from '@business-os/db';
+import type { ConnectorPackage, ConnectorCapabilityMap } from '@frontrangesystems/business-os-connector-sdk';
+import type { MigrationOwner } from '@frontrangesystems/business-os-db';
 
 /**
  * Every framework connector, in registration order. Order doesn't affect

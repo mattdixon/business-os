@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-prospecting",
+  "name": "@frontrangesystems/business-os-agent-prospecting",
   "version": "0.0.1",
   "description": "Per-company research note + first-touch outreach draft, optionally sent via the active email connector.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/agent-sdk": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

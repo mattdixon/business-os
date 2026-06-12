@@ -144,7 +144,7 @@ async function main() {
 
   // Background process: turbo watch keeps framework dist/ in sync with
   // src/. Combined with `tsx watch` (in the `dev` script), this gives
-  // full hot-reload across the stack — edit @business-os/runtime, save,
+  // full hot-reload across the stack — edit @frontrangesystems/business-os-runtime, save,
   // dist/ rebuilds, tsx restarts the API, browser reconnects.
   let turboWatch = null;
   if (isWorkspace) {

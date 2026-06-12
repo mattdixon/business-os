@@ -16,7 +16,7 @@ import { Settings } from './pages/Settings';
 import { AuthProvider, RequireAuth } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './lib/toast';
-import type { ModuleUiPage } from '@business-os/module-sdk';
+import type { ModuleUiPage } from '@frontrangesystems/business-os-module-sdk';
 
 /**
  * Per-module UI bundle. A client shell that wants module pages to render
@@ -40,7 +40,7 @@ export interface CreateOperatorAppOptions {
 
 /**
  * Build the operator app. Two consumers:
- *   1. @business-os/ui's own main.tsx (default no-module bundle served by core).
+ *   1. @frontrangesystems/business-os-ui's own main.tsx (default no-module bundle served by core).
  *   2. A client shell's own UI entry that imports its modules and passes them
  *      in via `modules`.
  *

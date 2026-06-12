@@ -4,12 +4,12 @@ import {
   LlmPickerSchema,
   resolveLlm,
   type AgentResult,
-} from '@business-os/agent-sdk';
+} from '@frontrangesystems/business-os-agent-sdk';
 import type {
   EmailInboxCapability,
   InboxMessageSummary,
   ListMessagesResult,
-} from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Inbox-categorize agent.

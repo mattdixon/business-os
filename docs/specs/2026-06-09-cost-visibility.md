@@ -23,7 +23,7 @@ Without this, the value-prop ("a custom OS that runs autonomously") collapses th
 
 1. **Emission** — runtime + LLM connectors + Composio connector emit `usage` rows tagged with capability, provider, model, agent slug, run id, dimensions, and cost.
 2. **Rollups + caps** — operator UI surfaces per-agent, per-connector, and per-install totals over selectable windows; budget caps stop runs when exceeded.
-3. **Pricing tables** — a versioned, hand-maintained per-model rate table in `@business-os/core` so token counts become dollar figures.
+3. **Pricing tables** — a versioned, hand-maintained per-model rate table in `@frontrangesystems/business-os-core` so token counts become dollar figures.
 
 This belongs in the framework, not in any single agent. It is wired into `runAgent()` as a first-class context concern, identical to `audit`.
 
@@ -31,7 +31,7 @@ This belongs in the framework, not in any single agent. It is wired into `runAge
 
 ### `usage` table — one row per billable event
 
-Owned by `@business-os/db`. Forward-only migration adds it as `0003_usage.sql`.
+Owned by `@frontrangesystems/business-os-db`. Forward-only migration adds it as `0003_usage.sql`.
 
 ```ts
 export const usage = pgTable(
@@ -152,7 +152,7 @@ Per-LLM-call emission flow:
 
 ### Composio connector
 
-Composio's API returns per-call billing context in some plans; until we have that integration, the `@business-os/connector-composio` package emits a `usage` row with:
+Composio's API returns per-call billing context in some plans; until we have that integration, the `@frontrangesystems/business-os-connector-composio` package emits a `usage` row with:
 - `kind='composio'`
 - `providerSlug='composio'`
 - `detail = '<TOOLKIT>.<ACTION>'`
@@ -210,7 +210,7 @@ NEVER stored in `usage`. Token counts only. Privacy + retention reasons. If we n
 
 ## Pricing table
 
-`@business-os/core/pricing.ts` — versioned, hand-maintained:
+`@frontrangesystems/business-os-core/pricing.ts` — versioned, hand-maintained:
 
 ```ts
 export const PRICING = {
@@ -322,7 +322,7 @@ POST /api/usage/budgets            — create/update a budget
 DELETE /api/usage/budgets/:id      — delete
 ```
 
-All Zod-validated via `@business-os/api-contract/usage.ts`. Auth = requireUser. Audit-logged on writes.
+All Zod-validated via `@frontrangesystems/business-os-api-contract/usage.ts`. Auth = requireUser. Audit-logged on writes.
 
 ## Privacy
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
-import { defineAgent, type AgentResult } from '@business-os/agent-sdk';
+import { defineAgent, type AgentResult } from '@frontrangesystems/business-os-agent-sdk';
 
 /**
  * Daily digest.

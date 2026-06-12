@@ -1,11 +1,11 @@
 import { Composio, ComposioError } from '@composio/core';
-import type { ExternalOAuthBroker } from '@business-os/connector-sdk';
+import type { ExternalOAuthBroker } from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Substrate for Composio-backed connectors.
  *
  * NOT a `defineConnector` package. This module is consumed by per-capability,
- * per-provider connectors (e.g. @business-os/connector-email-gmail-composio)
+ * per-provider connectors (e.g. @frontrangesystems/business-os-connector-email-gmail-composio)
  * which translate our capability interfaces into Composio tool calls.
  *
  * Design points:

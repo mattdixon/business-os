@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/connector-email-stub",
+  "name": "@frontrangesystems/business-os-connector-email-stub",
   "version": "0.0.1",
   "description": "Dev/demo provider for the email capability — logs sends instead of dispatching.",
   "type": "module",
@@ -18,7 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

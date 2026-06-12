@@ -38,7 +38,7 @@ export interface ScaffoldOptions {
    * inside its own directory.
    *
    * When false (default): the shell is written as a standalone repo. It
-   * won't `pnpm install` cleanly until @business-os/* are published to a
+   * won't `pnpm install` cleanly until @frontrangesystems/business-os-* are published to a
    * registry — flag this in the success message.
    */
   workspaceMode?: boolean;

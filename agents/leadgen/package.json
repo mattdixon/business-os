@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-leadgen",
+  "name": "@frontrangesystems/business-os-agent-leadgen",
   "version": "0.0.1",
   "description": "Shared lead-generation agent. Drafts prospects + outreach via the llm capability.",
   "type": "module",
@@ -18,8 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@business-os/agent-sdk": "workspace:^",
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "zod": "^3.23.0"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { settings as settingsTable } from '@business-os/db';
+import { settings as settingsTable } from '@frontrangesystems/business-os-db';
 import type { AppDeps } from './app.js';
 import type { ModulePackageLike } from './inventory.js';
 

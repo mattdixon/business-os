@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { eq, and, isNull, gt } from 'drizzle-orm';
-import type { Db } from '@business-os/db';
-import { passwordResetTokens, users } from '@business-os/db';
+import type { Db } from '@frontrangesystems/business-os-db';
+import { passwordResetTokens, users } from '@frontrangesystems/business-os-db';
 import { hashPassword } from './passwords.js';
 import { revokeAllUserSessions } from './sessions.js';
 

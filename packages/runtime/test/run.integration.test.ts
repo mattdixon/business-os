@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { pino } from 'pino';
-import { connectorInstances, agentRuns, auditLog, settings as settingsTable } from '@business-os/db';
+import { connectorInstances, agentRuns, auditLog, settings as settingsTable } from '@frontrangesystems/business-os-db';
 import { eq } from 'drizzle-orm';
-import { createSecretsStore } from '@business-os/core/secrets';
+import { createSecretsStore } from '@frontrangesystems/business-os-core/secrets';
 import { Registry } from '../src/registry.js';
 import {
   createConnectorResolver,

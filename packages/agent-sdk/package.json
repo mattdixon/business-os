@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agent-sdk",
+  "name": "@frontrangesystems/business-os-agent-sdk",
   "version": "0.0.1",
   "description": "The interface every Business OS agent implements.",
   "type": "module",
@@ -21,10 +21,10 @@
     "zod": "^3.23.0"
   },
   "peerDependencies": {
-    "@business-os/connector-sdk": "workspace:^"
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^"
   },
   "devDependencies": {
-    "@business-os/connector-sdk": "workspace:^",
+    "@frontrangesystems/business-os-connector-sdk": "workspace:^",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   },

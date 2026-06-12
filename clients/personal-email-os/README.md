@@ -79,7 +79,7 @@ pnpm dev:ui                     # Vite UI dev server, foreground
 
 The operator UI is built from `src/ui/main.tsx` into `dist-ui/`. The Fastify
 server serves that bundle at `/` when it exists, falling back to
-`@business-os/ui`'s default bundle when it doesn't.
+`@frontrangesystems/business-os-ui`'s default bundle when it doesn't.
 
 ```sh
 pnpm build:ui              # production bundle into dist-ui/

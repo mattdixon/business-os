@@ -17,13 +17,13 @@ importers:
 
   agents/digest:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../../packages/db
       drizzle-orm:
@@ -45,10 +45,10 @@ importers:
 
   agents/inbox-categorize:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -64,10 +64,10 @@ importers:
 
   agents/inbox-cleanup:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -83,10 +83,10 @@ importers:
 
   agents/inbox-surface:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -102,10 +102,10 @@ importers:
 
   agents/leadgen:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -121,10 +121,10 @@ importers:
 
   agents/prospecting:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -140,42 +140,42 @@ importers:
 
   clients/c-and-m-construction-os:
     dependencies:
-      '@business-os/agent-sdk':
-        specifier: workspace:^
-        version: link:../../packages/agent-sdk
-      '@business-os/agents-all':
-        specifier: workspace:^
-        version: link:../../packages/agents-all
-      '@business-os/connector-composio':
-        specifier: workspace:^
-        version: link:../../connectors/composio
-      '@business-os/connector-sdk':
-        specifier: workspace:^
-        version: link:../../packages/connector-sdk
-      '@business-os/connectors-all':
-        specifier: workspace:^
-        version: link:../../packages/connectors-all
-      '@business-os/core':
-        specifier: workspace:^
-        version: link:../../packages/core
-      '@business-os/db':
-        specifier: workspace:^
-        version: link:../../packages/db
-      '@business-os/module-prospector':
-        specifier: workspace:^
-        version: link:../../modules/prospector
-      '@business-os/module-sdk':
-        specifier: workspace:^
-        version: link:../../packages/module-sdk
-      '@business-os/runtime':
-        specifier: workspace:^
-        version: link:../../packages/runtime
-      '@business-os/ui':
-        specifier: workspace:^
-        version: link:../../packages/ui
       '@composio/core':
         specifier: 0.10.0
         version: 0.10.0(zod@3.25.76)
+      '@frontrangesystems/business-os-agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+      '@frontrangesystems/business-os-agents-all':
+        specifier: workspace:^
+        version: link:../../packages/agents-all
+      '@frontrangesystems/business-os-connector-composio':
+        specifier: workspace:^
+        version: link:../../connectors/composio
+      '@frontrangesystems/business-os-connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
+      '@frontrangesystems/business-os-connectors-all':
+        specifier: workspace:^
+        version: link:../../packages/connectors-all
+      '@frontrangesystems/business-os-core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@frontrangesystems/business-os-db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@frontrangesystems/business-os-module-prospector':
+        specifier: workspace:^
+        version: link:../../modules/prospector
+      '@frontrangesystems/business-os-module-sdk':
+        specifier: workspace:^
+        version: link:../../packages/module-sdk
+      '@frontrangesystems/business-os-runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      '@frontrangesystems/business-os-ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -228,37 +228,37 @@ importers:
 
   clients/personal-email-os:
     dependencies:
-      '@business-os/agent-inbox-categorize':
+      '@frontrangesystems/business-os-agent-inbox-categorize':
         specifier: workspace:^
         version: link:../../agents/inbox-categorize
-      '@business-os/agent-inbox-cleanup':
+      '@frontrangesystems/business-os-agent-inbox-cleanup':
         specifier: workspace:^
         version: link:../../agents/inbox-cleanup
-      '@business-os/agent-inbox-surface':
+      '@frontrangesystems/business-os-agent-inbox-surface':
         specifier: workspace:^
         version: link:../../agents/inbox-surface
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
-      '@business-os/connectors-all':
+      '@frontrangesystems/business-os-connectors-all':
         specifier: workspace:^
         version: link:../../packages/connectors-all
-      '@business-os/core':
+      '@frontrangesystems/business-os-core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../../packages/db
-      '@business-os/module-sdk':
+      '@frontrangesystems/business-os-module-sdk':
         specifier: workspace:^
         version: link:../../packages/module-sdk
-      '@business-os/runtime':
+      '@frontrangesystems/business-os-runtime':
         specifier: workspace:^
         version: link:../../packages/runtime
-      '@business-os/ui':
+      '@frontrangesystems/business-os-ui':
         specifier: workspace:^
         version: link:../../packages/ui
       dotenv:
@@ -313,7 +313,7 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.40.0
         version: 0.40.1
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -332,12 +332,12 @@ importers:
 
   connectors/composio:
     dependencies:
-      '@business-os/connector-sdk':
-        specifier: workspace:^
-        version: link:../../packages/connector-sdk
       '@composio/core':
         specifier: 0.10.0
         version: 0.10.0(zod@3.25.76)
+      '@frontrangesystems/business-os-connector-sdk':
+        specifier: workspace:^
+        version: link:../../packages/connector-sdk
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -354,10 +354,10 @@ importers:
 
   connectors/crm-stub:
     dependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../../packages/db
       drizzle-orm:
@@ -382,10 +382,10 @@ importers:
 
   connectors/email-gmail-composio:
     dependencies:
-      '@business-os/connector-composio':
+      '@frontrangesystems/business-os-connector-composio':
         specifier: workspace:^
         version: link:../composio
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -404,10 +404,10 @@ importers:
 
   connectors/email-inbox-gmail-composio:
     dependencies:
-      '@business-os/connector-composio':
+      '@frontrangesystems/business-os-connector-composio':
         specifier: workspace:^
         version: link:../composio
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -426,7 +426,7 @@ importers:
 
   connectors/email-inbox-imap:
     dependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       imapflow:
@@ -448,10 +448,10 @@ importers:
 
   connectors/email-inbox-outlook-composio:
     dependencies:
-      '@business-os/connector-composio':
+      '@frontrangesystems/business-os-connector-composio':
         specifier: workspace:^
         version: link:../composio
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -470,7 +470,7 @@ importers:
 
   connectors/email-stub:
     dependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -489,7 +489,7 @@ importers:
 
   connectors/openai:
     dependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       openai:
@@ -511,7 +511,7 @@ importers:
 
   connectors/resend:
     dependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../../packages/connector-sdk
       zod:
@@ -530,10 +530,10 @@ importers:
 
   modules/example:
     dependencies:
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../../packages/db
-      '@business-os/module-sdk':
+      '@frontrangesystems/business-os-module-sdk':
         specifier: workspace:^
         version: link:../../packages/module-sdk
       drizzle-orm:
@@ -567,10 +567,10 @@ importers:
 
   modules/prospector:
     dependencies:
-      '@business-os/core':
+      '@frontrangesystems/business-os-core':
         specifier: workspace:^
         version: link:../../packages/core
-      '@business-os/module-sdk':
+      '@frontrangesystems/business-os-module-sdk':
         specifier: workspace:^
         version: link:../../packages/module-sdk
       drizzle-orm:
@@ -605,7 +605,7 @@ importers:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../connector-sdk
       typescript:
@@ -617,25 +617,25 @@ importers:
 
   packages/agents-all:
     dependencies:
-      '@business-os/agent-digest':
+      '@frontrangesystems/business-os-agent-digest':
         specifier: workspace:^
         version: link:../../agents/digest
-      '@business-os/agent-inbox-categorize':
+      '@frontrangesystems/business-os-agent-inbox-categorize':
         specifier: workspace:^
         version: link:../../agents/inbox-categorize
-      '@business-os/agent-inbox-cleanup':
+      '@frontrangesystems/business-os-agent-inbox-cleanup':
         specifier: workspace:^
         version: link:../../agents/inbox-cleanup
-      '@business-os/agent-inbox-surface':
+      '@frontrangesystems/business-os-agent-inbox-surface':
         specifier: workspace:^
         version: link:../../agents/inbox-surface
-      '@business-os/agent-leadgen':
+      '@frontrangesystems/business-os-agent-leadgen':
         specifier: workspace:^
         version: link:../../agents/leadgen
-      '@business-os/agent-prospecting':
+      '@frontrangesystems/business-os-agent-prospecting':
         specifier: workspace:^
         version: link:../../agents/prospecting
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../agent-sdk
     devDependencies:
@@ -664,37 +664,37 @@ importers:
 
   packages/connectors-all:
     dependencies:
-      '@business-os/connector-anthropic':
+      '@frontrangesystems/business-os-connector-anthropic':
         specifier: workspace:^
         version: link:../../connectors/anthropic
-      '@business-os/connector-crm-stub':
+      '@frontrangesystems/business-os-connector-crm-stub':
         specifier: workspace:^
         version: link:../../connectors/crm-stub
-      '@business-os/connector-email-gmail-composio':
+      '@frontrangesystems/business-os-connector-email-gmail-composio':
         specifier: workspace:^
         version: link:../../connectors/email-gmail-composio
-      '@business-os/connector-email-inbox-gmail-composio':
+      '@frontrangesystems/business-os-connector-email-inbox-gmail-composio':
         specifier: workspace:^
         version: link:../../connectors/email-inbox-gmail-composio
-      '@business-os/connector-email-inbox-imap':
+      '@frontrangesystems/business-os-connector-email-inbox-imap':
         specifier: workspace:^
         version: link:../../connectors/email-inbox-imap
-      '@business-os/connector-email-inbox-outlook-composio':
+      '@frontrangesystems/business-os-connector-email-inbox-outlook-composio':
         specifier: workspace:^
         version: link:../../connectors/email-inbox-outlook-composio
-      '@business-os/connector-email-stub':
+      '@frontrangesystems/business-os-connector-email-stub':
         specifier: workspace:^
         version: link:../../connectors/email-stub
-      '@business-os/connector-openai':
+      '@frontrangesystems/business-os-connector-openai':
         specifier: workspace:^
         version: link:../../connectors/openai
-      '@business-os/connector-resend':
+      '@frontrangesystems/business-os-connector-resend':
         specifier: workspace:^
         version: link:../../connectors/resend
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../connector-sdk
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../db
     devDependencies:
@@ -707,15 +707,15 @@ importers:
 
   packages/core:
     dependencies:
-      '@business-os/api-contract':
-        specifier: workspace:^
-        version: link:../api-contract
-      '@business-os/db':
-        specifier: workspace:^
-        version: link:../db
       '@fastify/static':
         specifier: ^7.0.4
         version: 7.0.4
+      '@frontrangesystems/business-os-api-contract':
+        specifier: workspace:^
+        version: link:../api-contract
+      '@frontrangesystems/business-os-db':
+        specifier: workspace:^
+        version: link:../db
       '@sentry/node':
         specifier: ^8.32.0
         version: 8.55.2
@@ -781,7 +781,7 @@ importers:
 
   packages/module-sdk:
     dependencies:
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../db
       react:
@@ -797,19 +797,19 @@ importers:
 
   packages/runtime:
     dependencies:
-      '@business-os/agent-sdk':
+      '@frontrangesystems/business-os-agent-sdk':
         specifier: workspace:^
         version: link:../agent-sdk
-      '@business-os/connector-sdk':
+      '@frontrangesystems/business-os-connector-sdk':
         specifier: workspace:^
         version: link:../connector-sdk
-      '@business-os/core':
+      '@frontrangesystems/business-os-core':
         specifier: workspace:^
         version: link:../core
-      '@business-os/db':
+      '@frontrangesystems/business-os-db':
         specifier: workspace:^
         version: link:../db
-      '@business-os/module-sdk':
+      '@frontrangesystems/business-os-module-sdk':
         specifier: workspace:^
         version: link:../module-sdk
       croner:
@@ -843,7 +843,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@business-os/module-sdk':
+      '@frontrangesystems/business-os-module-sdk':
         specifier: workspace:^
         version: link:../module-sdk
       '@radix-ui/react-alert-dialog':

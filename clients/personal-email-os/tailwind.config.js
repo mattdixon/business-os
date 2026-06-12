@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
-import { tailwindContent } from '@business-os/ui/tailwind-content';
+import { tailwindContent } from '@frontrangesystems/business-os-ui/tailwind-content';
 
 export default {
-  // Include the install's own UI files AND @business-os/ui's source so all
+  // Include the install's own UI files AND @frontrangesystems/business-os-ui's source so all
   // utility classes used by the framework UI are emitted in the final build.
   content: ['./src/ui/**/*.{ts,tsx,html}', ...tailwindContent],
   darkMode: 'class',

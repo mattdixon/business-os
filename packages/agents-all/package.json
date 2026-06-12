@@ -1,5 +1,5 @@
 {
-  "name": "@business-os/agents-all",
+  "name": "@frontrangesystems/business-os-agents-all",
   "version": "0.0.1",
   "description": "Aggregator package — re-exports every framework agent so client shells can registerManyAgents() instead of importing each one individually.",
   "type": "module",
@@ -17,13 +17,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@business-os/agent-digest": "workspace:^",
-    "@business-os/agent-inbox-categorize": "workspace:^",
-    "@business-os/agent-inbox-cleanup": "workspace:^",
-    "@business-os/agent-inbox-surface": "workspace:^",
-    "@business-os/agent-leadgen": "workspace:^",
-    "@business-os/agent-prospecting": "workspace:^",
-    "@business-os/agent-sdk": "workspace:^"
+    "@frontrangesystems/business-os-agent-digest": "workspace:^",
+    "@frontrangesystems/business-os-agent-inbox-categorize": "workspace:^",
+    "@frontrangesystems/business-os-agent-inbox-cleanup": "workspace:^",
+    "@frontrangesystems/business-os-agent-inbox-surface": "workspace:^",
+    "@frontrangesystems/business-os-agent-leadgen": "workspace:^",
+    "@frontrangesystems/business-os-agent-prospecting": "workspace:^",
+    "@frontrangesystems/business-os-agent-sdk": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

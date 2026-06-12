@@ -4,8 +4,8 @@ import {
   LlmPickerSchema,
   resolveLlm,
   type AgentResult,
-} from '@business-os/agent-sdk';
-import type { EmailCapability } from '@business-os/connector-sdk';
+} from '@frontrangesystems/business-os-agent-sdk';
+import type { EmailCapability } from '@frontrangesystems/business-os-connector-sdk';
 
 /**
  * Prospecting agent.

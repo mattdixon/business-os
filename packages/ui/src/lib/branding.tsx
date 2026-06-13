@@ -23,10 +23,26 @@ export interface Branding {
    */
   logoUrl?: string;
   /**
+   * The logo's own ink color, for single-color (monochrome) logos. When set,
+   * the framework keeps the header on the normal theme background and flips
+   * the logo with a CSS `invert()` filter so it always contrasts:
+   *
+   * - `'light'` — a white/light logo. Inverted to dark in light mode; left
+   *   light in dark mode.
+   * - `'dark'` — a black/dark logo. Left dark in light mode; inverted to
+   *   light in dark mode.
+   *
+   * Only use this for monochrome logos — `invert()` hue-shifts multi-color
+   * artwork. For those, use `headerBackground` instead. When omitted, the
+   * logo renders as-is on the theme background.
+   */
+  logoTone?: 'light' | 'dark';
+  /**
    * Force the sidebar header section (logo + name + subtitle) to a fixed
    * background regardless of the user's theme. Useful when the logo is
-   * single-color (e.g. a white logo on transparent) and only reads against
-   * one background. When omitted, the header inherits the theme background.
+   * multi-color and only reads against one background (so `logoTone`'s
+   * invert trick won't work). When omitted, the header inherits the theme
+   * background.
    *
    * - `'dark'` — dark background + light text in both light and dark mode.
    * - `'light'` — light background + dark text in both modes.

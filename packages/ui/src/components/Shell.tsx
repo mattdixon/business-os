@@ -51,7 +51,15 @@ export function Shell(): JSX.Element {
             <img
               src={branding.logoUrl}
               alt={branding.businessName}
-              className="mb-2 h-8 w-auto"
+              className={
+                // Monochrome logos flip with the theme so they always
+                // contrast with the header background.
+                branding.logoTone === 'light'
+                  ? 'mb-2 h-8 w-auto invert dark:invert-0'
+                  : branding.logoTone === 'dark'
+                    ? 'mb-2 h-8 w-auto dark:invert'
+                    : 'mb-2 h-8 w-auto'
+              }
             />
           )}
           <div className="text-sm font-semibold tracking-tight">
